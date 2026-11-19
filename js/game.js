@@ -7,12 +7,12 @@ import { makeUI, COL } from './ui.js';
 import * as R from './rules.js';
 
 // 小葵的 24 格揮劍（影片抽格的試驗素材）。每格 1/8 秒照影片原速播；蓄力和揮完定住那兩段幾乎不動的影格只留頭尾，縮短停頓。
-// 網址加 ?h3=0 可以切回原本的兩張姿勢，方便比較。
+// 使用者試過覺得跟原本差不多（2026-11-19），所以預設不用；網址加 ?h3=1 才會換成這組，留著之後比較。
 const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125, 1.25, 1.375, 1.375, 1.375, 1.375, 1.375, 1.375, 1.375, 1.5, 1.625, 1.75], H3_HIT = 1.0, H3_END = 1.875;
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.2.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.2.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -74,7 +74,7 @@ const goHome = (t, id, dur = .28) => units[id].move(t, home(id)[0], home(id)[1],
 // ---------- 我方行動的演出。都回傳結束時間 ----------
 function playAttack(r, t0) {
   const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.0 : 1.05; let th, te;
-  if (id === 'kui' && u.frames.h3 && Q.get('h3') !== '0') { th = t0 + H3_HIT; u.anim(t0, 'h3', H3_T).move(t0 + .45, tx + gap + .25, tz + .02, .22, easeOut); snd(t0 + .45, 'whoosh', .5); SFX.add('speed', t0 + .8, .2, { a: .4 });
+  if (id === 'kui' && u.frames.h3 && Q.get('h3') === '1') { th = t0 + H3_HIT; u.anim(t0, 'h3', H3_T).move(t0 + .45, tx + gap + .25, tz + .02, .22, easeOut); snd(t0 + .45, 'whoosh', .5); SFX.add('speed', t0 + .8, .2, { a: .4 });
     fx('melee/sword-slash', th - .08, [tx + gap, tz], { flip: true, palette: 'fire', scale: tg === 'boss' ? 1.6 : 1.2 }); snd(th - .06, 'slash', .9); cam.shake(th, .1, .25); applyHit(th, h, { snd: false }); goHome(t0 + 1.5, id, .28); te = t0 + H3_END; }
   else if (id === 'kui') { th = t0 + .28; u.pose(t0, 'wind').move(t0 + .06, tx + gap, tz + .02, .14, easeOut).pose(t0 + .2, 'act'); SFX.add('speed', t0 + .04, .2, { a: .4 }); snd(t0 + .06, 'whoosh', .5);
     fx('melee/sword-slash', th - .06, [tx + gap, tz], { flip: true, palette: 'fire', scale: tg === 'boss' ? 1.6 : 1.2 }); snd(th - .04, 'slash', .9); cam.shake(th, .1, .25); applyHit(th, h, { snd: false }); goHome(th + .45, id, .26); te = th + .8; }
@@ -105,7 +105,7 @@ function playSkill(r, t0) {
   if (r.key === 'sweep') { const th = t0 + .34; u.anim(t0, 'ult', [0, .04, .08, .14, .2, .26, .7, .9]).move(t0 + .06, .3, -.3, .14, easeOut); SFX.add('speed', t0 + .04, .25, { a: .5 }); snd(t0 + .08, 'whoosh', .6); snd(th - .06, 'slash_multi', 1);
     fx('melee/spin-slash', th - .12, [.0, -.3], { flip: true, palette: 'fire', scale: 2.4 }); const [x0, y0] = P(1.2, 1.1, -.3), [x1, y1] = P(-3.6, .9, -.3); SFX.add('slash', th - .04, .4, { x0, y0, x1, y1, c: [255, 190, 110], w: 8 }); cam.shake(th, .16, .35);
     hs.forEach((h, i) => applyHit(th + i * .09, h, { snd: i ? false : 'slash', dy: i % 2 ? -70 : 0 })); goHome(th + .6, id, .28); te = th + 1.0; }
-  else if (r.key === 'retort') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.0 : 1.05, h3 = u.frames.h3 && Q.get('h3') !== '0', th = t0 + (h3 ? H3_HIT : .36);
+  else if (r.key === 'retort') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.0 : 1.05, h3 = u.frames.h3 && Q.get('h3') === '1', th = t0 + (h3 ? H3_HIT : .36);
     if (h3) { u.anim(t0, 'h3', H3_T).move(t0 + .45, tx + gap + .25, tz + .02, .22, easeOut); snd(t0 + .45, 'whoosh', .55); SFX.add('speed', t0 + .8, .22, { a: .5 }); }
     else { u.anim(t0, 'ult', [0, .05, .1, .16, .22, .28, .8, 1.0]).move(t0 + .1, tx + gap, tz + .02, .14, easeOut); SFX.add('speed', t0 + .06, .22, { a: .5 }); snd(t0 + .1, 'whoosh', .55); }
     fx('melee/heavy-cleave', th - .2, [tx + gap, tz], { flip: true, palette: 'fire', scale: tg === 'boss' ? 1.7 : 1.3 }); fx('impacts/crit-hit', th, tg, { y: foeY(tg), scale: 1.6, palette: 'fire' }); snd(th - .05, 'slash_b', 1); cam.shake(th, .2, .4); SFX.add('flash', th, .2, { c: [255, 200, 140], a: .45 });
