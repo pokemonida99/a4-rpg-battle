@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.4.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.4.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -39,6 +39,14 @@ S.partyMode = 'h';      // 隊伍狀態放最上面一排，不蓋到右邊的�
 const skin = makeSkin(c, A, S, DEFS); let moShown = state.mo;
 S.skinHud = (t, a, cardOn) => skin.hud(t, a, cardOn, moShown, R.MO, R.STAT.boss.shield); S.skinBoxes = t => skin.boxes(t);
 S.pot = () => !!(state.L && state.L.pot) && !state.potUsed && R.MINIONS.some(m => R.alive(state, m));      // 甩鍋課長：這回合的第一下還沒甩掉
+
+// ---------- 加到主畫面的提醒 ----------
+// 已經是從主畫面開的（standalone）就不提醒。Android Chrome 會給 beforeinstallprompt，可以直接跳安裝；iPhone 只能教使用者按分享鈕。
+const UA = navigator.userAgent, IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1), ANDROID = /Android/.test(UA);
+const STANDALONE = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+let installEvt = null, installed = false, iconImg = null; { const im = new Image(); im.onload = () => { iconImg = im; }; im.src = 'icons/icon-192.png'; }
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; }); addEventListener('appinstalled', () => { installed = true; installEvt = null; });
+const a2hs = () => { if (STANDALONE || installed || PREF.noA2hs) return null; if (installEvt) return ['點這裡加到主畫面', '以後從圖示開，全螢幕玩']; if (IOS) return ['加到主畫面，全螢幕玩', 'Safari 的分享鈕 →「加入主畫面」']; if (ANDROID || Q.has('a2hs')) return ['加到主畫面，全螢幕玩', '瀏覽器選單 ⋮ →「加到主畫面」']; return null; };
 
 // ---------- 聲音：WebAudio，事件排在遊戲時鐘上 ----------
 const PREF = (() => { try { return JSON.parse(localStorage.getItem('a4rpg') || '{}'); } catch (e) { return {}; } })(), savePref = () => { try { localStorage.setItem('a4rpg', JSON.stringify(PREF)); } catch (e) { /* 存不了就算了 */ } };
@@ -384,7 +392,9 @@ function drawOverlay() {
     skin.paper(W / 2 - 520, 496, 1040, 262, { clips: [W / 2 - 440, W / 2 + 440] });
     ['三關連打：加班大隊 → 甩鍋課長 → 奧客總經理，過關可以選一個強化', '小兵還在場上的時候，魔王不會受傷，先把小兵清掉', '行動會累積全隊共用的「氣勢」，夠了就能放奧義；Vivi 的應援加最多', '把魔王的「底氣」打到歸零，他會理虧：少動一次、受到的傷害變多', '魔王蓄力之後下一次行動放大招，用 Kevin 的奧義或防禦撐過去'].forEach((s, i) => { gem(W / 2 - 474, 534 + i * 46, 6, RED); text(s, W / 2 - 452, 544 + i * 46, { px: 26, w: 700, col: INK }); });
     if (phase === 'title') bigButton('開始戰鬥', W / 2, 838); else text(loadMsg + '…', W / 2, 848, { px: 30, w: 500, align: 'center', col: COL.dim });
-    toggles(W / 2 - 166, 930); text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 1022, { px: 21, w: 500, align: 'center', col: 'rgba(239,230,207,.7)' }); }
+    toggles(W / 2 - 166, 930);
+    { const tip = a2hs(); if (tip) { const x = 1392, y = 52, w = 492, h = 150, pe = pressed && pressed.opt === 'a2hs' ? 1 : 0; zones.push({ x, y, w, h, opt: 'a2hs' }); c.save(); c.translate(0, pe ? 4 : 0); skin.paper(x, y, w, h, { clips: [x + 60, x + w - 60] });
+        if (iconImg) { c.imageSmoothingEnabled = false; c.drawImage(iconImg, x + 20, y + 22, 106, 106); c.imageSmoothingEnabled = true; } text(tip[0], x + 144, y + 62, { px: 28, w: 900, fam: SERIF, col: INK }); text(tip[1], x + 144, y + 98, { px: 20, w: 700, col: INK2 }); text(installEvt ? '' : '點一下這張紙就不再提醒', x + 144, y + 128, { px: 16, w: 500, col: 'rgba(43,31,24,.55)' }); c.restore(); } } text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 1022, { px: 21, w: 500, align: 'center', col: 'rgba(239,230,207,.7)' }); }
   if (phase === 'over') { zones = []; if (state.over === 'win') bigButton('再玩一次', 1500, 930, 400, 110);
     else { text('全員倒下', W / 2, 400, { px: 150, w: 900, fam: SERIF, align: 'center', ls: 20, col: '#ff8a78', stroke: 'rgba(20,6,8,.9)', sw: 16 }); text(`倒在第 ${run.stage + 1} 關「${R.STAGES[run.stage].name}」` + (state.hasBoss ? `　${DEFS.boss.name}還剩 ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}% 的血` : ''), W / 2, 500, { px: 32, w: 500, align: 'center', col: COL.text }); text('提示：看到「蓄力」就讓 Kevin 放奧義；血少的時候小米的奧義可以全員補滿', W / 2, 560, { px: 24, w: 500, align: 'center', col: COL.dim }); bigButton('再挑戰一次', W / 2, 760); } }
 }
@@ -396,6 +406,7 @@ const PRESS_MS = 130; let pressed = null;
 const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* 沒有震動就算了 */ } };
 function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
+  if (z.opt === 'a2hs') { pressed = { opt: 'a2hs', t: performance.now() }; snd(now, 'cursor', .6); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(r => { if (r && r.outcome === 'accepted') installed = true; }).catch(() => 0); } else { PREF.noA2hs = true; savePref(); } return; }
   if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); snd(now, 'cursor', .6); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.off) { pressed = { i: z.i, t: performance.now() }; snd(now, 'cursor', .35); buzz([8, 40, 8]); setTimeout(() => { pressed = null; }, 260); return; }
   pressed = { i: z.i, big: z.big, t: performance.now() }; snd(now, 'confirm', .9); buzz(14); if (!z.big) focus = z.i;

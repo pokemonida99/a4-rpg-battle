@@ -5,7 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 rm -rf dist && mkdir -p dist/js dist/audio/sfx dist/audio/vo dist/audio/bgm dist/art
-cp game.html dist/index.html
+cp game.html dist/index.html && cp manifest.webmanifest dist/ && cp -R icons dist/
 cp js/*.js dist/js/ && rm -f dist/js/main.js      # main.js 是影片預覽用的，遊戲不需要
 cp -R vendor dist/ && mkdir -p dist/fonts
 # 字型瘦身：只留遊戲程式裡出現過的字（11MB → 幾百 KB），手機載入快很多。程式裡新增文字後重新 deploy 就會帶進去

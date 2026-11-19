@@ -91,3 +91,9 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 甩鍋課長的圖：`art/enemy/chief_{idle,wind,atk,hurt}.png`（原圖 `art/raw/chief.png`，`art/raw/jobs6.sh`，`cut.py --cell 2.82 --gap 4`）。
 - `tools/sim.mjs` 改成跑整輪三關：smart 通關 100%、casual 約 74%、rush 約 90%、mash 過得了第一關但過不了頭目。一輪約 12 回合。
 - `tools/deploy.sh`：`js/*.js` 全部帶上（之前漏了 skin.js，靠本機測建置檔抓到）；字型只留程式裡出現的字（11MB → 0.6MB）。`zsh tools/deploy.sh build` 只建置不推，可用 `python3 -m http.server 4631 --directory dist` 加 `PLAY_URL=http://localhost:4631/ node tools/playtest.mjs` 先測。
+
+## v0.4.1（2026-11-19）主畫面圖示與「加到主畫面」提醒
+- 圖示是 Vivi：`tools/icon.py` 用 `art/cutin/bust_vivi.png` 合成（不另外生圖），墨綠底＋黃銅邊框 → `icons/`（512、192、apple-touch-icon 180、maskable 512）。
+- `manifest.webmanifest`（名稱上班旅人、全螢幕、橫向）＋ `game.html` 的圖示與 apple-mobile-web-app 標籤。沒有做 service worker（不離線快取，更新不會卡舊版）。
+- 開始畫面右上角的提醒紙條（`game.js` 的 `a2hs()`）：已經從主畫面開就不顯示；Android Chrome 有安裝事件時點一下直接跳安裝；iPhone 顯示「Safari 的分享鈕 → 加入主畫面」；點一下就不再提醒（記在裝置上）。電腦上不顯示，網址加 `?a2hs` 可以強制看。
+- 影片抽格試驗的 24 張圖改成只有 `?h3=1` 才載入。
