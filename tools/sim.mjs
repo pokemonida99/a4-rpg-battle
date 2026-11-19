@@ -81,3 +81,14 @@ for (const starter of ['kui', 'jie']) { console.log(`── 起始角色：${sta
   for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; const died = MAP.map(() => 0);
     for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
     console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); } }
+// ---------- 存檔自我檢查：每一站存檔再讀回來要一模一樣；壞掉或版本不對的存檔要作廢 ----------
+{ const R2 = await import('../js/rules.js'); let n = 0, bad = 0; const strip = r => JSON.stringify(R2.saveRun(r));
+  for (let seed = 1; seed <= 40; seed++) { const rand = mulberry(seed * 31 + 5), run = newRun(rand, seed % 2 ? 'kui' : 'jie', null); prepare(run);
+    while (run.floor < MAP.length - 1) { const fl = MAP[run.floor], i = Math.floor(rand() * fl.length), nd = enterNode(run, i), off = run.offers[run.floor] || {};
+      if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') applyUpgrade(run, offerUpgrades(run)[0]); else if (nd.type === 'recruit') { if ((off[i] || []).length) join(run, off[i][0]); }
+      else { for (const id of run.roster) run.hp[id] = Math.max(1, Math.round(STAT[id].hp * rand())); const who = nd.rescue && off[i]; if (who) join(run, who[0]); applyUpgrade(run, offerUpgrades(run)[Math.floor(rand() * 3)]); }
+      advance(run); const hpMax = Object.fromEntries(run.roster.map(id => [id, STAT[id].hp])), a = strip(run), back = R2.loadRun(JSON.parse(a), rand); n++;
+      if (!back || strip(back.run) !== a || run.roster.some(id => STAT[id].hp !== hpMax[id])) { bad++; console.log('存檔讀回來不一樣', seed, run.floor); } } }
+  const good = R2.saveRun(newRun(Math.random, 'kui', null)), broke = [{ ...good, v: 99 }, { ...good, v: 0 }, { ...good, roster: ['nobody'] }, { ...good, floor: 99 }, { ...good, picks: ['zzz'] }, { ...good, hp: {} }, { ...good, items: { tea: -1 } }, { ...good, pend: 'upgrade' }, null, 'x', {}];
+  const leak = broke.filter(b => R2.loadRun(b) !== null).length;
+  console.log(`── 存檔檢查：${n} 次存讀${bad ? `，${bad} 次不一致` : '全部一致'}；${broke.length} 種壞檔${leak ? `有 ${leak} 種沒擋下來` : '全部作廢'}`); if (bad || leak) process.exitCode = 1; }

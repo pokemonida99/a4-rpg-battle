@@ -127,6 +127,37 @@ export function applyUpgrade(run, key) { run.picks.push(key);
   else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u[0]); }
   else if (key === 'leave') { for (const id of ALL) if (id !== 'vivi') STAT[id].hp = Math.round(STAT[id].hp * 1.2); for (const id of run.roster) run.hp[id] = STAT[id].hp; } }
 
+// ---------- 存檔：站與站之間的進度（戰鬥打到一半不存，重開會回到進站前） ----------
+// SAVE_V＝存檔格式的版本。格式有變就加一，並在 MIGRATE[舊版號] 放一個把舊資料改成下一版的函式；
+// 沒有對應的轉換、或轉完檢查不過，loadRun 回傳 null（存檔作廢，不會帶著壞資料進遊戲）。
+export const SAVE_V = 1;
+const MIGRATE = {};
+export function saveRun(run, extra = {}) { const { rand, node, ...d } = run; return { v: SAVE_V, ...JSON.parse(JSON.stringify(d)), ...extra }; }
+export function loadRun(data, rand = Math.random) {
+  try {
+    let d = JSON.parse(JSON.stringify(data)); if (!d || !Number.isInteger(d.v) || d.v < 1 || d.v > SAVE_V) return null;
+    while (d.v < SAVE_V) { const f = MIGRATE[d.v]; if (!f) return null; d = f(d); d.v++; }
+    const num = x => typeof x === 'number' && Number.isFinite(x), ok = c => { if (!c) throw new Error('bad save'); };
+    ok(Number.isInteger(d.floor) && d.floor >= 0 && d.floor < MAP.length);
+    ok(Array.isArray(d.roster) && d.roster.length >= 1 && d.roster.length <= 6 && new Set(d.roster).size === d.roster.length && d.roster.every(id => ALL.includes(id)));
+    ok(d.starter == null || d.roster.includes(d.starter)); ok(Array.isArray(d.picks) && d.picks.every(k => UPGRADES[k]));
+    ok(Array.isArray(d.path) && d.path.length <= MAP.length); for (let k = 0; k < d.floor; k++) ok(Number.isInteger(d.path[k]) && MAP[k][d.path[k]]);
+    ok(d.pend == null || (d.pend === 'upgrade' && Number.isInteger(d.path[d.floor]) && MAP[d.floor][d.path[d.floor]] && d.floor < MAP.length - 1));
+    ok(d.rescued == null || d.roster.includes(d.rescued));
+    ok([d.atk, d.def, d.moStart, d.rounds, d.summons].every(num) && d.atk > 0 && d.def > 0);
+    ok(d.items && Object.keys(ITEMS).every(k => num(d.items[k]) && d.items[k] >= 0));
+    ok(d.offers && typeof d.offers === 'object' && Object.values(d.offers).every(o => o && Object.values(o).every(l => Array.isArray(l) && l.every(id => ALL.includes(id)))));
+    const run = newRun(rand, d.roster[0], null);      // newRun 會把 STAT 還原成基本值；「特休」強化改過的 HP 上限照拿過的次數重算
+    for (const k of d.picks) if (k === 'leave') for (const id of ALL) if (id !== 'vivi') STAT[id].hp = Math.round(STAT[id].hp * 1.2);
+    run.hp = {}; run.sp = {}; run.skills = {};
+    for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
+      run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons });
+    run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
+    return { run, pend: d.pend || null, rescued: d.rescued || null };
+  } catch (e) { return null; }
+}
+
 // ---------- 一場戰鬥 ----------
 export function newState(run = newRun()) {
   if (typeof run === 'function') { run = newRun(run); run.floor = MAP.length - 1; run.node = MAP[run.floor][0]; }      // 舊用法 newState(rand)：五人隊直接打魔王

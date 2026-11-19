@@ -134,3 +134,10 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 
 - v0.6.0 上線後開場要等一分鐘以上：角色圖是一張一張排隊下載（16 人、一百多張）。`js/battle.js` 改成所有人、所有圖同時下載（`Promise.all`），載完再照順序放進場景。
 - 線上入口是根網址（`deploy.sh` 把 `game.html` 改名成 `index.html`），測線上版用 `PLAY_URL=https://pokemonida99.github.io/a4-rpg-battle/ node tools/playtest.mjs`。
+
+## v0.6.2（2026-11-20）存檔
+- **進度會自動存**（localStorage 的 `a4rpg.run`）：每次回到行程表、每次打贏要選強化之前各存一次。重新整理或關掉再開，標題畫面會多一顆「繼續上班」；通關或全員倒下就刪掉。戰鬥打到一半不存，重開會回到進站前的行程表。
+- 存檔格式有版本號（`rules.js` 的 `SAVE_V`）。以後格式有變：`SAVE_V` 加一，在 `MIGRATE[舊版號]` 放轉換函式；轉不了或檢查不過的存檔 `loadRun` 回傳 null，直接作廢，不會帶著壞資料進遊戲。
+- `node tools/sim.mjs` 最後會跑存檔自我檢查（280 次存讀要一致、11 種壞檔要作廢）。
+- `RELOAD=hub:3 node tools/playtest.mjs`：玩到第 4 站的行程表時重新整理網頁，檢查讀回來的進度一樣，再接著玩完。`RELOAD=pick:2` 是在第 3 站打贏、選強化之前重新整理。
+- 網址帶 `?stage=` 的測試模式不存檔也不讀檔。

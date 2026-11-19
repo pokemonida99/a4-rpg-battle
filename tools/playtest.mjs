@@ -15,8 +15,9 @@ await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}${process.env.STAGE ? '&s
 await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 });
 const shot = async name => { const url = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const x = c.getContext('2d'); x.drawImage(document.getElementById('gl'), 0, 0); x.drawImage(document.getElementById('hud'), 0, 0); return c.toDataURL('image/jpeg', .85); }); fs.writeFileSync(path.join(OUT, name + '.jpg'), Buffer.from(url.split(',')[1], 'base64')); };
 await shot('00_title');
-await page.evaluate((policy, HUB, PICK) => {
-  window.__log = []; __game.start();
+// RELOAD=hub:3（在第 4 站的行程表）或 RELOAD=pick:2（第 3 站打贏、選強化之前）：重新整理網頁，檢查存檔讀回來一樣，再接著玩
+const inject = (how, keep = []) => page.evaluate((policy, HUB, PICK, how, keep) => {
+  window.__log = keep; if (how === 'resume') __game.resume(); else __game.start();
   setInterval(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const nodes = g.menu.items.filter(x => x.node != null), i = HUB === 'rest' ? 0 : nodes.length - 1; window.__hubN = (window.__hubN || 0) + 1; if (window.__hubN < 12) return;      /* 在大地圖停一下讓截圖拍得到 */ window.__hubN = 0; __log.push(`${Math.round(g.now)}s 行程表：${nodes[i].label}　隊伍 ${g.run.roster.join(',')}`); return g.go(i); } if (g.phase === 'pick' && g.menu) { window.__pickN = (window.__pickN || 0) + 1; if (window.__pickN < 10) return; window.__pickN = 0; const k = PICK === 'last' ? g.menu.items.length - 1 : 0; __log.push(`${Math.round(g.now)}s 選卡「${g.menu.title}」：${g.menu.items[k].label}`); return g.press(k); } if (g.phase !== 'command' || !g.menu) return; const m = g.menu, s = g.state, F = g.front, id = g.actor;
     const note = t => __log.push(`${Math.round(g.now)}s R${s.round} ${id}: ${t}`);
     if (m.kind === 'root') {
@@ -28,10 +29,15 @@ await page.evaluate((policy, HUB, PICK) => {
       if (!m.items[1].off && Math.random() < .45) { note('技能'); return g.press(1); }
       note(m.items[0].label); return g.press(0); }
     const i = m.items.findIndex(x => !x.off && !x.back); note('→ ' + m.items[i < 0 ? m.items.length - 1 : i].label); g.press(i < 0 ? m.items.length - 1 : i); }, 120);
-}, policy, process.env.HUB || 'fight', process.env.PICK || 'first');
+}, policy, process.env.HUB || 'fight', process.env.PICK || 'first', how, keep);
+await inject('start'); const RL = (process.env.RELOAD || '').split(':'); let reloaded = !RL[0];
+const snap = src => page.evaluate(src => { const r = src === 'saved' ? __game.saved && __game.saved.run : __game.run; return r && JSON.stringify({ floor: r.floor, roster: r.roster, hp: r.hp, sp: r.sp, picks: r.picks, items: r.items, skills: r.skills }); }, src);
 let n = 1, lastLog = 0; const t0 = Date.now();
 while (Date.now() - t0 < 520000) {
-  await new Promise(r => setTimeout(r, 900)); const st = await page.evaluate(() => ({ phase: __game.phase, now: __game.now, over: __game.state.over, round: __game.state.round, stage: __game.run.floor, hp: __game.state.hp, n: __log.length }));
+  await new Promise(r => setTimeout(r, 900)); const st = await page.evaluate(() => ({ phase: __game.phase, now: __game.now, over: __game.state.over, round: __game.state.round, stage: __game.run.floor, hp: __game.state.hp, n: __log.length, title: __game.menu && __game.menu.title }));
+  if (!reloaded && st.phase === RL[0] && st.stage === +RL[1] && (RL[0] !== 'pick' || st.title === '過關獎勵')) { reloaded = true; const before = await snap('run'), log = await page.evaluate(() => __log);
+    await page.reload(); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 }); await new Promise(r => setTimeout(r, 700)); await shot('50_title_resume'); const after = await snap('saved');
+    if (before !== after) errors.push(`存檔讀回來不一樣：\n  存 ${before}\n  讀 ${after}`); await inject('resume', log.concat(`── 重新整理（${RL.join(' ')}），讀取進度${before === after ? '一致' : '不一致'}`)); continue; }
   if (n < 90 && n % 2 === 1 | 1) await shot(String(n++).padStart(2, '0') + `_s${st.stage + 1}r${st.round}_${Math.round(st.now)}s`);
   if (st.phase === 'over') { await new Promise(r => setTimeout(r, 1500)); await shot('99_end'); break; }
 }
