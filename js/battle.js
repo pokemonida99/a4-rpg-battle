@@ -70,11 +70,11 @@ export async function setupStage(E) {
   }));
   // 新夥伴：所有人、所有圖同時載，載完再照順序放進場景
   const extra = await Promise.all(EXTRA.map(async id => { const opt = p => p.catch(() => null);
-    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opt(img(`art/cutin/bust_${id}.png`)), opt(img(`art/cutin/eyes_${id}.jpg`))]);
-    return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes }; }));
-  for (const { id, f, hurt, guard, ko, bust, eyes } of extra) { const d = DEFS[id];
+    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opt(img(`art/cutin/bust_${id}.png`)), opt(img(`art/cutin/eyes_${id}.jpg`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`))]);
+    return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes, atk }; }));
+  for (const { id, f, hurt, guard, ko, bust, eyes, atk } of extra) { const d = DEFS[id];
     if (!f.ready || !f.wind || !f.act || !f.win || !bust) { d.missing = true; continue; }
-    f.ult = [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1;
+    f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean);      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
     if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (ko.every(Boolean)) f.ko = ko;
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
     A.bust[id] = bust; A.eyes[id] = eyes;

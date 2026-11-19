@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.6.3';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.7.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -129,13 +129,18 @@ const goHome = (t, id, dur = .28) => units[id].move(t, home(id)[0], home(id)[1],
 // ---------- 我方行動的演出。都回傳結束時間 ----------
 // 新夥伴的普攻是近戰還是施法
 const CASTER = { yan: 1, cha: 1, fairy: 1, xu: 1 };
+// 新夥伴出招：有 8 格圖就逐格播（1～4 準備、5 揮出、6 出手的頂點、7 停住、8 收回），第 6 格對在 th 前一點；圖還沒有的人用蓄力／出手兩張
+const has8 = id => !!units[id].frames.ult.real, BLADE = { wu: 1, you: 1 };      // BLADE：拿扇子、匕首的人，打中是刀光與斬擊聲
+const reach = (id, big) => (big ? 2.0 : 1.05) + (has8(id) ? .4 : 0);      // 逐格圖出手那格會往前伸很長，站遠一點武器才剛好碰到人
+function swing(id, t0, th, ta = .3, hold = .5) { const u = units[id], d = th - t0; if (has8(id)) u.anim(t0, 'ult', [0, d * .16, d * .34, d * .54, d * .76, d * .93, d + .16, d + hold]); else u.pose(t0, 'wind').pose(t0 + ta, 'act'); return u; }
 function playAttack(r, t0) {
   grunt(t0 + .05, r.id);
   if (DEFS[r.id].extra) { const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss', pal = DEFS[id].pal; let th, te;
-    if (CASTER[id]) { th = t0 + .7; u.pose(t0, 'wind').pose(t0 + .32, 'act'); fx('arcane/spell-charge', t0, id, { palette: pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .4);
+    if (CASTER[id]) { th = t0 + .7; swing(id, t0, th - .08, .32); fx('arcane/spell-charge', t0, id, { palette: pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .4);
       fx('explosions/small-explosion', th - .1, tg, { scale: big ? 1.7 : 1.1, y: big ? 1.0 : .3, palette: pal }); snd(th - .05, 'hit', .7); applyHit(th, h, { snd: false }); te = th + .7; }
-    else { th = t0 + .32; u.pose(t0, 'wind').move(t0 + .06, tx + (big ? 2.0 : 1.05), tz + .02, .16, easeOut).pose(t0 + .22, 'act'); SFX.add('speed', t0 + .04, .2, { a: .4 }); snd(t0 + .06, 'whoosh', .5);
-      fx('impacts/blunt-hit', th, tg, { y: big ? 1.0 : .6, dx: big ? 1.0 : .4, scale: 1.6, palette: pal }); cam.shake(th, .12, .28); applyHit(th, h, { snd: h?.guard ? false : 'hit' }); goHome(th + .45, id, .28); te = th + .85; }
+    else { const k = has8(id) ? .16 : 0; th = t0 + .32 + k; swing(id, t0, th, .22).move(t0 + .06 + k, tx + reach(id, big), tz + .02, .16, easeOut); SFX.add('speed', t0 + .04 + k, .2, { a: .4 }); snd(t0 + .06 + k, 'whoosh', .5);
+      if (BLADE[id]) fx('melee/sword-slash', th - .08, [tx + reach(id, big), tz], { flip: true, palette: pal, scale: big ? 1.5 : 1.1 }); else fx('impacts/blunt-hit', th, tg, { y: big ? 1.0 : .6, dx: big ? 1.0 : .4, scale: 1.6, palette: pal });
+      cam.shake(th, .12, .28); applyHit(th, h, { snd: h?.guard ? false : BLADE[id] ? 'slash' : 'hit' }); goHome(th + .5, id, .28); te = th + .9; }
     if (h?.guard) box(th + .2, 1.6, '小兵護衛中　魔王不受傷害', true); ready(te - .05, id); return te; }
   const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.0 : 1.05; let th, te;
   if (id === 'kui' && u.frames.h3 && Q.get('h3') === '1') { th = t0 + H3_HIT; u.anim(t0, 'h3', H3_T).move(t0 + .45, tx + gap + .25, tz + .02, .22, easeOut); snd(t0 + .45, 'whoosh', .5); SFX.add('speed', t0 + .8, .2, { a: .4 });
@@ -171,13 +176,13 @@ const SKFX = { counter: { type: 'self', say: '放馬過來！', pose: 'guard', h
   sip: { type: 'self', say: '續命……', pose: 'guard', hold: true }, news: { type: 'melee', fx: 'impacts/blunt-hit', pal: 'gold' }, overtime: { type: 'melee', fx: 'impacts/blunt-hit', pal: 'shadow' }, allnight: { type: 'melee', fx: 'impacts/ground-slam', pal: 'blood', heavy: true }, transfer: { type: 'ally', say: '幫您轉接' }, mix: { type: 'ally', say: '特調一杯' } };
 function genericSkill(r, t0, G) {
   const id = r.id, u = units[id], hs = r.hits || [], fy = f => f === 'boss' ? 1.2 : .6; box(t0, 1.5, r.name); at(t0 + .1, () => syncBars(now)); let th = t0 + .5, te = t0 + 1.25;
-  if (G.type === 'melee') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss'; th = t0 + .36; u.pose(t0, 'wind').move(t0 + .08, tx + (big ? 2.0 : 1.05), tz + .02, .16, easeOut).pose(t0 + .24, 'act'); SFX.add('speed', t0 + .05, .22, { a: .45 }); snd(t0 + .08, 'whoosh', .55);
+  if (G.type === 'melee') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss'; const k = has8(id) ? .16 : 0; th = t0 + .36 + k; swing(id, t0, th, .24, .6).move(t0 + .08 + k, tx + reach(id, big), tz + .02, .16, easeOut); SFX.add('speed', t0 + .05 + k, .22, { a: .45 }); snd(t0 + .08 + k, 'whoosh', .55);
     fx(G.fx, th - .04, tg, { y: G.heavy ? .1 : fy(tg), dx: big ? .9 : .3, scale: G.heavy ? (big ? 2.2 : 1.6) : 1.5, palette: G.pal }); if (G.heavy) { snd(th, 'explosion', .6); cam.shake(th, .24, .45); SFX.add('flash', th, .2, { a: .4 }); } else cam.shake(th, .12, .3);
-    hs.forEach((h, i) => applyHit(th + i * .2, h, { pow: G.heavy ? 1.5 : 1.1, snd: h.guard ? false : 'hit' })); goHome(th + .55, id, .28); te = th + 1.0; }
-  else if (G.type === 'cast' || G.type === 'all') { const tgs = G.type === 'all' ? (r.down || r.marked || hs.map(h => h.dst)) : [r.target]; th = t0 + .62; u.pose(t0, 'wind').pose(t0 + .3, 'act'); fx('arcane/spell-charge', t0, id, { palette: G.pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .45);
+    hs.forEach((h, i) => applyHit(th + i * .2, h, { pow: G.heavy ? 1.5 : 1.1, snd: h.guard ? false : BLADE[id] ? 'slash' : 'hit' })); goHome(th + .6, id, .28); te = th + 1.05; }
+  else if (G.type === 'cast' || G.type === 'all') { const tgs = G.type === 'all' ? (r.down || r.marked || hs.map(h => h.dst)) : [r.target]; th = t0 + .62; swing(id, t0, th - .08, .3); fx('arcane/spell-charge', t0, id, { palette: G.pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .45);
     tgs.forEach((f, i) => fx(G.fx, th - .25 + i * .1, f, { scale: f === 'boss' ? 1.8 : 1.1, y: G.fx.startsWith('explosions') ? fy(f) - .3 : G.fx.startsWith('impacts') ? fy(f) : 0, dx: G.fx.startsWith('impacts') ? (i % 3 - 1) * .3 : 0, palette: G.pal })); snd(th - .05, G.sfx, .6); hs.forEach((h, i) => applyHit(th + i * .12, h, { snd: i ? false : 'hit' })); te = th + .95; }
   else if (G.type === 'self') { u.pose(t0, G.pose && u.frames[G.pose] ? G.pose : 'act').hop(t0 + .05, .16, .3); fx('impacts/parry', t0 + .1, id, { scale: 1.1, y: .5, palette: DEFS[id].pal }); snd(t0 + .1, 'shield_up', .5); num(t0 + .15, id, G.say, 'text', { col: DEFS[id].color, px: 32, y: 1.3 }); th = t0 + .3; te = t0 + 1.1; }
-  else { u.pose(t0, 'wind').pose(t0 + .3, 'act'); snd(t0 + .3, 'buff', .6); th = t0 + .45; te = t0 + 1.25; if (r.target && units[r.target]) { fx('holy/blessing', th - .1, r.target, { scale: 1.0, dur: 1.1 }); units[r.target].hop(th + .1, .18, .3); if (G.say) num(th, r.target, G.say, 'text', { col: DEFS[id].color, px: 30, y: 1.3 }); } }
+  else { th = t0 + .45; swing(id, t0, th, .3); snd(t0 + .3, 'buff', .6); te = t0 + 1.25; if (r.target && units[r.target]) { fx('holy/blessing', th - .1, r.target, { scale: 1.0, dur: 1.1 }); units[r.target].hop(th + .1, .18, .3); if (G.say) num(th, r.target, G.say, 'text', { col: DEFS[id].color, px: 30, y: 1.3 }); } }
   // 附帶效果用字說明
   const tag = (f, s, col = '#ffe27a', dt = .25) => num(th + dt, f, s, 'text', { col, px: 30, y: DEFS[f].enemy ? (f === 'boss' ? .75 : 1.3) : 1.2 });
   for (const f of r.down || []) tag(f, '攻擊力 ↓', '#c9a0ff'); for (const f of r.marked || []) tag(f, '大客戶　受傷 ＋30%'); if (r.delayed) tag(r.delayed, '延到最後'); if (r.burn) tag(r.burn, '灼燒', '#ff9a5a'); if (r.cover) { tag(r.cover, '幫忙擋下一擊', '#9af0ff', 0); units[r.cover].hop(th, .16, .3); }
@@ -221,7 +226,7 @@ function playSkill(r, t0) {
 function playUltNew(r, t0) {
   const id = r.id, u = units[id], d = DEFS[id], hs = r.hits || [], tc = t0 + .1, has = !!A.eyes[id], ta = tc + (has ? 1.6 : .45); if (has) { S.cutins.push({ t0: tc, dur: 1.55, id }); snd(tc, 'cutin', 1); }
   S.subs.push({ t0: tc + .2, len: 1.5, text: d.shout, name: d.name, color: d.color }); S.cards.push({ t0: ta - .12, t1: ta + 2.3, id }); at(tc, () => syncBars(now)); cam.to(t0, .4, { x: lerp(WIDE.x, home(id)[0], .08), d: 12.5, y: 1.48 }).to(tc + 1.35, .35, WIDE);
-  u.pose(ta, 'wind').pose(ta + .45, 'act'); fx('arcane/magic-circle-cast', ta - .1, id, { palette: d.pal, scale: 1.1, dz: -.05 }); snd(ta, 'buff', .8); const tk = ta + .55; let te = ta + 2.3;
+  const tk = ta + .55; let te = ta + 2.3; swing(id, ta, tk, .45, 1.5); fx('arcane/magic-circle-cast', ta - .1, id, { palette: d.pal, scale: 1.1, dz: -.05 }); snd(ta, 'buff', .8);
   const tag = (f, s, col, dt = 0) => num(tk + .2 + dt, f, s, 'text', { col, px: 30, y: DEFS[f].enemy ? (f === 'boss' ? .75 : 1.3) : 1.2 });
   if (id === 'yan') { SFX.add('flash', tk, .4, { c: [255, 220, 140], a: .5 }); SFX.add('embers', tk, 2.0, { c: [255, 210, 120], n: 60 }); snd(tk, 'holy_cast', .8); R.foes(state).forEach((f, i) => { fx('arcane/rune-circle', tk - .2 + i * .08, f, { palette: 'gold', scale: f === 'boss' ? 1.9 : 1.2 }); tag(f, '延到最後', '#ffe27a', i * .08); });
     R.FRONT.filter(h => !ko[h]).forEach((h, i) => { tag(h, '這回合受傷 －40%', '#9af0ff', .3 + i * .06); units[h].hop(tk + .4 + i * .06, .16, .3); }); }
@@ -230,17 +235,17 @@ function playUltNew(r, t0) {
     R.FRONT.filter(h => !ko[h]).forEach((h, i) => { fx('holy/blessing', tk + i * .08, h, { scale: 1.0, dur: 1.3 }); tag(h, '受傷減半', '#aaf0c8', .3 + i * .06); }); te = tk + 1.7; }
   else if (id === 'qiang') { u.pose(ta + .45, u.frames.guard ? 'guard' : 'act'); snd(tk, 'shield_up', 1.1); cam.shake(tk, .16, .4); fx('impacts/ground-slam', tk - .05, id, { palette: 'fire', scale: 1.3 }); SFX.add('flash', tk, .3, { c: [255, 190, 120], a: .5 });
     bulwarkFx = [FXL.add({ id: 'holy/divine-shield', t: tk, dur: 600, x: 3.3, y: -.2, z: 1.9, scale: 5.2, palette: 'fire', glow: 1.1 })]; tag(id, '全部我來扛', '#ffc890'); R.HEROES.filter(h => h !== id && !ko[h]).forEach((h, i) => tag(h, '掩護', '#ffc890', .15 + i * .05)); te = tk + 1.3; return te; }
-  else if (id === 'senpai') { const h = hs[0]; if (h) { const big = h.dst === 'boss', [tx, tz] = units[h.dst].posAt(ta); u.move(ta + .3, tx + (big ? 2.0 : 1.05), tz, .16, easeOut); SFX.add('dim', tk - .1, .5, { a: .55, fade: .08 }); SFX.add('slash', tk + .05, .5, { x0: 300, y0: 70, x1: 30, y1: 210, c: [255, 110, 90], w: 10 }); SFX.add('flash', tk + .12, .3, { a: .8 }); snd(tk + .05, 'slash_b', 1.1);
+  else if (id === 'senpai') { const h = hs[0]; if (h) { const big = h.dst === 'boss', [tx, tz] = units[h.dst].posAt(ta); u.move(ta + .3, tx + reach(id, big), tz, .16, easeOut); SFX.add('dim', tk - .1, .5, { a: .55, fade: .08 }); SFX.add('slash', tk + .05, .5, { x0: 300, y0: 70, x1: 30, y1: 210, c: [255, 110, 90], w: 10 }); SFX.add('flash', tk + .12, .3, { a: .8 }); snd(tk + .05, 'slash_b', 1.1);
       fx('impacts/crit-hit', tk + .15, h.dst, { y: big ? 1.2 : .6, scale: 2.2, palette: 'blood' }); cam.shake(tk + .2, .32, .7); applyHit(tk + .2, h, { kind: 'crit', pow: 1.6, snd: 'hit' }); if (r.evidence) tag(id, `證據 ×${r.evidence} 全部攤開`, '#ffd0c8', -.3); goHome(tk + 1.1, id, .3); } te = tk + 1.7; }
   else if (id === 'wu') { SFX.add('flash', tk, .4, { c: [255, 160, 200], a: .5 }); fx('ui/confetti', tk, [3.2, .2], { scale: 2.0, y: .8 }); snd(tk, 'fanfare', .5); u.hop(tk, .3, .4);
     (r.encore || []).forEach((h, i) => { units[h].hop(tk + .25 + i * .1, .24, .34); fx('arcane/mana-burst', tk + .2 + i * .1, h, { scale: .9, palette: 'candy', y: .5 }); tag(h, '再來一次！', '#ffb0d0', .1 + i * .1); }); te = tk + 1.5; }
-  else if (id === 'you') { const h = hs[0]; if (h) { const big = h.dst === 'boss', [tx, tz] = units[h.dst].posAt(ta); u.move(ta + .3, tx + (big ? 2.0 : 1.05), tz, .14, easeOut); SFX.add('dim', tk - .1, .5, { a: .5, fade: .08 }); SFX.add('slash', tk + .05, .45, { x0: 310, y0: 150, x1: 20, y1: 120, c: [120, 240, 220], w: 9 }); SFX.add('flash', tk + .12, .3, { a: .7 }); snd(tk + .05, 'slash_b', 1.0);
+  else if (id === 'you') { const h = hs[0]; if (h) { const big = h.dst === 'boss', [tx, tz] = units[h.dst].posAt(ta); u.move(ta + .3, tx + reach(id, big), tz, .14, easeOut); SFX.add('dim', tk - .1, .5, { a: .5, fade: .08 }); SFX.add('slash', tk + .05, .45, { x0: 310, y0: 150, x1: 20, y1: 120, c: [120, 240, 220], w: 9 }); SFX.add('flash', tk + .12, .3, { a: .7 }); snd(tk + .05, 'slash_b', 1.0);
       fx('impacts/crit-hit', tk + .15, h.dst, { y: big ? 1.2 : .6, scale: 2.1, palette: 'cyber' }); cam.shake(tk + .2, .3, .7); tag(h.dst, '走後門！', '#9af0e0', -.25); applyHit(tk + .2, h, { kind: 'crit', pow: 1.6, snd: 'hit' }); goHome(tk + 1.0, id, .3); } te = tk + 1.6; }
   else if (id === 'fairy') { SFX.add('flash', tk, .5, { c: [200, 230, 255], a: .55 }); SFX.add('embers', tk, 2.0, { c: [210, 235, 255], n: 70 }); snd(tk, 'holy_cast', .9);
     (r.heals || []).forEach((h, i) => { const tt = tk + .3 + i * .12; fx('holy/blessing', tt - .1, h.dst, { scale: 1.2, dur: 1.4 }); S.hp[h.dst].push({ t: tt, v: h.hp }); if (h.v > 0) num(tt, h.dst, h.v, 'heal'); units[h.dst].hop(tt + .1, .18, .3);
       if (h.revive) { at(tt, () => { ko[h.dst] = false; units[h.dst].pose(now, 'ready'); }); units[h.dst].pose(tt, 'ready'); num(tt + .15, h.dst, '復活', 'text', { col: '#fff3c8', px: 34, y: 1.3 }); } }); snd(tk + .35, 'heal', .9); te = tk + 1.9; }
   else if (id === 'zong') { u.pose(ta + .45, u.frames.guard ? 'guard' : 'act'); snd(tk, 'shield_up', 1.0); SFX.add('flash', tk, .3, { c: [255, 220, 150], a: .45 }); R.FRONT.filter(h => R.alive(state, h)).forEach((h, i) => { fx('impacts/parry', tk + i * .08, h, { scale: 1.1, y: .5, palette: 'gold' }); tag(h, '不會倒下', '#ffe27a', i * .08); units[h].hop(tk + .1 + i * .08, .14, .26); }); te = tk + 1.4; }
-  else if (id === 'hui') { SFX.add('speed', tk - .1, 1.4, { a: .3, n: 30 }); hs.forEach((h, i) => { const tt = tk + i * .26; u.pose(tt - .12, i % 2 ? 'wind' : 'act'); fx('impacts/blunt-hit', tt - .04, h.dst, { scale: h.dst === 'boss' ? 2.0 : 1.5, y: h.dst === 'boss' ? 1.0 : .5, dx: (i % 2 ? .3 : -.2), palette: 'shadow' }); cam.shake(tt, .12, .35); applyHit(tt, h, { snd: 'hit', dy: i % 2 ? -60 : 0 }); }); te = tk + hs.length * .26 + 1.0; }
+  else if (id === 'hui') { SFX.add('speed', tk - .1, 1.4, { a: .3, n: 30 }); hs.forEach((h, i) => { const tt = tk + i * .26; if (has8(id)) u.anim(tt - .2, 'ult', [0, 0, 0, .02, .1, .17, 9, 9]); else u.pose(tt - .12, i % 2 ? 'wind' : 'act'); fx('impacts/blunt-hit', tt - .04, h.dst, { scale: h.dst === 'boss' ? 2.0 : 1.5, y: h.dst === 'boss' ? 1.0 : .5, dx: (i % 2 ? .3 : -.2), palette: 'shadow' }); cam.shake(tt, .12, .35); applyHit(tt, h, { snd: 'hit', dy: i % 2 ? -60 : 0 }); }); te = tk + hs.length * .26 + 1.0; }
   else if (id === 'xu') { fx('holy/feather-burst', tk, id, { scale: 1.2, y: 1.6, palette: 'heal' }); SFX.add('flash', tk, .4, { c: [170, 240, 180], a: .45 }); snd(tk, 'heal', .9);
     (r.heals || []).forEach((h, i) => { const tt = tk + .25 + i * .1; fx('holy/heal', tt - .1, h.dst, { scale: 1.2 }); S.hp[h.dst].push({ t: tt, v: h.hp }); if (h.v > 0) num(tt, h.dst, h.v, 'heal'); units[h.dst].hop(tt + .1, .16, .3); });
     (r.spGains || []).forEach((h, i) => { S.sp[h.dst].push({ t: tk + .7, v: h.sp }); if (h.v > 0) num(tk + .75 + i * .08, h.dst, h.v, 'sp'); }); if (r.tea) tag(id, '珍珠奶茶 ＋1', '#ffe27a', .9); te = tk + 1.9; }
@@ -456,7 +461,7 @@ function finish() {
     at(tv + 2.4, () => { rescued = R.endStage(state, run); for (const id of R.HEROES) ko[id] = false; if (rescued) met(rescued); saveGame({ pend: 'upgrade', rescued }); openUpgrade(false); playMusic('bgm/map'); });
   } else if (state.over === 'win') { clearSave(); const u = units.boss; for (let i = 0; i < 6; i++) u.hit(t0 + i * .25, .7 - i * .08); say(t0 + .4, 'boss_down', 'boss'); cam.to(t0, 1.4, { x: -2.6, d: 9.6, y: 1.7 }); hud.t1 = t0 + .3;
     u.die(t0 + 1.8, 2.4); snd(t0 + 1.8, 'boss_down', 1); for (let i = 0; i < 5; i++) fx('spawn/poof', t0 + 2.1 + i * .35, 'boss', { scale: 1.8, dx: -1 + i * .5, y: .3 + (i % 2) * 1.2, seed: i + 2 }); for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + 1.2, m);
-    at(t0 + .1, () => playMusic(null)); const tv = t0 + 4.6; snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .98, y: 1.25, z: -.1, d: 10.9, pitch: 7 });
+    at(t0 + .1, () => playMusic(null)); const tv = t0 + 4.6; snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .45, y: 1.25, z: -.1, d: 10.9, pitch: 7 });      // 鏡頭偏左，隊伍落在結案報告右邊
     R.HEROES.forEach((id, i) => { if (!ko[id]) units[id].pose(tv + .15 + i * .12, 'win').hop(tv + .15 + i * .12, .26, .36).hop(tv + 1.2 + i * .1, .14, .3); }); fx('ui/confetti', tv + .3, [3.4, 1.0], { scale: 2.4, y: .6 }); fx('ui/confetti', tv + .9, [4.6, -.8], { scale: 2.2, y: .8, seed: 5 });
     openReport(tv + .2, true);
     at(tv + 4.2, () => { playMusic('bgm/victory'); phase = 'over'; });
