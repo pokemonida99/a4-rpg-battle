@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.5.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.5.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -60,11 +60,13 @@ const SFX_IDS = ['boss_appear', 'boss_charge', 'boss_down', 'break', 'buff', 'ca
 async function loadSound(id, url) { try { const r = await fetch(url); if (!r.ok) return; buf[id] = await AC.decodeAudioData(await r.arrayBuffer()); } catch (e) { /* 少一個聲音不影響遊戲 */ } }
 const pick = await fetch('audio/pick.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
 const audioReady = Promise.all([...SFX_IDS.map(id => loadSound(id, `audio/sfx/${id}.mp3`)), loadSound('whoosh', 'audio/sfx/whoosh.wav'),
-  ...Object.keys(LINES).map(k => loadSound('vo/' + k, `audio/vo/${pick['vo/' + k] || k + '_1'}.mp3`)), loadSound('bgm/battle', 'audio/bgm/battle.mp3'), loadSound('bgm/boss', 'audio/bgm/boss.mp3'), loadSound('bgm/victory', 'audio/bgm/victory.mp3')]);
+  ...Object.keys(LINES).map(k => loadSound('vo/' + k, `audio/vo/${pick['vo/' + k] || k + '_1'}.mp3`)), loadSound('bgm/battle', 'audio/bgm/battle.mp3'), loadSound('bgm/boss', 'audio/bgm/boss.mp3'), loadSound('bgm/map', 'audio/bgm/map.mp3'), loadSound('bgm/victory', 'audio/bgm/victory.mp3')]);
 const snd = (t, id, v = 1) => { const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(), vo = id.startsWith('vo/'); s.buffer = b; g.gain.value = v * (vo ? 1 : .6); s.connect(g).connect(master);
   const when = AC.currentTime + Math.max(0, t - now); s.start(when); if (vo) { musicGain.gain.setTargetAtTime(.16, when, .08); musicGain.gain.setTargetAtTime(.42, when + b.duration + .2, .3); } };
-let musicId = null;
-function playMusic(id) { if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(1, AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
+// 配樂的切換：行程表（地圖）播地圖曲；進戰鬥換戰鬥曲、魔王站換魔王曲；戰鬥一結束戰鬥曲就停，回到行程表再換回地圖曲。
+// 地圖曲暫時借用之前沒用到的那首程式合成的結算曲（audio/bgm/map.mp3），之後使用者有自己的再換。
+const MUSIC_VOL = { 'bgm/map': .75 }; let musicId = null;
+function playMusic(id) { if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(MUSIC_VOL[id] ?? 1, AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
 musicGain.gain.value = .42;
 // 介面按鍵聲：程式合成的短促木頭聲（使用者嫌原本的音效難聽）。move 游標移動、ok 按下、no 不能按
 function uiSound(kind) { if (AC.state !== 'running') return; const t = AC.currentTime;
@@ -319,12 +321,12 @@ function startStage() {
   cam.to(t0 + 3.5, 1.1, WIDE); snd(t0 + 3.5, 'whoosh', .7); PARTY.forEach((id, i) => { units[id].pose(t0, 'wind').pose(t0 + 4.0 + i * .1, 'ready').hop(t0 + 4.0 + i * .1, .14, .26); });
   S.ui.push({ t0: t0 + 4.3, t1: 1e9 }); at(t0 + 4.7, nextTurn);
 }
-function start() { AC.resume(); playMusic('bgm/battle'); openHub(); }
+function start() { AC.resume(); openHub(); }
 let offers = [];
 function pickUpgrade(k) { R.applyUpgrade(run, k); snd(now, 'buff', .8); R.advance(run); openHub(`拿到強化「${R.UPGRADES[k].name}」`); }
 // ---------- 肉鴿版面（行程表）：選下一站、看隊伍與拿到的東西 ----------
 let hubMsg = null;
-function openHub(msg) { phase = 'hub'; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; menu = { kind: 'hub', items: R.MAP[run.floor].map((nd, i) => ({ label: R.nodeName(nd), go: () => chooseNode(i) })) }; focus = 0; }
+function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; menu = { kind: 'hub', items: R.MAP[run.floor].map((nd, i) => ({ label: R.nodeName(nd), go: () => chooseNode(i) })) }; focus = 0; }
 function chooseNode(i) { const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
   else if (nd.type === 'rest') { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在茶水間休息：全隊共回復 ${v} HP，SP 補滿` : '在茶水間休息：SP 補滿（HP 本來就是滿的）'); }
@@ -335,12 +337,13 @@ function finish() {
   if (state.over === 'win' && !last) {      // 過關：敵人退場、擺個姿勢，然後選強化
     if (L) { const u = units.boss; u.pose(t0, 'hurt'); for (let i = 0; i < 4; i++) u.hit(t0 + i * .2, .7 - i * .1); u.die(t0 + .9, 1.6); snd(t0 + .9, 'boss_down', .8); for (let i = 0; i < 3; i++) fx('spawn/poof', t0 + 1.2 + i * .3, 'boss', { scale: 1.6, dx: -.6 + i * .6, y: .3 + (i % 2) * .8, seed: i + 2 }); }
     for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + .5, m);
-    hud.t1 = t0 + 1.6; const tv = t0 + (L ? 2.6 : 1.3); snd(tv, 'fanfare', .8); S.stageCard = { t0: tv, t1: tv + 2.3, n: run.floor + 1, name: '過關', sub: R.STAGES[run.node.stage].name + '　擺平了', clear: true };
+    at(t0 + .1, () => playMusic(null)); hud.t1 = t0 + 1.6; const tv = t0 + (L ? 2.6 : 1.3); snd(tv, 'fanfare', .8);      // 戰鬥一結束戰鬥曲就停，號角響完到選強化時換地圖曲
+ S.stageCard = { t0: tv, t1: tv + 2.3, n: run.floor + 1, name: '過關', sub: R.STAGES[run.node.stage].name + '　擺平了', clear: true };
     PARTY.forEach((id, i) => { if (!ko[id]) units[id].pose(tv + i * .1, 'win').hop(tv + i * .1, .24, .34); }); fx('ui/confetti', tv + .2, [3.4, 1.0], { scale: 2.0, y: .6 });
-    at(tv + 2.4, () => { R.endStage(state, run); for (const id of R.HEROES) ko[id] = false; offers = R.offerUpgrades(run); menu = { kind: 'upgrade', items: offers.map(k => ({ label: R.UPGRADES[k].name, sub: R.UPGRADES[k].desc, go: () => pickUpgrade(k) })) }; focus = 0; phase = 'pick'; });
+    at(tv + 2.4, () => { R.endStage(state, run); for (const id of R.HEROES) ko[id] = false; offers = R.offerUpgrades(run); menu = { kind: 'upgrade', items: offers.map(k => ({ label: R.UPGRADES[k].name, sub: R.UPGRADES[k].desc, go: () => pickUpgrade(k) })) }; focus = 0; phase = 'pick'; playMusic('bgm/map'); });
   } else if (state.over === 'win') { const u = units.boss; for (let i = 0; i < 6; i++) u.hit(t0 + i * .25, .7 - i * .08); say(t0 + .4, 'boss_down', 'boss'); cam.to(t0, 1.4, { x: -2.6, d: 9.6, y: 1.7 }); hud.t1 = t0 + .3;
     u.die(t0 + 1.8, 2.4); snd(t0 + 1.8, 'boss_down', 1); for (let i = 0; i < 5; i++) fx('spawn/poof', t0 + 2.1 + i * .35, 'boss', { scale: 1.8, dx: -1 + i * .5, y: .3 + (i % 2) * 1.2, seed: i + 2 }); for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + 1.2, m);
-    const tv = t0 + 4.6; at(tv - .6, () => playMusic(null)); snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .98, y: 1.25, z: -.1, d: 10.9, pitch: 7 });
+    at(t0 + .1, () => playMusic(null)); const tv = t0 + 4.6; snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .98, y: 1.25, z: -.1, d: 10.9, pitch: 7 });
     PARTY.forEach((id, i) => { if (!ko[id]) units[id].pose(tv + .15 + i * .12, 'win').hop(tv + .15 + i * .12, .26, .36).hop(tv + 1.2 + i * .1, .14, .3); }); fx('ui/confetti', tv + .3, [3.4, 1.0], { scale: 2.4, y: .6 }); fx('ui/confetti', tv + .9, [4.6, -.8], { scale: 2.2, y: .8, seed: 5 });
     const rounds = run.rounds + state.round; S.victory = { t0: tv + .2, t1: 1e9 }; S.results = [{ k: '總回合數', v: rounds }, { k: '拿到的強化', v: run.picks.map(k => R.UPGRADES[k].name).join('、') || '沒有' }, { k: '獎金', v: Math.max(1000, 12000 - rounds * 400), c: COL.gold }, { k: '戰利品', v: '準時下班券 ×5' }]; S.results.forEach((r, i) => snd(tv + 1.4 + i * .32, 'stat', .7));
     at(tv + 4.2, () => { playMusic('bgm/victory'); phase = 'over'; });

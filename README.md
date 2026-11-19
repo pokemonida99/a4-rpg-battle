@@ -111,3 +111,7 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - `tools/loopbgm.py <來源> <輸出.mp3>`：去頭尾靜音、切掉結尾淡出、2.5 秒交叉淡化接回開頭、音量拉齊，遊戲裡才能無縫循環。
 - 遊戲：魔王那一站換成魔王曲（`startStage` 裡的 `playMusic`），其他站和行程表播一般戰鬥曲。勝利曲還是 ElevenLabs 那首。
 - 注意：影片版重新混音時 `tools/mix.py` 也會讀到新的 `battle.mp3`；要用舊的就指到 `audio/bgm_elevenlabs/`。
+
+## v0.5.2（2026-11-20）配樂切換與地圖曲
+- 切換規則（`game.js`）：行程表與選強化畫面播地圖曲 `bgm/map`；進戰鬥換 `bgm/battle`，魔王站換 `bgm/boss`；戰鬥一結束戰鬥曲馬上淡出（過關、通關都是），號角響完回到行程表才換回地圖曲。
+- 地圖曲 `audio/bgm/map.mp3` 暫時借用之前沒用到的程式合成結算曲（`tools/bgm.py` 的 victory.wav 經 `tools/loopbgm.py` 做成 31 秒循環），音量 0.75。使用者之後有自己的地圖曲，放 `audio/bgm/map.mp3` 取代即可。
