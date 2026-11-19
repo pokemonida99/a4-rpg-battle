@@ -23,3 +23,7 @@ def icons(src, names, rows):
 icons('art/raw/map_icons.png', ['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock'], 3)
 icons('art/raw/up_icons.png', ['up_raise', 'up_leave', 'up_chair', 'up_drinks', 'up_coffee', 'up_morale', 'up_bento', 'up_learn'], 2)
 icons('art/raw/skill_icons.png', ['sk_draft', 'sk_counter', 'sk_sweep', 'sk_burn', 'sk_freeze', 'sk_barrage'], 2)
+# 第十一批（art/raw/jobs11.sh）：流派強化的圖示、夥伴招式的圖示
+icons('art/raw/up_icons2.png', ['up_ember', 'up_bounty', 'up_riposte', 'up_dossier', 'up_crunch', 'up_tempo', 'up_weakpoint', 'up_firstaid'], 2)
+icons('art/raw/skill_icons2.png', ['sk_taunt', 'sk_bash', 'sk_mend', 'sk_soothe', 'sk_treat', 'sk_delay', 'sk_lock', 'sk_mark', 'sk_deal', 'sk_push', 'sk_chat', 'sk_ult'], 3)
+icons('art/raw/skill_icons3.png', ['sk_carry', 'sk_box', 'sk_probe', 'sk_expose', 'sk_encore', 'sk_dance', 'sk_slack', 'sk_backdoor', 'sk_mice', 'sk_wand', 'sk_sip', 'sk_news', 'sk_overtime', 'sk_allnight', 'sk_transfer', 'sk_mix'], 4)
