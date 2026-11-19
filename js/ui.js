@@ -52,7 +52,7 @@ export function makeUI(cv, A, S) {
       if (i) { c.fillStyle = 'rgba(243,236,218,.14)'; c.fillRect(x - 16, 22, 1, 92); }
       c.globalAlpha = a * (down ? .5 : 1);
       const nw = txt(d.name, x, y, { px: 27, w: 700, col: on ? COL.gold : COL.text, shadow: 'rgba(0,0,0,.7)', sx: 2, sy: 2 }); txt(i === 4 ? '後排' : d.job, x + nw + 8, y - 1, { px: 15, w: 500, col: COL.dim });
-      for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(x + w - 62 + k * 14, y - 9, 4.5, 0, 7); if (k < bp) { c.fillStyle = bp >= 5 ? '#ffd84a' : '#ff6a4a'; c.fill(); } else { c.strokeStyle = 'rgba(243,236,218,.4)'; c.lineWidth = 1.2; c.stroke(); } }
+      if (!S.noBp) for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(x + w - 62 + k * 14, y - 9, 4.5, 0, 7); if (k < bp) { c.fillStyle = bp >= 5 ? '#ffd84a' : '#ff6a4a'; c.fill(); } else { c.strokeStyle = 'rgba(243,236,218,.4)'; c.lineWidth = 1.2; c.stroke(); } }
       txt('HP', x, y + 36, { px: 12, w: 700, col: COL.dim, ls: 1 });
       const hw = txt(down ? '倒下' : fmt(hp).replace(/,/g, ''), x + 26 + jit, y + 40, { px: down ? 26 : 32, w: 900, col: down || low ? '#ff7a6a' : COL.text, shadow: 'rgba(0,0,0,.7)', sx: 2, sy: 2 }); if (!down) txt('/' + d.hp, x + 30 + hw, y + 39, { px: 15, w: 500, col: COL.dim });
       txt(String(Math.round(sp)), x + w, y + 40, { px: 20, w: 700, align: 'right', col: '#cfe4ff' }); txt('SP', x + w - measure(String(Math.round(sp)), 20, 700) - 6, y + 38, { px: 11, w: 700, col: COL.dim, align: 'right', ls: 1 });
@@ -337,7 +337,8 @@ export function makeUI(cv, A, S) {
       if (!vig) { vig = c.createRadialGradient(W / 2, H * .56, H * .34, W / 2, H * .56, H * 1.02); vig.addColorStop(0, 'rgba(5,4,12,0)'); vig.addColorStop(.6, 'rgba(5,4,12,.34)'); vig.addColorStop(1, 'rgba(5,4,12,.86)'); }
       c.fillStyle = vig; c.fillRect(0, 0, W, H);
       fx.draw(c, t);
-      enemies(t, ua); party(t, ua); turnOrder(t, ua * (1 - cardOn)); items(t); numbers(t); menu(t); boxes(t);
+      if (S.skinHud) S.skinHud(t, ua, cardOn); else { enemies(t, ua); party(t, ua); turnOrder(t, ua * (1 - cardOn)); }
+      items(t); numbers(t); menu(t); if (S.skinBoxes) S.skinBoxes(t); else boxes(t);
       cutins(t); cards(t); intro(t); victory(t); showcase(t); ending(t); subs(t);
     },
   };

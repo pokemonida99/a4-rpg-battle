@@ -48,6 +48,7 @@ export async function setupStage(E) {
     const d = DEFS[id], f = {}; for (const k of ['ready', 'wind', 'act', 'win']) f[k] = await loadTex(`art/chars/${id}_${k}.png`);
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)));
     f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready];
+    for (const k of ['hurt', 'guard', 'cheer']) { if ((k === 'cheer') !== (id === 'vivi') && k !== 'guard') continue; const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }      // 試玩版用：受擊、防禦（Vivi 是應援、防禦）
     if (id === 'kui') { const h3 = await Promise.all(Array.from({ length: 24 }, (_, i) => tryTex(`art/chars/h3/kui_${String(i + 1).padStart(2, '0')}.png`))); if (h3.every(Boolean)) f.h3 = h3; }      // 試驗：影片抽格的 24 格揮劍（試玩版的普攻與直球吐槽用）
     if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
     const s = d.hgt * PPU / f.ready.image.height; f.ult.k = ult.every(Boolean) ? f.ready.image.height / ult[0].image.height : 1;      // 逐格圖的像素密度可能跟站姿圖不同，用第一格的高度對齊
@@ -56,7 +57,8 @@ export async function setupStage(E) {
   }
   { const d = DEFS.boss, idle = await loadTex('art/enemy/boss_idle.png'), atk = await loadTex('art/enemy/boss_atk.png');
     const seq = await Promise.all([1, 2, 3, 4, 5, 6].map(i => tryTex(`art/enemy/anim/boss_${i}.png`)));
-    const f = { idle, atk, swing: seq.every(Boolean) ? [idle, seq[0], seq[1], atk, seq[2], seq[3], seq[4], seq[5]] : [idle, atk, atk, atk, atk, atk, idle, idle] };
+    const hurt = await tryTex('art/enemy/boss_hurt.png'), stun = await tryTex('art/enemy/boss_stun.png');
+    const f = { idle, atk, ...(hurt && { hurt }), ...(stun && { stun }), swing: seq.every(Boolean) ? [idle, seq[0], seq[1], atk, seq[2], seq[3], seq[4], seq[5]] : [idle, atk, atk, atk, atk, atk, idle, idle] };
     units.boss = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / idle.image.height, tint: 0xf0e8f4, shadowK: .7 }); }
   { const f = {}; for (const k of ['idle', 'atk', 'hit']) f[k] = await loadTex(`art/enemy/minion_${k}.png`);
     for (const id of ['ma', 'mb', 'mc', 'md']) { const d = DEFS[id], front = id === 'ma' || id === 'mc'; units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.idle.image.height, tint: front ? 0xf0e8f4 : 0xd8d4ee, phase: front ? .2 : .7 }); }

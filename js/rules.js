@@ -1,20 +1,20 @@
 // 試玩版的戰鬥規則（純邏輯，不碰畫面）：game.js 拿結果去演，tools/sim.js 拿它跑幾百場調數值。
 // 規則摘要：
-// ・每回合照速度排順序。輪到自己 BP +1（上限 5）；BP 滿 5 且 SP 夠才能放奧義，放完 BP 歸零。
+// ・每回合照速度排順序。全隊共用一條「氣勢」（0～100）：攻擊、招式、防禦、道具、應援都會加，氣勢夠（MO.ult）且 SP 夠才能放奧義，放完扣掉。
 // ・場上有小兵時魔王「護衛中」，打他傷害無效。
 // ・魔王被打中護盾 -1（奧義 -2），歸零就 BREAK：下一次行動取消（蓄好的大招只是延後），期間受到的傷害 1.5 倍，之後護盾回滿。
 // ・魔王一回合行動兩次；每五次行動的第四次蓄力，下一次行動放大招「無限改稿」打全體，放完如果場上沒小兵就再叫兩隻。
 // ・Kevin 的奧義「鐵壁」：到他下一次行動前，敵人的攻擊全部由他承受三成五，其他人不受傷。
-// ・防禦：到自己下一次行動前受傷減半，BP 多 +1。
+// ・防禦：到自己下一次行動前受傷減半，氣勢加得比攻擊多一點。
 // ・招式（SKILLS）：每人一兩招，只花 SP、不用 BP。
 export const FRONT = ['kui', 'kevin', 'jie', 'mi'], HEROES = [...FRONT, 'vivi'], MINIONS = ['ma', 'mb'];
 export const STAT = {
   kui: { hp: 2680, sp: 142, atk: 1250, spd: 356, cost: 60 }, kevin: { hp: 4860, sp: 118, atk: 780, spd: 142, cost: 50 },
   jie: { hp: 2140, sp: 388, atk: 1500, spd: 228, cost: 180 }, mi: { hp: 2320, sp: 356, atk: 950, spd: 264, cost: 160 },
   vivi: { hp: 9999, sp: 999, atk: 0, spd: 12, cost: 99 },
-  boss: { hp: 70000, spd: 200, spd2: 100, atk: 1100, shield: 8, cycle: 5 }, ma: { hp: 3800, spd: 180, atk: 400 }, mb: { hp: 3800, spd: 170, atk: 400 },
+  boss: { hp: 64000, spd: 200, spd2: 100, atk: 1000, shield: 8, cycle: 5 }, ma: { hp: 3800, spd: 180, atk: 400 }, mb: { hp: 3800, spd: 170, atk: 400 },
 };
-export const BOSS_ULT = { kui: 1380, kevin: 1830, jie: 1260, mi: 1180 };      // 「無限改稿」對每個人的傷害
+export const BOSS_ULT = { kui: 1240, kevin: 1650, jie: 1130, mi: 1060 };      // 「無限改稿」對每個人的傷害
 export const ITEMS = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000 }, coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150 }, bento: { name: '雞排便當', n: 1, note: '倒下的同伴復活', revive: .5 } };
 // 招式（技能）：不用 BP，只花 SP。target：foe 選一個敵人、all 敵方全體、ally 選一個同伴、party 我方前排、self 自己
 export const SKILLS = {
@@ -24,12 +24,14 @@ export const SKILLS = {
   mi: [{ key: 'mend', name: '治癒專線', sp: 36, note: '單體回復 1500', target: 'ally', desc: '幫一個同伴回復 1500 HP。' }, { key: 'soothe', name: '安撫話術', sp: 48, note: '前排全體回復 700', target: 'party', desc: '前排全員各回復 700 HP。' }],
   vivi: [{ key: 'treat', name: '老闆請客', sp: 80, note: '前排全員 SP ＋60', target: 'party', desc: '請大家喝飲料，前排全員回復 60 SP。' }],
 };
+// 氣勢：起始值、放奧義要多少、各種行動加多少
+export const MO = { start: 30, max: 100, ult: 40, attack: 14, skill: 14, defend: 16, item: 6, cheer: 35 };
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
 export function newState(rand = Math.random) {
-  const s = { rand, hp: {}, sp: {}, bp: {}, defend: {}, items: {}, round: 0, queue: [], shield: STAT.boss.shield, broken: false, charging: false, bossTurns: 0, aegis: false, taunt: false, atkDown: {}, atkUp: 0, summons: 0, over: null };
+  const s = { rand, hp: {}, sp: {}, mo: MO.start, defend: {}, items: {}, round: 0, queue: [], shield: STAT.boss.shield, broken: false, charging: false, bossTurns: 0, aegis: false, taunt: false, atkDown: {}, atkUp: 0, summons: 0, over: null };
   for (const id in STAT) s.hp[id] = STAT[id].hp;
-  for (const id of HEROES) { s.sp[id] = STAT[id].sp; s.bp[id] = id === 'vivi' ? 3 : 2; }
+  for (const id of HEROES) s.sp[id] = STAT[id].sp;
   for (const k in ITEMS) s.items[k] = ITEMS[k].n;
   return s;
 }
@@ -47,10 +49,11 @@ export function startRound(s) { s.round++; if (s.atkUp > 0) s.atkUp--;
 // 輪到某個人（回傳 false＝這個人已經倒了，跳過）
 export function beginTurn(s, id) {
   if (!alive(s, id)) return false;
-  if (HEROES.includes(id)) { s.defend[id] = false; if (id === 'kevin') { s.aegis = false; s.taunt = false; } s.bp[id] = Math.min(5, s.bp[id] + 1); }
+  if (HEROES.includes(id)) { s.defend[id] = false; if (id === 'kevin') { s.aegis = false; s.taunt = false; } }
   return true;
 }
-export const canUlt = (s, id) => s.bp[id] >= 5 && s.sp[id] >= STAT[id].cost;
+export const canUlt = (s, id) => s.mo >= MO.ult && s.sp[id] >= STAT[id].cost;
+const gain = (s, n) => { s.mo = Math.max(0, Math.min(MO.max, s.mo + n)); return s.mo; };
 
 // 打敵人：回傳一筆結果 { dst, v, guard, crit, kill, brk, hp, shield }
 function hitFoe(s, src, dst, base, o = {}) {
@@ -72,16 +75,16 @@ function hitHeroes(s, src, list) {      // list：[[id, 傷害]]
 }
 
 // ---------- 我方指令。都回傳 { kind, id, ... , hits:[…] } ----------
-export function doAttack(s, id, target) { return { kind: 'attack', id, target, hits: [hitFoe(s, id, target, STAT[id].atk)].filter(Boolean) }; }
-export function doDefend(s, id) { s.defend[id] = true; s.bp[id] = Math.min(5, s.bp[id] + 1); return { kind: 'defend', id }; }
-export function doCheer(s) { for (const id of FRONT) if (alive(s, id)) s.bp[id] = Math.min(5, s.bp[id] + 2); return { kind: 'cheer', id: 'vivi', bp: { ...s.bp } }; }
+export function doAttack(s, id, target) { const hits = [hitFoe(s, id, target, STAT[id].atk)].filter(Boolean); return { kind: 'attack', id, target, hits, mo: gain(s, MO.attack) }; }
+export function doDefend(s, id) { s.defend[id] = true; return { kind: 'defend', id, mo: gain(s, MO.defend) }; }
+export function doCheer(s) { return { kind: 'cheer', id: 'vivi', mo: gain(s, MO.cheer) }; }
 export function itemTargets(s, key) { const it = ITEMS[key]; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
 export function doItem(s, id, key, target) {
   const it = ITEMS[key]; s.items[key]--; const r = { kind: 'item', id, key, target };
   if (it.hp) { r.heal = Math.min(it.hp, STAT[target].hp - s.hp[target]); s.hp[target] += r.heal; }
   if (it.sp) { r.spGain = Math.min(it.sp, STAT[target].sp - s.sp[target]); s.sp[target] += r.spGain; }
-  if (it.revive) { r.revive = true; r.heal = Math.round(STAT[target].hp * it.revive); s.hp[target] = r.heal; s.bp[target] = 1; }
-  r.hp = s.hp[target]; r.sp = s.sp[target]; return r;
+  if (it.revive) { r.revive = true; r.heal = Math.round(STAT[target].hp * it.revive); s.hp[target] = r.heal; }
+  r.hp = s.hp[target]; r.sp = s.sp[target]; r.mo = gain(s, MO.item); return r;
 }
 export const skillOk = (s, id, sk) => s.sp[id] >= sk.sp && (sk.target !== 'ally' || FRONT.some(h => alive(s, h) && s.hp[h] < STAT[h].hp));
 export function doSkill(s, id, key, target) {
@@ -95,10 +98,10 @@ export function doSkill(s, id, key, target) {
   else if (key === 'mend') { const v = Math.min(1500, STAT[target].hp - s.hp[target]); s.hp[target] += v; r.heals = [{ dst: target, v, hp: s.hp[target] }]; }
   else if (key === 'soothe') r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(700, STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h] }; });
   else if (key === 'treat') r.spGains = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(60, STAT[h].sp - s.sp[h]); s.sp[h] += v; return { dst: h, v, sp: s.sp[h] }; });
-  return r;
+  r.mo = gain(s, MO.skill); return r;
 }
 export function doUlt(s, id) {
-  s.sp[id] -= STAT[id].cost; s.bp[id] = 0; const r = { kind: 'ult', id, sp: s.sp[id], hits: [] }, push = h => { if (h) r.hits.push(h); return h; };
+  s.sp[id] -= STAT[id].cost; gain(s, -MO.ult); const r = { kind: 'ult', id, sp: s.sp[id], mo: s.mo, hits: [] }, push = h => { if (h) r.hits.push(h); return h; };
   if (id === 'kui') {      // 吐槽一閃：每隻小兵兩刀；小兵清光的話最後一刀劈魔王
     for (const m of MINIONS) if (alive(s, m)) { push({ ...hitFoe(s, id, m, 1900, { noCrit: true }), stage: m }); if (alive(s, m)) push({ ...hitFoe(s, id, m, 2100, { noCrit: true }), stage: m }); }
     push({ ...(hitFoe(s, id, 'boss', 4400, { sh: 2 }) || {}), stage: 'boss' });
@@ -109,9 +112,8 @@ export function doUlt(s, id) {
     r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = STAT[h].hp - s.hp[h]; s.hp[h] = STAT[h].hp; return { dst: h, v, hp: s.hp[h] }; });
     push(hitFoe(s, id, MINIONS.find(m => alive(s, m)) || 'boss', 2000));
   } else if (id === 'vivi') {      // 皇家敕令：攻擊力提升三回合，全員總攻擊（先清小兵，再打魔王）
-    s.atkUp = 3; for (const h of FRONT) if (alive(s, h)) { s.bp[h] = Math.min(5, s.bp[h] + 1); const t = (h === 'kui' || h === 'kevin') ? (MINIONS.find(m => alive(s, m)) || 'boss') : (guarded(s) ? MINIONS.find(m => alive(s, m)) : 'boss'); push({ ...hitFoe(s, h, t, STAT[h].atk * 1.6), by: h }); }
+    s.atkUp = 3; for (const h of FRONT) if (alive(s, h)) { const t = (h === 'kui' || h === 'kevin') ? (MINIONS.find(m => alive(s, m)) || 'boss') : (guarded(s) ? MINIONS.find(m => alive(s, m)) : 'boss'); push({ ...hitFoe(s, h, t, STAT[h].atk * 1.6), by: h }); }
     if (alive(s, 'boss')) push({ ...hitFoe(s, id, guarded(s) ? MINIONS.find(m => alive(s, m)) : 'boss', guarded(s) ? 3000 : 7000, { sh: 2, noCrit: true }), by: 'vivi', final: true });
-    r.bp = { ...s.bp };
   }
   return r;
 }

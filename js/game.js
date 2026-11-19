@@ -5,6 +5,7 @@ import { makeEngine, W, H, sat, lerp, ease, easeOut, back } from './engine.js';
 import { setupStage, DEFS, PARTY, WIDE, LINES } from './battle.js';
 import { makeUI, COL } from './ui.js';
 import * as R from './rules.js';
+import { makeSkin, INK, INK2, CREAM, TEAL, RED, BRASS } from './skin.js';
 
 // 小葵的 24 格揮劍（影片抽格的試驗素材）。每格 1/8 秒照影片原速播；蓄力和揮完定住那兩段幾乎不動的影格只留頭尾，縮短停頓。
 // 使用者試過覺得跟原本差不多（2026-11-19），所以預設不用；網址加 ?h3=1 才會換成這組，留著之後比較。
@@ -12,7 +13,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.2.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.3.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -24,12 +25,19 @@ DEFS.boss.hp = R.STAT.boss.hp;
 const E = makeEngine(gl), { arena, units, A, FXL, SFX, fx, S, cam, num } = await setupStage(E);
 const ui = makeUI(hudCv, A, S), c = hudCv.getContext('2d');
 const state = R.newState(Q.has('seed') ? R.mulberry(+Q.get('seed')) : Math.random);
-for (const id of R.HEROES) S.bp[id] = [{ t: -1, v: state.bp[id] }];
+S.noBp = true; S.stamps = []; S.mo = [{ t: -1, v: state.mo }];      // 個人 BP 拿掉，改成全隊共用的氣勢條
 S.shield.boss = [{ t: -1, v: state.shield }];
 S.partyMode = 'h';      // 隊伍狀態放最上面一排，不蓋到右邊的角色
+const skin = makeSkin(c, A, S, DEFS); let moShown = state.mo;
+S.skinHud = (t, a, cardOn) => skin.hud(t, a, cardOn, moShown, R.MO, R.STAT.boss.shield); S.skinBoxes = t => skin.boxes(t);
 
 // ---------- 聲音：WebAudio，事件排在遊戲時鐘上 ----------
-const AC = new (window.AudioContext || window.webkitAudioContext)(), master = AC.createGain(), musicGain = AC.createGain(); master.connect(AC.destination); musicGain.connect(master); master.gain.value = Q.has('mute') ? 0 : .9;
+const PREF = (() => { try { return JSON.parse(localStorage.getItem('a4rpg') || '{}'); } catch (e) { return {}; } })(), savePref = () => { try { localStorage.setItem('a4rpg', JSON.stringify(PREF)); } catch (e) { /* 存不了就算了 */ } };
+if (Q.has('mute')) PREF.mute = true; if (Q.has('low')) PREF.low = true;
+// 低畫質：關掉景深、光暈和陰影（手機卡的時候用）。沒選過的話，開始畫面會量幾十格，太慢就自動切過去
+const applyQuality = () => { E.dof.enabled = !PREF.low; E.bloom.enabled = !PREF.low; E.renderer.shadowMap.enabled = !PREF.low; E.scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); };
+applyQuality();
+const AC = new (window.AudioContext || window.webkitAudioContext)(), master = AC.createGain(), musicGain = AC.createGain(); master.connect(AC.destination); musicGain.connect(master); master.gain.value = PREF.mute ? 0 : .9;
 const buf = {}; let now = 0, music = null;
 const SFX_IDS = ['boss_appear', 'boss_charge', 'boss_down', 'break', 'buff', 'card', 'confirm', 'cursor', 'cutin', 'dark_blast', 'dark_charge', 'defeat', 'encounter', 'explosion', 'explosion_big', 'fanfare', 'heal', 'hit', 'holy_cast', 'paper_storm', 'shield_block', 'shield_up', 'slash', 'slash_b', 'slash_multi', 'stat'];
 async function loadSound(id, url) { try { const r = await fetch(url); if (!r.ok) return; buf[id] = await AC.decodeAudioData(await r.arrayBuffer()); } catch (e) { /* 少一個聲音不影響遊戲 */ } }
@@ -50,7 +58,7 @@ const kill = (t, id) => { units[id].pose(t - .05, 'hit').die(t, 1.0); fx('spawn/
 const box = (t, dur, text, enemy) => S.boxes.push({ t0: t, t1: t + dur, text, enemy });
 // 護衛狀態有變就更新牌子
 const syncGuard = t => { const g = R.guarded(state); if (g === guardShown) return; guardShown = g; S.guard.push({ t, v: g }); if (!g) { num(t + .1, 'boss', '護衛解除！', 'text', { col: '#ffe27a', px: 38, y: .78 }); snd(t, 'break', .6); } };
-const syncBars = t => { for (const id of R.HEROES) { if (S.bp[id].at(-1).v !== state.bp[id]) S.bp[id].push({ t, v: state.bp[id] }); if (S.sp[id].at(-1).v !== state.sp[id]) S.sp[id].push({ t, v: state.sp[id] }); } };
+const syncBars = t => { if (S.mo.at(-1).v !== state.mo) S.mo.push({ t, v: state.mo }); for (const id of R.HEROES) if (S.sp[id].at(-1).v !== state.sp[id]) S.sp[id].push({ t, v: state.sp[id] }); };
 const minionShield = {};
 // 演一筆命中：數字、受擊、血條、倒下
 function applyHit(t, h, o = {}) {
@@ -58,13 +66,16 @@ function applyHit(t, h, o = {}) {
   const foe = DEFS[h.dst].enemy;
   if (h.guard) { num(t, h.dst, 0, 'guard', { y: o.y ?? (foe ? .5 : .9), dx: o.dx, dy: o.dy }); if (o.snd !== false) snd(t, 'shield_block', .55); if (h.dst === 'boss') num(t + .15, 'boss', '護衛中', 'text', { col: '#ff9a8a', px: 28, y: .3 }); return; }
   units[h.dst].hit(t, o.pow ?? 1, foe ? -1 : 1); S.hp[h.dst].push({ t, v: h.hp });
+  if (!h.kill && h.v > 0) { const u = units[h.dst];      // 受擊姿勢：縮一下再回原本的站姿（防禦中回防禦、魔王理虧中回垂頭）
+    if (!foe && !h.cover && u.frames.hurt) { u.pose(t, 'hurt'); at(t + .42, () => { if (!ko[h.dst] && R.alive(state, h.dst) && phase !== 'end') u.pose(now, state.defend[h.dst] ? 'guard' : 'ready'); }); }
+    if (h.dst === 'boss' && u.frames.hurt) { u.pose(t, 'hurt'); at(t + .36, () => { if (R.alive(state, 'boss')) u.pose(now, state.broken ? 'stun' : 'idle'); }); } }
   num(t, h.dst, h.v, foe ? (o.kind || (h.crit ? 'crit' : 'dmg')) : 'foe', { weak: foe && h.weak, big: !foe && h.v >= 1000, dx: o.dx, dy: o.dy, fixed: o.fixed });
   if (o.snd !== false) snd(t, o.snd || 'hit', o.vol ?? .8);
   if (h.dst === 'boss' && h.shield != null) S.shield.boss.push({ t, v: h.shield });
   if (foe && h.dst !== 'boss') { minionShield[h.dst] = Math.max(1, (minionShield[h.dst] ?? 2) - 1); S.shield[h.dst].push({ t, v: minionShield[h.dst] }); if (stepReveal < 4) S.reveal.push({ t, v: ++stepReveal }); }
   if (h.cover) num(t + .12, 'kevin', '代為承受', 'text', { col: '#9af0ff', px: 26, y: 1.2 });
   if (h.def) num(t + .1, h.dst, '防禦', 'text', { col: '#bfd0ff', px: 24, y: 1.15 });
-  if (h.brk) { S.breaks.push({ t }); snd(t, 'break', .9); cam.shake(t, .3, .6); fx('status/stunned', t + .4, 'boss', { y: 2.35, dx: .45, scale: 2.2, dur: 4 }); }
+  if (h.brk) { S.stamps.push({ t, id: 'boss' }); snd(t, 'break', .9); cam.shake(t, .3, .6); fx('status/stunned', t + .4, 'boss', { y: 2.35, dx: .45, scale: 2.2, dur: 4 }); }
   if (h.kill) { if (h.dst === 'boss') return; if (foe) { kill(t + .1, h.dst); at(t + .25, () => syncGuard(now)); } else { at(t + .15, () => { ko[h.dst] = true; }); num(t + .35, h.dst, '倒下', 'text', { col: '#ff6a5a', px: 32, y: 1.2 }); const u = units[h.dst], hp = home(h.dst); u.move(t + .12, hp[0], hp[1], .25); if (u.frames.ko) u.anim(t + .12, 'ko', [0, .42]); else u.pose(t + .1, 'wind'); snd(t + .5, 'defeat', .5); } }
 }
 let stepReveal = 0;
@@ -88,9 +99,9 @@ function playAttack(r, t0) {
   if (h?.guard) box(th + .2, 1.6, '小兵護衛中　魔王不受傷害', true);
   ready(te - .05, id); return te;
 }
-function playDefend(r, t0) { units[r.id].pose(t0, 'wind'); num(t0 + .1, r.id, '防禦', 'text', { col: '#bfd0ff', px: 32, y: r.id === 'vivi' ? 1.0 : 1.2, dx: r.id === 'vivi' ? -110 : 0 }); snd(t0 + .05, 'shield_up', .5); fx('impacts/parry', t0 + .05, r.id, { scale: 1.0, y: .5, palette: 'cyber' }); at(t0 + .3, () => syncBars(now)); return t0 + .75; }
-function playCheer(r, t0) { const u = units.vivi; u.pose(t0, 'wind').pose(t0 + .3, 'act'); snd(t0 + .3, 'buff', .9); fx('holy/feather-burst', t0 + .3, 'vivi', { scale: 1.0, y: 1.6, palette: 'neon' }); num(t0 + .35, 'vivi', '加油！', 'text', { col: '#ffc0dc', px: 34, y: 1.0, dx: -130 });
-  R.FRONT.filter(id => R.alive(state, id)).forEach((id, i) => { const tb = t0 + .5 + i * .09; fx('arcane/mana-burst', tb, id, { scale: .8, palette: 'gold', y: .5 }); num(tb + .2, id, state.bp[id] >= 5 ? 'BP MAX' : 'BP ＋2', 'text', { col: '#ffe27a', px: 26, y: 1.15 }); units[id].hop(tb + .2, .16, .28); });
+function playDefend(r, t0) { units[r.id].pose(t0, 'guard'); num(t0 + .1, r.id, '防禦', 'text', { col: '#bfd0ff', px: 32, y: r.id === 'vivi' ? 1.0 : 1.2, dx: r.id === 'vivi' ? -110 : 0 }); snd(t0 + .05, 'shield_up', .5); fx('impacts/parry', t0 + .05, r.id, { scale: 1.0, y: .5, palette: 'cyber' }); at(t0 + .3, () => syncBars(now)); return t0 + .75; }
+function playCheer(r, t0) { const u = units.vivi; u.pose(t0, 'wind').pose(t0 + .3, u.frames.cheer ? 'cheer' : 'act'); snd(t0 + .3, 'buff', .9); fx('holy/feather-burst', t0 + .3, 'vivi', { scale: 1.0, y: 1.6, palette: 'neon' }); num(t0 + .35, 'vivi', '加油！', 'text', { col: '#ffc0dc', px: 34, y: 1.0, dx: -130 });
+  R.FRONT.filter(id => R.alive(state, id)).forEach((id, i) => { const tb = t0 + .5 + i * .09; fx('arcane/mana-burst', tb, id, { scale: .8, palette: 'gold', y: .5 }); units[id].hop(tb + .2, .16, .28); }); num(t0 + .7, 'kevin', `氣勢 ＋${R.MO.cheer}`, 'text', { col: '#ffe27a', px: 34, y: 1.5 });
   at(t0 + .75, () => syncBars(now)); ready(t0 + 1.4, 'vivi'); return t0 + 1.5; }
 function playItem(r, t0) { const it = R.ITEMS[r.key], th = t0 + 1.05; units[r.id].pose(t0, r.id === 'mi' || r.id === 'vivi' ? 'act' : 'win'); S.items.push({ t0, from: r.id, to: r.target, key: r.key === 'bento' ? 'tea' : r.key, name: it.name }); snd(t0, 'card', .8);
   if (r.revive) { at(th, () => { ko[r.target] = false; units[r.target].pose(now, 'ready'); }); fx('holy/blessing', th - .1, r.target, { scale: 1.3, dur: 1.4 }); snd(th, 'holy_cast', .6); num(th + .1, r.target, '復活', 'text', { col: '#fff3c8', px: 34, y: 1.3 }); units[r.target].pose(th, 'ready'); }
@@ -114,14 +125,14 @@ function playSkill(r, t0) {
     SFX.add('ring', t0 + .2, .6, { cx: 300, cy: 180, r: 240, c: [120, 240, 255], w: 3 }); R.foes(state).forEach((f, i) => num(t0 + .55 + i * .08, f, '被挑釁', 'text', { col: '#ff9a8a', px: 24, y: f === 'boss' ? .7 : 1.25 })); te = t0 + 1.25; }
   else if (r.key === 'bash') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.1 : 1.15, th = t0 + .34; u.anim(t0, 'ult', [0, .04, .1, .2, .26, .3, 999, 999]).move(t0 + .06, tx + gap, tz + .05, .2, easeOut); snd(t0 + .06, 'whoosh', .5); SFX.add('speed', t0 + .05, .22, { a: .4 });
     fx('impacts/blunt-hit', th, tg, { y: foeY(tg), dx: tg === 'boss' ? 1.0 : .4, scale: 2.0, palette: 'cyber' }); fx('impacts/crit-hit', th, tg, { y: foeY(tg), scale: 1.3, palette: 'cyber' }); snd(th, 'shield_block', 1); cam.shake(th, .2, .35);
-    applyHit(th, hs[0], { snd: hs[0]?.guard ? false : 'hit', pow: 1.3 }); goHome(th + .5, id, .3); num(th + .7, id, '防禦', 'text', { col: '#bfd0ff', px: 28, y: 1.2 }); te = th + 1.0; at(te - .02, () => { units[id].pose(now, 'wind'); }); return te; }
+    applyHit(th, hs[0], { snd: hs[0]?.guard ? false : 'hit', pow: 1.3 }); goHome(th + .5, id, .3); num(th + .7, id, '防禦', 'text', { col: '#bfd0ff', px: 28, y: 1.2 }); te = th + 1.0; at(te - .02, () => { units[id].pose(now, 'guard'); }); return te; }
   else if (r.key === 'barrage') { const th = t0 + .86; u.pose(t0, 'wind').pose(t0 + .3, 'act'); fx('arcane/spell-charge', t0, id, { palette: 'shadow', scale: .7, y: .9, dx: -.4, flip: true, dur: .5 }); snd(t0, 'dark_charge', .6); SFX.add('dim', t0 + .1, 1.4, { c: [22, 6, 44], a: .35, fade: .2 });
     hs.forEach((h, i) => { fx('arcane/star-fall', t0 + .2 + i * .1, h.dst, { scale: h.dst === 'boss' ? 2.0 : 1.2, palette: 'shadow', dx: h.dst === 'boss' ? .3 : 0 }); applyHit(th + i * .1, h, { snd: i ? false : 'hit', dy: i % 2 ? -70 : 0 }); }); snd(th - .1, 'dark_blast', .7); cam.shake(th, .16, .4); te = th + .9; }
   else if (r.key === 'curse') { const tg = r.target, th = t0 + .8; u.pose(t0, 'wind').pose(t0 + .3, 'act'); snd(t0, 'dark_charge', .6); fx('shadow/grasping-hands', t0 + .1, tg, { scale: tg === 'boss' ? 2.0 : 1.3, dx: tg === 'boss' ? .6 : 0 }); fx('shadow/shadow-tendrils', t0 + .2, tg, { scale: tg === 'boss' ? 1.6 : 1.0 });
     applyHit(th, hs[0], { snd: 'hit' }); if (r.down) { num(th + .25, tg, '攻擊力 ↓', 'text', { col: '#c9a0ff', px: 34, y: tg === 'boss' ? .75 : 1.3 }); snd(th + .2, 'defeat', .5); } te = th + .95; }
   else if (r.key === 'mend' || r.key === 'soothe') { const th = t0 + .6; u.pose(t0, 'wind').pose(t0 + .32, 'act'); snd(t0, 'holy_cast', .7); fx('holy/blessing', t0, id, { scale: 1.0, dur: 1.0 }); if (r.key === 'soothe') fx('holy/heal-aoe', th - .25, [3.0, -.1], { scale: 2.0, palette: 'heal' }); snd(th, 'heal', .9);
     r.heals.forEach((h, i) => { fx('holy/heal', th - .05 + i * .08, h.dst, { scale: 1.2 }); if (h.v > 0) { S.hp[h.dst].push({ t: th + .2 + i * .08, v: h.hp }); num(th + .2 + i * .08, h.dst, h.v, 'heal', { dy: i % 2 ? -76 : 0 }); } units[h.dst].hop(th + .25 + i * .08, .16, .3); }); te = th + 1.0; }
-  else if (r.key === 'treat') { const th = t0 + .6; u.pose(t0, 'wind').pose(t0 + .3, 'act'); snd(t0 + .3, 'buff', .9); fx('holy/feather-burst', t0 + .3, id, { scale: 1.0, y: 1.6, palette: 'neon' }); num(t0 + .35, id, '我請客！', 'text', { col: '#ffc0dc', px: 32, y: 1.0, dx: -130 });
+  else if (r.key === 'treat') { const th = t0 + .6; u.pose(t0, 'wind').pose(t0 + .3, u.frames.cheer ? 'cheer' : 'act'); snd(t0 + .3, 'buff', .9); fx('holy/feather-burst', t0 + .3, id, { scale: 1.0, y: 1.6, palette: 'neon' }); num(t0 + .35, id, '我請客！', 'text', { col: '#ffc0dc', px: 32, y: 1.0, dx: -130 });
     r.spGains.forEach((h, i) => { const tb = th + i * .09; fx('arcane/mana-burst', tb, h.dst, { scale: .9, palette: 'cyber', y: .5 }); if (h.v > 0) { S.sp[h.dst].push({ t: tb + .15, v: h.sp }); num(tb + .15, h.dst, h.v, 'sp', { dy: i % 2 ? -66 : 0 }); } units[h.dst].hop(tb + .2, .16, .28); }); te = th + 1.1; }
   ready(te - .05, id); return te;
 }
@@ -188,7 +199,7 @@ function playFoe(r, t0) {
   if (r.kind === 'foeAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, [hx, hz] = home(id), [tx, tz] = units[tgt].posAt(t0); box(t0, 1.3, '加班連打', true);
     u.pose(t0 + .15, 'atk').move(t0 + .15, tx - .95, tz + .02, .2, easeOut); snd(t0 + .15, 'whoosh', .45); const th = t0 + .41; fx('impacts/blunt-hit', th, tgt, { y: .7, dx: -.2, scale: 1.2 });
     r.hits.forEach((h, i) => applyHit(th + i * .05, h, { pow: .9, snd: i ? false : undefined })); if (r.hits.taunted) num(th - .2, 'kevin', '這個我來！', 'text', { col: '#9af0ff', px: 28, y: 1.25 }); if (r.weak) num(t0 + .1, id, '詛咒中', 'text', { col: '#c9a0ff', px: 24, y: 1.2 }); u.move(th + .3, hx, hz, .28).pose(th + .62, 'idle'); return th + .95; }
-  if (r.kind === 'stunned') { box(t0, 1.3, '動彈不得', true); num(t0 + .2, 'boss', '護盾回復', 'text', { col: '#bfd0ff', y: .5 }); S.shield.boss.push({ t: t0 + .9, v: r.shield }); snd(t0 + .9, 'shield_up', .5); return t0 + 1.4; }
+  if (r.kind === 'stunned') { box(t0, 1.3, '理虧中　說不出話', true); u.pose(t0, 'stun').pose(t0 + 1.0, 'idle'); num(t0 + .9, 'boss', '底氣回復', 'text', { col: '#ffd0c8', y: .5 }); S.shield.boss.push({ t: t0 + .9, v: r.shield }); snd(t0 + .9, 'shield_up', .5); return t0 + 1.4; }
   if (r.kind === 'charge') { cam.to(t0, .6, { x: -1.3, d: 11.4, y: 1.7 }).to(t0 + 2.3, .5, WIDE); box(t0 + .2, 2.4, '蓄力　再改一版！', true); u.anim(t0 + .3, 'swing', [0, .2, .5, 9, 9, 9, 9, 9]); snd(t0 + .3, 'boss_charge', 1); say(t0 + .65, 'boss_attack', 'boss');
     fx('lightning/charge-up', t0 + .4, 'boss', { palette: 'blood', scale: 2.0, y: 2.2, dx: .2 }); SFX.add('vignette', t0 + .4, 2.2, { c: [220, 30, 30], a: .8, pulse: 14 }); SFX.add('embers', t0 + .4, 2.2, { c: [255, 80, 50], x0: 0, w: 260 }); cam.shake(t0 + 1.0, .08, 1.4);
     num(t0 + 1.4, 'boss', '下一次行動：全體大傷害', 'text', { col: '#ff8a70', y: .5, px: 32 }); return t0 + 2.8; }
@@ -242,12 +253,12 @@ function act(r) {      // 玩家選完，演出然後換下一個
 function openMenu(kind, arg) {
   const id = actor, d = DEFS[id], skills = R.SKILLS[id], back = { label: '返回', sub: '', go: () => openMenu('root'), back: true }; let items = [];
   if (kind === 'root') {
-    const needBp = state.bp[id] < 5, needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length);
-    items = [id === 'vivi' ? { label: '應援', sub: '前排全員 BP ＋2', go: () => act(R.doCheer(state)), hint: '幫大家集氣。BP 滿 5 才能放奧義。' } : { label: '攻擊', sub: '普通攻擊', go: () => openMenu('target'), hint: '選一個敵人攻擊。小兵還在的時候打不到魔王。' },
-      { label: '技能', sub: skills.some(k => R.skillOk(state, id, k)) ? skills.map(k => k.name).join('、') : 'SP 不足', off: !skills.some(k => R.skillOk(state, id, k)), go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用集 BP。' },
-      { label: '奧義', sub: needBp ? `BP ${state.bp[id]}／5` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
+    const needBp = state.mo < R.MO.ult, needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length);
+    items = [id === 'vivi' ? { label: '應援', sub: `氣勢 ＋${R.MO.cheer}`, go: () => act(R.doCheer(state)), hint: `幫全隊加氣勢。氣勢到 ${R.MO.ult} 就能放奧義，全隊共用。` } : { label: '攻擊', sub: '普通攻擊', go: () => openMenu('target'), hint: '選一個敵人攻擊。小兵還在的時候打不到魔王。' },
+      { label: '技能', sub: skills.some(k => R.skillOk(state, id, k)) ? skills.map(k => k.name).join('、') : 'SP 不足', off: !skills.some(k => R.skillOk(state, id, k)), go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用氣勢。' },
+      { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.MO.ult}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
-      { label: '防禦', sub: '受傷減半　BP ＋1', go: () => act(R.doDefend(state, id)), hint: '到自己下一次行動前受到的傷害減半，BP 多加 1。' }];
+      { label: '防禦', sub: '受傷減半', go: () => act(R.doDefend(state, id)), hint: `到自己下一次行動前受到的傷害減半，氣勢 ＋${R.MO.defend}。` }];
   } else if (kind === 'target') { const sk = arg, bk = sk ? { ...back, go: () => openMenu('skills') } : back;      // arg＝招式（沒有就是普通攻擊）
     items = R.foes(state).filter(f => f !== 'boss').concat('boss').map(f => ({ label: NAME[f], sub: f === 'boss' ? (R.guarded(state) ? '護衛中　傷害無效' : `HP ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}%`) : `HP ${state.hp[f]}`, warn: f === 'boss' && R.guarded(state), target: f, go: () => act(sk ? R.doSkill(state, id, sk.key, f) : R.doAttack(state, id, f)) })); items.push(bk);
   } else if (kind === 'skills') { items = skills.map(k => ({ label: k.name, sub: `SP ${k.sp}　${k.note}`, off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) })); items.push(back);
@@ -279,47 +290,53 @@ let zones = [], pointer = null;
 const font = (px, w = 700, fam = SANS) => { c.font = `${w} ${px}px ${fam}`; };
 const text = (s, x, y, o = {}) => { font(o.px ?? 28, o.w ?? 700, o.fam ?? SANS); c.textAlign = o.align ?? 'left'; c.textBaseline = 'alphabetic'; c.letterSpacing = `${o.ls ?? 0}px`; if (o.stroke) { c.lineJoin = 'round'; c.lineWidth = o.sw ?? 6; c.strokeStyle = o.stroke; c.strokeText(s, x, y); } c.fillStyle = o.col ?? COL.text; c.fillText(s, x, y); c.letterSpacing = '0px'; };
 const gem = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.fill(); };
+const fit = (str, room, px, w = 700, fam = SANS) => { font(px, w, fam); while (c.measureText(str).width > room && str.length > 5) str = str.slice(0, -2) + '…'; return str; };
+// 指令按鈕＝資料夾的索引標籤：選到的是綠色、往上拉出來一截；按下去會沉、閃一下；不能按的是舊紙，按了會抖
 function button(x, y, w, h, it, on, i) {
-  const off = !!it.off, pe = pressed && pressed.i === i && !pressed.big ? (performance.now() - pressed.t) / PRESS_MS : -1, dn = pe >= 0 && !off, shake = pe >= 0 && off ? Math.sin(pe * 22) * 7 * (1 - Math.min(1, pe)) : 0;
-  zones.push({ x, y, w, h, i, off }); c.save(); c.translate(shake, dn ? 6 : 0);
-  if (!dn) { c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(x + 3, y + 7, w, h); }      // 沒按下時底下有一道影子，按下去影子不見＝沉下去
-  c.fillStyle = 'rgba(11,9,20,.9)'; c.fillRect(x, y, w, h);
-  if (dn) { c.fillStyle = `rgba(255,232,170,${.85 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, w, h); c.strokeStyle = `rgba(255,246,216,${1 - Math.min(1, pe)})`; c.lineWidth = 4; const k = 10 * Math.min(1, pe); c.strokeRect(x - k, y - k, w + 2 * k, h + 2 * k); }
-  if (on && !off) { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(226,191,108,.5)'); g.addColorStop(1, 'rgba(226,191,108,.12)'); c.fillStyle = g; c.fillRect(x, y, w, h); }
-  c.fillStyle = on && !off ? COL.gold : 'rgba(226,191,108,.45)'; c.fillRect(x, y, w, on ? 4 : 2); c.fillRect(x, y + h - 2, w, 2); if (on && !off) { gem(x, y + 2, 7, '#fff6d8'); gem(x + w, y + 2, 7, '#fff6d8'); gem(x + 30 + Math.sin(now * 9) * 3, y + 52, 8, '#fff6d8'); }
-  const col = off ? 'rgba(243,236,218,.3)' : dn ? '#1a1206' : on ? '#fffaf0' : 'rgba(243,236,218,.8)';
-  { const lx = x + (on && !off ? 52 : 28); let px = 44; font(px, 700, SERIF); while (px > 26 && c.measureText(it.label).width + it.label.length * 2 > x + w - lx - 14) { px -= 2; font(px, 700, SERIF); } text(it.label, lx, y + 66, { px, w: 700, fam: SERIF, col, ls: 2 }); }
-  if (it.gold) text('MAX', x + w - 18, y + 36, { px: 18, w: 900, col: '#ffd84a', align: 'right', ls: 2 });
-  if (it.sub) { font(19, 500); let sub = it.sub; while (c.measureText(sub).width > w - 44 && sub.length > 4) sub = sub.slice(0, -2) + '…'; text(sub, x + 28, y + h - 20, { px: 19, w: 500, col: it.warn ? '#ff9a8a' : off ? 'rgba(169,160,142,.45)' : COL.dim }); }
+  const off = !!it.off, pe = pressed && pressed.i === i && !pressed.big && !pressed.opt ? (performance.now() - pressed.t) / PRESS_MS : -1, dn = pe >= 0 && !off, shake = pe >= 0 && off ? Math.sin(pe * 22) * 7 * (1 - Math.min(1, pe)) : 0, sel = on && !off;
+  zones.push({ x, y: y - 14, w, h: h + 14, i, off }); c.save(); c.translate(shake, (sel && !dn ? -14 : 0) + (dn ? 6 : 0));
+  skin.paper(x, y, w, h, { old: off });
+  if (sel) { c.fillStyle = '#1e3b36'; c.fillRect(x + 5, y + 5, w - 10, h - 10); c.fillStyle = TEAL; c.fillRect(x + 7, y + 7, w - 14, h - 14); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(x + 7, y + 7, w - 14, 5); c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(x + 7, y + h - 13, w - 14, 6); gem(x + 30 + Math.sin(now * 9) * 3, y + 50, 8, CREAM); }
+  if (dn) { c.fillStyle = `rgba(255,246,216,${.85 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, w, h); c.strokeStyle = `rgba(255,246,216,${1 - Math.min(1, pe)})`; c.lineWidth = 4; const k = 10 * Math.min(1, pe); c.strokeRect(x - k, y - k, w + 2 * k, h + 2 * k); }
+  const col = off ? 'rgba(43,31,24,.36)' : dn ? INK : sel ? '#fff8e6' : INK, lx = x + (sel ? 50 : 24); let px = 44; font(px, 900, SERIF); while (px > 26 && c.measureText(it.label).width + it.label.length * 2 > x + w - lx - 14) { px -= 2; font(px, 900, SERIF); }
+  text(it.label, lx, y + 64, { px, w: 900, fam: SERIF, col, ls: 2 });
+  if (it.sub) text(fit(it.sub, w - 44, 19, 700), x + 24, y + h - 20, { px: 19, w: 700, col: it.warn ? (sel ? '#ffd0c8' : RED) : off ? 'rgba(43,31,24,.36)' : sel && !dn ? 'rgba(255,248,230,.85)' : INK2 });
+  if (it.gold) skin.stamp('可發動', x + w - 52, y + 26, -.1, 17);
   c.restore();
 }
+// 小開關（聲音、畫質）
+function toggle(label, x, y, key, w = 150) { const pe = pressed && pressed.opt === key ? (performance.now() - pressed.t) / PRESS_MS : -1; zones.push({ x, y, w, h: 38, opt: key }); c.save(); c.translate(0, pe >= 0 ? 3 : 0); skin.paper(x, y, w, 38, { old: !!PREF[key] === (key === 'mute') }); text(label, x + w / 2, y + 27, { px: 20, w: 700, align: 'center', col: INK }); c.restore(); }
+const toggles = (x, y) => { toggle(PREF.mute ? '聲音　關' : '聲音　開', x, y, 'mute'); toggle(PREF.low ? '畫質　省電' : '畫質　一般', x + 162, y, 'low', 170); };
 function drawMenu() {
   zones = []; if (phase !== 'command' || !menu) return;
-  const n = menu.items.length, X0 = 770, X1 = 1880, gap = 14, w = Math.min(290, (X1 - X0 - gap * (n - 1)) / n), h = 122, y = 928, x0 = X1 - (w * n + gap * (n - 1)), d = DEFS[actor];
-  // 上面一行：輪到誰＋目前選項的說明
+  const n = menu.items.length, X0 = 770, X1 = 1880, gap = 12, w = Math.min(290, (X1 - X0 - gap * (n - 1)) / n), h = 116, y = 944, x0 = X1 - (w * n + gap * (n - 1)), d = DEFS[actor];
+  // 木頭資料夾：上面夾一張說明紙（輪到誰＋目前選項的說明），下面一排索引標籤
   const it = menu.items[focus] || {}, tip = it.hint || (menu.kind === 'target' ? '選攻擊對象（也可以直接點敵人）' : menu.kind === 'ally' || menu.kind === 'allySkill' ? '選要給誰' : menu.kind === 'items' ? '選道具' : menu.kind === 'skills' ? '選招式' : '');
-  c.fillStyle = 'rgba(11,9,20,.82)'; c.fillRect(X0, y - 58, X1 - X0, 46); c.fillStyle = d.color; c.fillRect(X0, y - 58, 6, 46);
-  text(d.name, X0 + 24, y - 25, { px: 28, w: 700, col: COL.gold }); font(28, 700); const nw = c.measureText(d.name).width; text(d.job, X0 + 34 + nw, y - 26, { px: 18, w: 500, col: COL.dim }); font(18, 500); const jw = c.measureText(d.job).width;
-  font(20, 500); let tp = tip; const room = X1 - X0 - nw - jw - 90; while (c.measureText(tp).width > room && tp.length > 6) tp = tp.slice(0, -2) + '…'; text(tp, X0 + 62 + nw + jw, y - 26, { px: 20, w: 500, col: 'rgba(243,236,218,.82)' });
+  skin.wood(X0 - 16, y - 84, X1 - X0 + 32, 84 + h + 30, { studs: false }); skin.paper(X0, y - 72, X1 - X0, 46); c.fillStyle = d.color; c.fillRect(X0 + 8, y - 64, 6, 30);
+  text(d.name, X0 + 26, y - 39, { px: 28, w: 900, fam: SERIF, col: INK }); font(28, 900, SERIF); const nw = c.measureText(d.name).width; text(d.job, X0 + 36 + nw, y - 40, { px: 18, w: 700, col: INK2 }); font(18, 700); const jw = c.measureText(d.job).width;
+  text(fit(tip, X1 - X0 - nw - jw - 90, 20, 700), X0 + 62 + nw + jw, y - 40, { px: 20, w: 700, col: INK });
   menu.items.forEach((m, i) => button(x0 + i * (w + gap), y, w, h, m, i === focus, i));
+  toggles(28, 148);
   // 目標頭上的箭頭
   if (it.target) { const [tx, ty] = S.proj(it.target, 1), foe = DEFS[it.target].enemy, col = foe ? '#ff6a5a' : '#8cf09a', by = ty - 40 + Math.sin(now * 9) * 6; c.fillStyle = col; c.strokeStyle = 'rgba(10,8,18,.9)'; c.lineWidth = 3; c.beginPath(); c.moveTo(tx - 19, by - 26); c.lineTo(tx + 19, by - 26); c.lineTo(tx, by); c.closePath(); c.stroke(); c.fill(); text('目標', tx, by - 34, { px: 22, w: 900, align: 'center', col, stroke: 'rgba(10,8,18,.9)', sw: 5, ls: 3 }); }
-  // 現在是誰：頭上金色箭頭
-  { const [ax, ay] = S.proj(actor, 1), by = ay - 30 + Math.sin(now * 7) * 5; c.fillStyle = COL.gold; c.strokeStyle = 'rgba(10,8,18,.9)'; c.lineWidth = 3; c.beginPath(); c.moveTo(ax - 15, by - 22); c.lineTo(ax + 15, by - 22); c.lineTo(ax, by); c.closePath(); c.stroke(); c.fill(); }
+  // 現在是誰：頭上的箭頭
+  { const [ax, ay] = S.proj(actor, 1), by = ay - 30 + Math.sin(now * 7) * 5; c.fillStyle = CREAM; c.strokeStyle = 'rgba(10,8,18,.9)'; c.lineWidth = 3; c.beginPath(); c.moveTo(ax - 15, by - 22); c.lineTo(ax + 15, by - 22); c.lineTo(ax, by); c.closePath(); c.stroke(); c.fill(); }
   // 選攻擊對象時，敵人本身也可以點
   if (menu.kind === 'target') menu.items.forEach((m, i) => { if (!m.target) return; const [px, py] = S.proj(m.target, .5), boss = m.target === 'boss', r = boss ? 210 : 100; zones.push({ x: px - r, y: py - r * 1.15, w: r * 2, h: r * 2.3, i, off: false, soft: true }); });
 }
-function bigButton(label, cx, cy, w = 420, h = 110) { const on = pointer && Math.abs(pointer[0] - cx) < w / 2 && Math.abs(pointer[1] - cy) < h / 2, x = cx - w / 2, pe = pressed && pressed.big ? (performance.now() - pressed.t) / PRESS_MS : -1, dn = pe >= 0, y = cy - h / 2 + (dn ? 6 : 0); zones.push({ x, y: cy - h / 2, w, h, big: true });
-  if (!dn) { c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(x + 4, y + 8, w, h); } c.fillStyle = 'rgba(11,9,20,.92)'; c.fillRect(x, y, w, h); if (dn) { c.fillStyle = `rgba(255,232,170,${.8 - .4 * Math.min(1, pe)})`; c.fillRect(x, y, w, h); } const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, `rgba(226,191,108,${on ? .6 : .34})`); g.addColorStop(1, 'rgba(226,191,108,.08)'); c.fillStyle = g; c.fillRect(x, y, w, h);
-  c.fillStyle = COL.gold; c.fillRect(x, y, w, 3); c.fillRect(x, y + h - 3, w, 3); gem(x, y + 1, 8, '#fff6d8'); gem(x + w, y + 1, 8, '#fff6d8'); gem(x, y + h - 1, 8, '#fff6d8'); gem(x + w, y + h - 1, 8, '#fff6d8'); text(label, cx, y + h / 2 + 18, { px: 50, w: 900, fam: SERIF, align: 'center', ls: 8, col: dn ? '#1a1206' : '#fffaf0' }); }
+function bigButton(label, cx, cy, w = 440, h = 116) { const on = pointer && Math.abs(pointer[0] - cx) < w / 2 && Math.abs(pointer[1] - cy) < h / 2, x = cx - w / 2, pe = pressed && pressed.big ? (performance.now() - pressed.t) / PRESS_MS : -1, dn = pe >= 0, y = cy - h / 2 + (dn ? 6 : 0); zones.push({ x, y: cy - h / 2, w, h, big: true });
+  skin.wood(x, y, w, h); skin.paper(x + 16, y + 16, w - 32, h - 32); if (on && !dn) { c.fillStyle = TEAL; c.fillRect(x + 22, y + 22, w - 44, h - 44); } if (dn) { c.fillStyle = `rgba(255,246,216,${.85 - .4 * Math.min(1, pe)})`; c.fillRect(x + 16, y + 16, w - 32, h - 32); }
+  text(label, cx, y + h / 2 + 17, { px: 48, w: 900, fam: SERIF, align: 'center', ls: 8, col: on && !dn ? '#fff8e6' : INK }); }
 function drawOverlay() {
-  if (phase === 'title' || phase === 'load') { zones = []; c.fillStyle = 'rgba(6,5,12,.74)'; c.fillRect(0, 0, W, H);
-    text('不想上班 RPG', W / 2, 250, { px: 42, w: 700, align: 'center', col: COL.gold, ls: 16 }); text('討伐奧客總經理', W / 2, 390, { px: 128, w: 900, fam: SERIF, align: 'center', ls: 14, stroke: 'rgba(20,10,4,.9)', sw: 14 });
-    c.fillStyle = COL.gold; c.fillRect(W / 2 - 380, 432, 760, 2); gem(W / 2, 433, 11, '#fff6d8'); text(`試 玩 版　${VERSION}`, W / 2, 482, { px: 26, w: 700, align: 'center', col: COL.dim, ls: 14 });
-    ['小兵還在場上的時候，魔王不會受傷，先把小兵清掉', 'BP 集滿 5 才能放奧義；Vivi 的「應援」可以幫大家集氣', '魔王蓄力之後下一次行動會放大招，用 Kevin 的奧義或防禦撐過去'].forEach((s, i) => { gem(W / 2 - 430, 566 + i * 54, 6, COL.gold); text(s, W / 2 - 406, 576 + i * 54, { px: 28, w: 500, col: 'rgba(243,236,218,.9)' }); });
-    if (phase === 'title') bigButton('開始戰鬥', W / 2, 830); else text(loadMsg + '…', W / 2, 840, { px: 30, w: 500, align: 'center', col: COL.dim });
-    text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 950, { px: 22, w: 500, align: 'center', col: 'rgba(169,160,142,.8)' }); }
-  if (phase === 'over') { zones = []; if (state.over === 'win') bigButton('再玩一次', 1500, 930, 380, 100);
+  if (phase === 'title' || phase === 'load') { zones = []; c.fillStyle = 'rgba(10,7,6,.76)'; c.fillRect(0, 0, W, H);
+    text('不 想 上 班 RPG', W / 2, 168, { px: 34, w: 700, align: 'center', col: BRASS, ls: 10 });
+    text('上班旅人', W / 2, 350, { px: 190, w: 900, fam: SERIF, align: 'center', ls: 26, col: CREAM, stroke: 'rgba(20,10,4,.95)', sw: 18 });
+    c.fillStyle = BRASS; c.fillRect(W / 2 - 420, 398, 840, 3); text('討伐奧客總經理', W / 2, 458, { px: 44, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 14 }); skin.paper(W / 2 + 396, 268, 250, 58); skin.stamp(`試玩版 ${VERSION}`, W / 2 + 521, 297, 0, 26);
+    skin.paper(W / 2 - 520, 506, 1040, 236, { clips: [W / 2 - 440, W / 2 + 440] });
+    ['小兵還在場上的時候，魔王不會受傷，先把小兵清掉', '行動會累積全隊共用的「氣勢」，夠了就能放奧義；Vivi 的應援加最多', '把魔王的「底氣」打到歸零，他會理虧：少動一次、受到的傷害變多', '魔王蓄力之後下一次行動放大招，用 Kevin 的奧義或防禦撐過去'].forEach((s, i) => { gem(W / 2 - 474, 552 + i * 50, 6, RED); text(s, W / 2 - 452, 562 + i * 50, { px: 27, w: 700, col: INK }); });
+    if (phase === 'title') bigButton('開始戰鬥', W / 2, 838); else text(loadMsg + '…', W / 2, 848, { px: 30, w: 500, align: 'center', col: COL.dim });
+    toggles(W / 2 - 166, 930); text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 1022, { px: 21, w: 500, align: 'center', col: 'rgba(239,230,207,.7)' }); }
+  if (phase === 'over') { zones = []; if (state.over === 'win') bigButton('再玩一次', 1500, 930, 400, 110);
     else { text('全員倒下', W / 2, 400, { px: 150, w: 900, fam: SERIF, align: 'center', ls: 20, col: '#ff8a78', stroke: 'rgba(20,6,8,.9)', sw: 16 }); text(`撐到第 ${state.round} 回合　魔王還剩 ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}% 的血`, W / 2, 500, { px: 32, w: 500, align: 'center', col: COL.text }); text('提示：看到「蓄力」就讓 Kevin 放奧義；血少的時候小米的奧義可以全員補滿', W / 2, 560, { px: 24, w: 500, align: 'center', col: COL.dim }); bigButton('再挑戰一次', W / 2, 760); } }
 }
 
@@ -330,11 +347,12 @@ const PRESS_MS = 130; let pressed = null;
 const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* 沒有震動就算了 */ } };
 function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
+  if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); snd(now, 'cursor', .6); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.off) { pressed = { i: z.i, t: performance.now() }; snd(now, 'cursor', .35); buzz([8, 40, 8]); setTimeout(() => { pressed = null; }, 260); return; }
   pressed = { i: z.i, big: z.big, t: performance.now() }; snd(now, 'confirm', .9); buzz(14); if (!z.big) focus = z.i;
   const m = menu, ph = phase; setTimeout(() => { pressed = null; if (z.big) { if (ph === 'title') { phase = 'anim'; audioReady.then(start); } else if (ph === 'over') location.reload(); return; } if (menu === m && phase === 'command') m.items[z.i].go(); }, PRESS_MS);
 }
-stage.addEventListener('pointermove', e => { pointer = toStage(e); const z = hitZone(pointer); if (z && !z.big && !z.off && phase === 'command' && z.i !== focus) { focus = z.i; } });
+stage.addEventListener('pointermove', e => { pointer = toStage(e); const z = hitZone(pointer); if (z && !z.big && !z.opt && !z.off && phase === 'command' && z.i !== focus) { focus = z.i; } });
 stage.addEventListener('pointerdown', e => { e.preventDefault(); pointer = toStage(e); if (AC.state !== 'running') AC.resume(); press(hitZone(pointer)); });
 addEventListener('keydown', e => { if (phase === 'title' && (e.code === 'Enter' || e.code === 'Space')) return press(zones.find(z => z.big)); if (phase === 'over' && (e.code === 'Enter' || e.code === 'Space')) return press(zones.find(z => z.big)); if (phase !== 'command' || !menu) return; const n = menu.items.length;
   const step = d => { let i = focus; for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (!menu.items[i].off) break; } if (i !== focus) { focus = i; snd(now, 'cursor', .5); } };
@@ -344,14 +362,16 @@ for (const ev of ['gesturestart', 'gesturechange', 'dblclick', 'contextmenu', 's
 addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false }); addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 // ---------- 主迴圈 ----------
-let last = performance.now(), pruneAt = 0;
+let last = performance.now(), pruneAt = 0, slowN = 0, slowSum = 0;
 function frame(ts) {
-  const dt = Math.min(.1, (ts - last) / 1000); last = ts; now += dt * (Q.has('fast') ? +Q.get('fast') || 3 : 1);
+  const dt = Math.min(.1, (ts - last) / 1000); last = ts;
+  if (!PREF.set && !PREF.low && (phase === 'title' || phase === 'load') && ++slowN > 20) { slowSum += dt; if (slowN === 70 && slowSum / 50 > .03) { PREF.low = true; applyQuality(); } }
+  now += dt * (Q.has('fast') ? +Q.get('fast') || 3 : 1);      // ↑ 開始畫面平均不到 33 格：自動切省電畫質
   while (todo.length && todo[0].t <= now) todo.shift().fn();
   arena.update(now); for (const id in units) units[id].update(now);
   for (const id of R.FRONT) if (ko[id]) { const m = units[id].mesh; if (units[id].frames.ko) m.material.color.multiplyScalar(.82); else { m.material.color.multiplyScalar(.3); m.scale.y *= .62; } }
   FXL.update(now); cam.update(now); for (const id in units) { const u = units[id]; u.x = u.group.position.x; }
-  E.render(1); ui.draw(now, SFX); c.globalAlpha = 1; drawMenu(); drawOverlay();
+  E.render(1); ui.draw(now, SFX); c.globalAlpha = 1; { const mv = S.mo.filter(k => k.t <= now).at(-1)?.v ?? state.mo; moShown += (mv - moShown) * .18; } drawMenu(); drawOverlay();
   if (now > pruneAt) { pruneAt = now + 2; FXL.prune(now); S.nums = S.nums.filter(n => n.t > now - 4); S.boxes = S.boxes.filter(b => b.t1 > now - 1); S.items = S.items.filter(k => k.t0 > now - 3); S.subs = S.subs.filter(k => k.t0 > now - 8); S.cutins = S.cutins.filter(k => k.t0 > now - 4); S.cards = S.cards.filter(k => k.t1 > now - 1); S.menus.length = 0; }
   requestAnimationFrame(frame);
 }
