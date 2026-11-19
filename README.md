@@ -105,3 +105,9 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 按鍵聲改成程式合成的木頭叩擊聲（`uiSound`），不再用 confirm／cursor 音效。
 - 普攻發力聲／短台詞：`audio/vo/attack.json` 列出每個人的檔案，`grunt()` 輪流播（發力聲、台詞交錯）。檔案由聲音 session 用 ElevenLabs 生，清單是空的時候就不播。
 - `tools/sim.mjs` 改成走行程表（三種走法 × 四種打法）；`tools/playtest.mjs` 用 `HUB=rest` 可以改走茶水間。`?floor=3` 直接從第三站開始。
+
+## v0.5.1（2026-11-20）配樂換成使用者的歌
+- 一般戰鬥曲 `audio/bgm/battle.mp3`＝〈月底吃土〉、魔王曲 `audio/bgm/boss.mp3`＝〈幽靈舞步〉，都是使用者用 Suno 做的純音樂版。來源檔放 `audio/bgm_user/`（不進版本庫）。
+- `tools/loopbgm.py <來源> <輸出.mp3>`：去頭尾靜音、切掉結尾淡出、2.5 秒交叉淡化接回開頭、音量拉齊，遊戲裡才能無縫循環。
+- 遊戲：魔王那一站換成魔王曲（`startStage` 裡的 `playMusic`），其他站和行程表播一般戰鬥曲。勝利曲還是 ElevenLabs 那首。
+- 注意：影片版重新混音時 `tools/mix.py` 也會讀到新的 `battle.mp3`；要用舊的就指到 `audio/bgm_elevenlabs/`。

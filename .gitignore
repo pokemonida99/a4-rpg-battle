@@ -9,3 +9,4 @@ js/*.bak
 *.log
 .DS_Store
 work/
+audio/bgm_user/
