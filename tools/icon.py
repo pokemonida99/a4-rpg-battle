@@ -4,13 +4,14 @@
 import os
 from PIL import Image, ImageDraw
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); os.makedirs('icons', exist_ok=True)
-bust = Image.open('art/cutin/bust_vivi.png').convert('RGBA').crop((70, 0, 710, 640))      # 皇冠到領口
+bust = Image.open('art/cutin/bust_vivi.png').convert('RGBA').crop((80, 0, 680, 926))      # 寬 600：皇冠到肩膀；往下留到衣服，貼圖時超出畫布的部分自然被裁掉
 N = 128
 def base(framed):
     im = Image.new('RGBA', (N, N), (30, 59, 54, 255)); d = ImageDraw.Draw(im)
     for r, col in ((62, (37, 78, 70)), (50, (47, 99, 89)), (38, (58, 120, 107)), (26, (72, 140, 124))): d.ellipse((N / 2 - r, N * .46 - r, N / 2 + r, N * .46 + r), fill=col + (255,))      # 背景：墨綠，中間亮一點
-    k = 104 if framed else 96; b = bust.resize((k, k), Image.LANCZOS); a = b.getchannel('A').point(lambda v: 255 if v > 128 else 0); b.putalpha(a)
-    im.alpha_composite(b, ((N - k) // 2, N - k))      # 人物貼齊下緣，不會看到半身像的切邊
+    # 頭要在圖示正中間：皇冠頂離上緣一點點、下巴在下方四分之一處（使用者說原本頭太下面）
+    k = 108 if framed else 96; b = bust.resize((k, round(926 * k / 600)), Image.LANCZOS); a = b.getchannel('A').point(lambda v: 255 if v > 128 else 0); b.putalpha(a)
+    im.alpha_composite(b, ((N - k) // 2, 13 if framed else 20))
     if framed:      # 黃銅邊框：深色外框、黃銅、內側亮線與暗線、四角鉚釘
         d = ImageDraw.Draw(im)
         for i, col in enumerate([(36, 19, 11), (36, 19, 11), (150, 112, 44), (202, 162, 76), (242, 220, 150), (202, 162, 76), (150, 112, 44), (36, 19, 11)]): d.rectangle((i, i, N - 1 - i, N - 1 - i), outline=col + (255,))
