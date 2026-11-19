@@ -59,8 +59,11 @@ export function makeSkin(c, A, S, D) {
       if (on) paper(x + 7, Y + 7, CW - 14, BH - 14, { clips: [x + CW / 2] });
       const ink = on ? INK : CREAM, dim = on ? INK2 : 'rgba(239,230,207,.62)', sh = on ? null : 'rgba(20,10,4,.7)', tx = x + 22, w = CW - 44; c.globalAlpha = a * (down ? .55 : 1);
       const nw = text(d.name, tx, Y + 42, { px: 28, w: 900, col: ink, shadow: sh }); text(i === 4 ? '後排' : d.job, tx + nw + 8, Y + 41, { px: 16, w: 700, col: dim, fam: SANS });
-      text('HP', tx, Y + 74, { px: 13, w: 700, col: dim, fam: SANS }); const hw = text(down ? '倒下' : fmt(hp).replace(/,/g, ''), tx + 26 + jit, Y + 77, { px: down ? 24 : 30, w: 900, col: down || low ? (on ? RED : '#ff8a78') : ink, shadow: sh }); if (!down) text('/' + d.hp, tx + 30 + hw, Y + 76, { px: 15, w: 700, col: dim, fam: SANS });
-      text(String(Math.round(sp)), tx + w, Y + 77, { px: 20, w: 900, align: 'right', col: on ? '#27507e' : '#bcd8f6', shadow: sh }); text('SP', tx + w - measure(String(Math.round(sp)), 20, 900) - 6, Y + 75, { px: 12, w: 700, col: dim, align: 'right', fam: SANS });
+      // 第二行：左邊 HP 數字，右邊 SP。不同手機的字寬不一樣，「／上限」只有放得下才畫（血條本身就看得出比例）
+      const spS = String(Math.round(sp)), spW = measure(spS, 20, 900), spL = tx + w - spW - 6 - measure('SP', 12, 700, SANS);
+      text('HP', tx, Y + 74, { px: 13, w: 700, col: dim, fam: SANS }); const hw = text(down ? '倒下' : fmt(hp).replace(/,/g, ''), tx + 26 + jit, Y + 77, { px: down ? 24 : 30, w: 900, col: down || low ? (on ? RED : '#ff8a78') : ink, shadow: sh });
+      if (!down && tx + 30 + hw + measure('/' + d.hp, 15, 700, SANS) < spL - 8) text('/' + d.hp, tx + 30 + hw, Y + 76, { px: 15, w: 700, col: dim, fam: SANS });
+      text(spS, tx + w, Y + 77, { px: 20, w: 900, align: 'right', col: on ? '#27507e' : '#bcd8f6', shadow: sh }); text('SP', tx + w - spW - 6, Y + 75, { px: 12, w: 700, col: dim, align: 'right', fam: SANS });
       bar(tx, Y + 88, w - 80, 7, hp / d.hp, low ? '#c8443a' : '#4f9a4a'); bar(tx + w - 68, Y + 88, 68, 7, sp / d.sp, '#4a82c4'); c.globalAlpha = a; });
     c.restore();
   }
@@ -94,6 +97,6 @@ export function makeSkin(c, A, S, D) {
   // 大印章：魔王底氣歸零的那一下，一顆「理虧」蓋在他身上
   function bigStamps(t) { for (const k of S.stamps || []) { const el = t - k.t; if (el < 0 || el > 1.5) continue; const [px, py] = S.proj(k.id, .55), sc = el < .14 ? lerp(3.2, 1, easeOut(el / .14)) : 1, sh = el < .4 ? Math.sin(el * 90) * 7 * (1 - el / .4) : 0;
       c.save(); c.globalAlpha = sat((1.5 - el) / .3); stamp('理虧', px + sh, py, -.16, 130, sc); text('底氣歸零　下次行動取消', px, py + 130, { px: 30, w: 900, align: 'center', col: CREAM, shadow: 'rgba(20,6,6,.9)', ls: 4 }); c.restore(); } }
-  return { wood, paper, clip, stamp, bar, text, measure, order, party, momentum, enemies, boxes,
+  return { wood, paper, clip, stamp, bar, face, text, measure, order, party, momentum, enemies, boxes,
     hud(t, a, cardOn, mo, MO, maxShield) { enemies(t, a, maxShield); party(t, a); momentum(t, a, mo, MO); order(t, a * (1 - cardOn)); bigStamps(t); } };
 }

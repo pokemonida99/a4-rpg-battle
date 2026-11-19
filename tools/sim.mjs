@@ -1,12 +1,12 @@
 // 試玩版數值模擬：node tools/sim.mjs [場數=500]
-// 四種打法各跑幾百輪「三關連打」，看通關率、各關的過關率與回合數。
+// 四種打法 × 三種走法各跑幾百輪肉鴿路線（rules.js 的 MAP），看通關率與走到哪一站。
 // 目標：會想的打法幾乎都能通關、一般玩家六七成、只按攻擊過得了第一關但過不了頭目；一輪大約 15～20 回合。
 // 試數值：S2HP=30000 S3HP=60000 S3ATK=950 node tools/sim.mjs
-import { newRun, newState, endStage, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, STAT, STAGES, FRONT, HEROES, MINIONS, MO } from '../js/rules.js';
+import { newRun, newState, endStage, enterNode, advance, rest, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, STAT, STAGES, MAP, FRONT, HEROES, MINIONS, MO } from '../js/rules.js';
 
 const E = process.env;
-if (E.S2HP) STAGES[1].boss.hp = +E.S2HP; if (E.S2ATK) STAGES[1].boss.atk = +E.S2ATK; if (E.S3HP) STAGES[2].boss.hp = +E.S3HP; if (E.S3ATK) STAGES[2].boss.atk = +E.S3ATK; if (E.S1HP) STAGES[0].minion.hp = +E.S1HP;
-if (E.S2ULT) for (const k in STAGES[1].boss.ult) STAGES[1].boss.ult[k] = Math.round(STAGES[1].boss.ult[k] * +E.S2ULT); if (E.S3ULT) for (const k in STAGES[2].boss.ult) STAGES[2].boss.ult[k] = Math.round(STAGES[2].boss.ult[k] * +E.S3ULT);
+if (E.S2HP) STAGES.chief.boss.hp = +E.S2HP; if (E.S2ATK) STAGES.chief.boss.atk = +E.S2ATK; if (E.S3HP) STAGES.boss.boss.hp = +E.S3HP; if (E.S3ATK) STAGES.boss.boss.atk = +E.S3ATK; if (E.S1HP) STAGES.crowd.minion.hp = +E.S1HP; if (E.NHP) STAGES.night.minion.hp = +E.NHP; if (E.NATK) STAGES.night.minion.atk = +E.NATK;
+if (E.S2ULT) for (const k in STAGES.chief.boss.ult) STAGES.chief.boss.ult[k] = Math.round(STAGES.chief.boss.ult[k] * +E.S2ULT); if (E.S3ULT) for (const k in STAGES.boss.boss.ult) STAGES.boss.boss.ult[k] = Math.round(STAGES.boss.boss.ult[k] * +E.S3ULT);
 
 const lowest = s => FRONT.filter(h => alive(s, h)).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0];
 const weakMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[a] - s.hp[b])[0];
@@ -47,16 +47,19 @@ function battle(policy, run) {
   while (!s.over && guard++ < 80) { for (const id of startRound(s)) { if (s.over) break; if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
   return s;
 }
-function playRun(policy, seed) {
-  const run = newRun(mulberry(seed)), rounds = [];
-  for (let i = 0; i < STAGES.length; i++) { const s = battle(policy, run); rounds.push(s.round); if (s.over !== 'win') return { win: false, reached: i, rounds, down: 4 };
-    const down = FRONT.filter(h => !alive(s, h)).length; endStage(s, run);
-    if (i < STAGES.length - 1) { const offer = offerUpgrades(run), order = PICK[policy]; applyUpgrade(run, order ? [...offer].sort((a, b) => order.indexOf(a) - order.indexOf(b))[0] : offer[0]); }
-    else return { win: true, reached: STAGES.length, rounds, down }; }
+// 走一輪行程表。route：'safe' 能休息就休息、'greedy' 都選戰鬥或福利、'auto' 血少才休息
+function playRun(policy, seed, route = 'auto') {
+  const run = newRun(mulberry(seed)), rounds = [], pick = () => { const offer = offerUpgrades(run), order = PICK[policy]; applyUpgrade(run, order ? [...offer].sort((a, b) => order.indexOf(a) - order.indexOf(b))[0] : offer[0]); };
+  for (; run.floor < MAP.length;) { const opts = MAP[run.floor], hpK = FRONT.reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / 4; let i = 0;
+    if (opts.length > 1) i = route === 'safe' ? 0 : route === 'greedy' ? 1 : hpK < .62 ? 0 : 1;
+    const nd = enterNode(run, i);
+    if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') pick();
+    else { const s = battle(policy, run); rounds.push(s.round); if (s.over !== 'win') return { win: false, floor: run.floor, rounds }; endStage(s, run); if (run.floor < MAP.length - 1) pick(); }
+    advance(run); }
+  return { win: true, floor: MAP.length, rounds };
 }
 const N = +(process.argv[2] || 500);
-for (const p of Object.keys(POLICY)) {
-  let win = 0; const reach = STAGES.map(() => 0), rsum = STAGES.map(() => 0), rn = STAGES.map(() => 0); let total = 0;
-  for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13); if (r.win) { win++; total += r.rounds.reduce((a, b) => a + b, 0); } for (let k = 0; k < r.reached; k++) reach[k]++; r.rounds.forEach((v, k) => { if (k < r.reached) { rsum[k] += v; rn[k]++; } }); }
-  console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　過關率 ${reach.map((v, k) => `第${k + 1}關 ${(v / N * 100).toFixed(0)}%`).join('、')}　過關的平均回合 ${rsum.map((v, k) => (v / Math.max(1, rn[k])).toFixed(1)).join(' / ')}　通關總回合 ${(total / Math.max(1, win)).toFixed(1)}`);
-}
+for (const route of ['auto', 'safe', 'greedy']) { console.log(`── 路線：${{ auto: '血少才休息', safe: '都選茶水間', greedy: '都不休息' }[route]}`);
+  for (const p of Object.keys(POLICY)) { let win = 0, total = 0; const reach = MAP.map(() => 0);
+    for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, route); if (r.win) { win++; total += r.rounds.reduce((a, b) => a + b, 0); } for (let k = 0; k < r.floor; k++) reach[k]++; }
+    console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　走過各站的比例 ${reach.map(v => (v / N * 100).toFixed(0) + '%').join(' → ')}　通關的平均總回合 ${(total / Math.max(1, win)).toFixed(1)}`); } }

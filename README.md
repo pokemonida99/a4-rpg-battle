@@ -97,3 +97,11 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - `manifest.webmanifest`（名稱上班旅人、全螢幕、橫向）＋ `game.html` 的圖示與 apple-mobile-web-app 標籤。沒有做 service worker（不離線快取，更新不會卡舊版）。
 - 開始畫面右上角的提醒紙條（`game.js` 的 `a2hs()`）：已經從主畫面開就不顯示；Android Chrome 有安裝事件時點一下直接跳安裝；iPhone 顯示「Safari 的分享鈕 → 加入主畫面」；點一下就不再提醒（記在裝置上）。電腦上不顯示，網址加 `?a2hs` 可以強制看。
 - 影片抽格試驗的 24 張圖改成只有 `?h3=1` 才載入。
+
+## v0.5.0（2026-11-19）肉鴿版面（行程表）
+- 規則：`rules.js` 的 `MAP`（一層一站，分岔層二選一）＋`STAGES`（改成用名字查：crowd、night、chief、boss）。站的種類：battle 戰鬥、rest 茶水間（HP 回一半、SP 補滿）、gift 福委會（直接三選一）。`newRun`／`enterNode`／`endStage`（打贏補 25% HP、30% SP）／`rest`／`advance`／`isFinal`。
+- 畫面：`game.js` 的 `drawHub()`，phase 是 `hub`。左上行程表（亮的站可以按）、右上隊伍、左下強化與道具、右下夥伴名冊（8 格，現在 5 人，空位留給之後的夥伴收集）。流程：開始 → 行程表 → 選站 → 戰鬥／休息／福利 → 回行程表。
+- 修 bug：沒有頭目的戰鬥，目標清單不再出現「奧客總經理 HP 0%」；手機上 HP 上限和 SP 重疊（放不下就不畫「／上限」）。
+- 按鍵聲改成程式合成的木頭叩擊聲（`uiSound`），不再用 confirm／cursor 音效。
+- 普攻發力聲／短台詞：`audio/vo/attack.json` 列出每個人的檔案，`grunt()` 輪流播（發力聲、台詞交錯）。檔案由聲音 session 用 ElevenLabs 生，清單是空的時候就不播。
+- `tools/sim.mjs` 改成走行程表（三種走法 × 四種打法）；`tools/playtest.mjs` 用 `HUB=rest` 可以改走茶水間。`?floor=3` 直接從第三站開始。

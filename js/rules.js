@@ -7,7 +7,7 @@
 // ・Kevin 的奧義「鐵壁」：到他下一次行動前，敵人的攻擊全部由他承受三成五，其他人不受傷。
 // ・防禦：到自己下一次行動前受傷減半，氣勢加得比攻擊多一點。
 // ・招式（SKILLS）：每人一兩招，只花 SP、不用氣勢。
-// ・三關連打（STAGES）：小兵教學戰 → 甩鍋課長 → 奧客總經理。過關後血補四成、SP 補一半、倒下的人站起來，再從三個強化裡選一個（UPGRADES）。
+// ・肉鴿路線（MAP）：加班大隊 →［茶水間｜夜班大隊］→ 甩鍋課長 →［茶水間｜福委會］→ 奧客總經理。打贏血補兩成五、SP 補三成、倒下的人站起來，再從三個強化裡選一個（UPGRADES）。
 //   每一關的頭目共用 'boss' 這個位置（數值在進關時蓋到 STAT.boss），小兵名單 MINIONS 也跟著關卡換。
 //   甩鍋課長沒有護衛，但每回合第一次被打會把傷害甩給小兵（pot）。
 export const FRONT = ['kui', 'kevin', 'jie', 'mi'], HEROES = [...FRONT, 'vivi'], MINIONS = ['ma', 'mb'];
@@ -17,14 +17,25 @@ export const STAT = {
   vivi: { hp: 9999, sp: 999, atk: 0, spd: 12, cost: 99 },
   boss: { hp: 64000, spd: 200, spd2: 100, atk: 1000, shield: 8, cycle: 5 }, ma: { hp: 3800, spd: 180, atk: 400 }, mb: { hp: 3800, spd: 170, atk: 400 }, mc: { hp: 3800, spd: 160, atk: 400 },
 };
-// 關卡。boss：這一關的頭目（沒有就是純小兵戰）；guard＝小兵在場時無敵；pot＝每回合第一次被打甩給小兵；ult＝大招對每個人的傷害；text＝招式名
-export const STAGES = [
-  { name: '加班大隊', sub: '先熱身一下', minions: ['ma', 'mb', 'mc'], minion: { hp: 4200, atk: 330 }, boss: null },
-  { name: '甩鍋課長', sub: '這不是我的問題', minions: ['ma', 'mb'], minion: { hp: 3000, atk: 360 },
+// 戰鬥的種類。boss：這一場的頭目（沒有就是純小兵戰）；guard＝小兵在場時無敵；pot＝每回合第一次被打甩給小兵；ult＝大招對每個人的傷害；text＝招式名
+export const STAGES = {
+  crowd: { name: '加班大隊', sub: '先熱身一下', minions: ['ma', 'mb', 'mc'], minion: { hp: 4200, atk: 330 }, boss: null },
+  night: { name: '夜班大隊', sub: '燈還亮著', minions: ['ma', 'mb', 'mc'], minion: { hp: 5600, atk: 430 }, boss: null },
+  chief: { name: '甩鍋課長', sub: '這不是我的問題', minions: ['ma', 'mb'], minion: { hp: 3000, atk: 360 },
     boss: { id: 'chief', name: '甩鍋課長', hp: 48000, spd: 200, spd2: 0, atk: 950, shield: 5, cycle: 4, guard: false, pot: true, ult: { kui: 760, kevin: 1000, jie: 700, mi: 660 }, text: { charge: '蓄力　這不是我的問題', atk: '甩鍋', ult: '奧義　全體背鍋', summon: '召喚　找人背鍋' } } },
-  { name: '奧客總經理', sub: '我要找你們主管', minions: ['ma', 'mb'], minion: { hp: 3800, atk: 400 },
+  boss: { name: '奧客總經理', sub: '我要找你們主管', minions: ['ma', 'mb'], minion: { hp: 3800, atk: 400 },
     boss: { id: 'boss', name: '奧客總經理', hp: 78000, spd: 200, spd2: 100, atk: 1150, shield: 8, cycle: 5, guard: true, pot: false, ult: { kui: 1240, kevin: 1650, jie: 1130, mi: 1060 }, text: { charge: '蓄力　再改一版！', atk: '退件重擊', ult: '奧義　無限改稿', summon: '召喚　加班大隊' } } },
+};
+// 肉鴿路線（一輪的行程表）：一層一站，有兩個選項的那一層要選一邊走。
+// type：battle 戰鬥（打贏三選一強化）、rest 茶水間（回血）、gift 福委會（直接三選一強化）。bonus＝打贏另外多拿的道具。
+export const MAP = [
+  [{ type: 'battle', stage: 'crowd', tag: '戰鬥' }],
+  [{ type: 'rest', name: '茶水間', tag: '休息', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'night', tag: '戰鬥', bonus: { tea: 1 }, sub: '打贏多拿一杯珍珠奶茶' }],
+  [{ type: 'battle', stage: 'chief', tag: '頭目' }],
+  [{ type: 'rest', name: '茶水間', tag: '休息', sub: 'HP 回復一半　SP 補滿' }, { type: 'gift', name: '福委會', tag: '福利', sub: '直接三選一強化' }],
+  [{ type: 'battle', stage: 'boss', tag: '魔王' }],
 ];
+export const nodeName = nd => nd.name || STAGES[nd.stage].name;
 // 過關強化（三選一）
 export const UPGRADES = {
   raise: { name: '加薪', desc: '全員攻擊力 ＋15%' }, leave: { name: '特休', desc: '全員 HP 上限 ＋20%，並且補滿' }, chair: { name: '人體工學椅', desc: '受到的傷害 －15%' },
@@ -45,11 +56,17 @@ export const SKILLS = {
 export const MO = { start: 30, max: 100, ult: 40, attack: 14, skill: 14, defend: 16, item: 6, cheer: 35 };
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
-// 一輪遊戲（三關）的進度：打到第幾關、拿了哪些強化、帶到下一關的血與道具
-export function newRun(rand = Math.random, stage = 0) { for (const id in BASE) Object.assign(STAT[id], BASE[id]); const run = { rand, stage, atk: 1, def: 1, moStart: MO.start, items: {}, hp: null, sp: null, picks: [], rounds: 0, summons: 0 }; for (const k in ITEMS) run.items[k] = ITEMS[k].n; return run; }
-// 過關：把血和道具帶走，血補四成（倒下的人從四成站起來）、SP 補一半
-export function endStage(s, run) { run.hp = {}; run.sp = {}; for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .4)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .5)); }
-  run.items = { ...s.items }; run.rounds += s.round; run.summons += s.summons; run.stage++; return run; }
+// 一輪遊戲的進度：走到行程表的第幾層、選了哪一站、拿了哪些強化、帶著走的血與道具
+export function newRun(rand = Math.random) { for (const id in BASE) Object.assign(STAT[id], BASE[id]); const run = { rand, floor: 0, node: MAP[0][0], path: [], atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, picks: [], rounds: 0, summons: 0 };
+  for (const k in ITEMS) run.items[k] = ITEMS[k].n; for (const id of HEROES) { run.hp[id] = STAT[id].hp; run.sp[id] = STAT[id].sp; } return run; }
+export const enterNode = (run, i) => { run.node = MAP[run.floor][i]; run.path[run.floor] = i; return run.node; };
+export const advance = run => { run.floor++; return run; };
+export const isFinal = run => run.floor >= MAP.length - 1;
+// 打贏一場：把血和道具帶走，血補兩成五（倒下的人從兩成五站起來）、SP 補三成
+export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
+  run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons; return run; }
+// 茶水間：HP 回復一半、SP 補滿。回傳總共補了多少血
+export function rest(run) { let sum = 0; for (const id of FRONT) { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * .5)); run.hp[id] += v; sum += v; } for (const id of HEROES) run.sp[id] = STAT[id].sp; return sum; }
 export function offerUpgrades(run) { const pool = Object.keys(UPGRADES).filter(k => !(k === 'morale' && run.moStart > MO.start)); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
 export function applyUpgrade(run, key) { run.picks.push(key);
   if (key === 'raise') run.atk *= 1.15; else if (key === 'chair') run.def *= .85; else if (key === 'morale') run.moStart += 30; else if (key === 'drinks') run.items.tea += 2; else if (key === 'bento') run.items.bento += 1;
@@ -57,10 +74,10 @@ export function applyUpgrade(run, key) { run.picks.push(key);
   else if (key === 'leave') for (const id of FRONT) { STAT[id].hp = Math.round(STAT[id].hp * 1.2); run.hp[id] = STAT[id].hp; } }
 // 進一關：把這一關的頭目與小兵數值蓋到 STAT，建立戰鬥狀態
 export function newState(run = newRun()) {
-  if (typeof run === 'function') run = newRun(run, STAGES.length - 1);      // 舊用法 newState(rand)：直接打最後一關
-  const st = STAGES[run.stage], rand = run.rand; MINIONS.length = 0; MINIONS.push(...st.minions); for (const m of ['ma', 'mb', 'mc']) Object.assign(STAT[m], st.minion); if (st.boss) Object.assign(STAT.boss, st.boss); BOSS_ULT = st.boss?.ult || {};
+  if (typeof run === 'function') { run = newRun(run); run.floor = MAP.length - 1; run.node = MAP[run.floor][0]; }      // 舊用法 newState(rand)：直接打魔王
+  const st = STAGES[run.node.stage], rand = run.rand; MINIONS.length = 0; MINIONS.push(...st.minions); for (const m of ['ma', 'mb', 'mc']) Object.assign(STAT[m], st.minion); if (st.boss) Object.assign(STAT.boss, st.boss); BOSS_ULT = st.boss?.ult || {};
   const s = { run, L: st.boss, hasBoss: !!st.boss, potUsed: false, rand, hp: {}, sp: {}, mo: run.moStart, defend: {}, items: {}, round: 0, queue: [], shield: STAT.boss.shield, broken: false, charging: false, bossTurns: 0, aegis: false, taunt: false, atkDown: {}, atkUp: 0, summons: 0, over: null };
-  for (const id of HEROES) { s.hp[id] = run.hp ? run.hp[id] : STAT[id].hp; s.sp[id] = run.sp ? run.sp[id] : STAT[id].sp; }
+  for (const id of HEROES) { s.hp[id] = run.hp[id]; s.sp[id] = run.sp[id]; }
   s.hp.boss = st.boss ? st.boss.hp : 0; for (const m of ['ma', 'mb', 'mc']) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   s.items = { ...run.items };
   return s;
