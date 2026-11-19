@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.6.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.6.3';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -458,9 +458,9 @@ function finish() {
     u.die(t0 + 1.8, 2.4); snd(t0 + 1.8, 'boss_down', 1); for (let i = 0; i < 5; i++) fx('spawn/poof', t0 + 2.1 + i * .35, 'boss', { scale: 1.8, dx: -1 + i * .5, y: .3 + (i % 2) * 1.2, seed: i + 2 }); for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + 1.2, m);
     at(t0 + .1, () => playMusic(null)); const tv = t0 + 4.6; snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .98, y: 1.25, z: -.1, d: 10.9, pitch: 7 });
     R.HEROES.forEach((id, i) => { if (!ko[id]) units[id].pose(tv + .15 + i * .12, 'win').hop(tv + .15 + i * .12, .26, .36).hop(tv + 1.2 + i * .1, .14, .3); }); fx('ui/confetti', tv + .3, [3.4, 1.0], { scale: 2.4, y: .6 }); fx('ui/confetti', tv + .9, [4.6, -.8], { scale: 2.2, y: .8, seed: 5 });
-    const rounds = run.rounds + state.round; S.victory = { t0: tv + .2, t1: 1e9 }; S.results = [{ k: '總回合數', v: rounds }, { k: '同行夥伴', v: run.roster.map(id => DEFS[id].name).join('、') }, { k: '拿到的強化', v: run.picks.map(k => R.UPGRADES[k].name).join('、') || '沒有' }, { k: '獎金', v: Math.max(1000, 12000 - rounds * 400), c: COL.gold }]; S.results.forEach((r, i) => snd(tv + 1.4 + i * .32, 'stat', .7));
+    openReport(tv + .2, true);
     at(tv + 4.2, () => { playMusic('bgm/victory'); phase = 'over'; });
-  } else { clearSave(); hud.t1 = t0 + .6; SFX.add('black', t0 + .4, 1.2, { from: 0, to: .72 }); SFX.add('black', t0 + 1.6, 1e9, { from: .72, to: .72 }); at(t0 + .3, () => playMusic(null)); if (L && R.alive(state, 'boss')) { units.boss.anim(t0 + .5, 'swing', [0, .2, .5, 9, 9, 9, 9, 9]); if (L.id === 'boss') say(t0 + .9, 'boss_attack', 'boss'); } at(t0 + 2.4, () => { phase = 'over'; }); }
+  } else { clearSave(); hud.t1 = t0 + .6; SFX.add('black', t0 + .4, 1.2, { from: 0, to: .72 }); SFX.add('black', t0 + 1.6, 1e9, { from: .72, to: .72 }); at(t0 + .3, () => playMusic(null)); if (L && R.alive(state, 'boss')) { units.boss.anim(t0 + .5, 'swing', [0, .2, .5, 9, 9, 9, 9, 9]); if (L.id === 'boss') say(t0 + .9, 'boss_attack', 'boss'); } openReport(t0 + 1.7, false); at(t0 + 2.6, () => { phase = 'over'; }); }
 }
 
 // ---------- 指令選單與開始／結束畫面（畫在介面畫布上，同時記下可以按的範圍） ----------
@@ -600,6 +600,41 @@ function drawStageCard() { const k = S.stageCard; if (!k || now < k.t0 || now > 
 function bigButton(label, cx, cy, w = 440, h = 116, act = 'go') { const on = pointer && Math.abs(pointer[0] - cx) < w / 2 && Math.abs(pointer[1] - cy) < h / 2, x = cx - w / 2, pe = pressed && pressed.big && pressed.act === act ? (performance.now() - pressed.t) / PRESS_MS : -1, dn = pe >= 0, y = cy - h / 2 + (dn ? 6 : 0); zones.push({ x, y: cy - h / 2, w, h, big: true, act });
   skin.wood(x, y, w, h); skin.paper(x + 16, y + 16, w - 32, h - 32); if (on && !dn) { c.fillStyle = TEAL; c.fillRect(x + 22, y + 22, w - 44, h - 44); } if (dn) { c.fillStyle = `rgba(255,246,216,${.85 - .4 * Math.min(1, pe)})`; c.fillRect(x + 16, y + 16, w - 32, h - 32); }
   text(label, cx, y + h / 2 + 17, { px: 48, w: 900, fam: SERIF, align: 'center', ls: 8, col: on && !dn ? '#fff8e6' : INK }); }
+// ---------- 結案報告（結算）：通關或全員倒下之後，把這一輪的路線、夥伴、強化攤在一張公文上 ----------
+let report = null;
+function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1;
+  report = { t0, win, rounds, bonus: win ? Math.max(1000, 12000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
+    route: R.MAP.map((fl, k) => k <= run.floor && run.path[k] != null && fl[run.path[k]] ? fl[run.path[k]] : null), party: run.roster.map(id => { const on = R.HEROES.includes(id); return { id, on, down: id !== 'vivi' && !((on ? state.hp[id] : run.hp[id]) > 0) }; }) };
+  for (let i = 0; i < 4; i++) snd(t0 + .5 + i * .3, 'stat', .7); snd(t0 + 1.9, 'card', .9); }
+function drawReport() { const k = report; if (!k || now < k.t0) return; zones = [];
+  const el = now - k.t0, u = easeOut(sat(el / .4)), PW = 940, PH = 1008, X = (k.win ? 46 : W / 2 - PW / 2) - (1 - u) * 60, Y = 36, L = X + 64, IW = PW - 128, nF = R.MAP.length, show = i => easeOut(sat((el - .45 - i * .3) / .3));
+  const head = (s, y, i) => { c.globalAlpha = show(i); c.fillStyle = RED; c.fillRect(L, y - 18, 6, 22); text(s, L + 16, y, { px: 21, w: 900, col: INK, ls: 6 }); c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(L + 22 + mw(s, 21, 900) + s.length * 6, y - 8, IW - 22 - mw(s, 21, 900) - s.length * 6, 2); };
+  c.save(); c.globalAlpha = sat(el / .25); skin.wood(X, Y, PW, PH); skin.paper(X + 20, Y + 20, PW - 40, PH - 40, { clips: [X + 130, X + PW - 130] });
+  text('結案報告', L, Y + 130, { px: 78, w: 900, fam: SERIF, col: INK, ls: 10 }); text(k.win ? `討伐${DEFS.boss.name}　${nF} 站全部走完` : `倒在第 ${k.floor + 1} 站「${k.stage}」` + (k.bossHp != null ? `　對方還剩 ${k.bossHp}% 的血` : ''), L + 4, Y + 174, { px: 24, w: 700, col: INK2, ls: 2 }); c.fillStyle = INK; c.fillRect(L, Y + 192, IW, 3);
+  // 路線：走過的站連成紅線；倒下的那一站打叉；沒走到的是虛線圈
+  { const y0 = Y + 244, gap = (IW - 68) / (nF - 1), cy = y0 + 62, cx = i => L + 34 + i * gap, last = k.win ? nF - 1 : k.floor; head('路線', y0, 0);
+    c.strokeStyle = 'rgba(43,31,24,.3)'; c.lineWidth = 4; c.setLineDash([3, 9]); c.beginPath(); c.moveTo(cx(0), cy); c.lineTo(cx(nF - 1), cy); c.stroke(); c.setLineDash([]); if (last > 0) { c.strokeStyle = '#c23b2e'; c.lineWidth = 6; c.beginPath(); c.moveTo(cx(0), cy); c.lineTo(cx(last), cy); c.stroke(); }
+    k.route.forEach((nd, i) => { const x = cx(i), r = 30, fell = !k.win && i === k.floor;
+      if (!nd) { c.fillStyle = '#e9dfc6'; c.beginPath(); c.arc(x, cy, r, 0, 7); c.fill(); c.strokeStyle = 'rgba(43,31,24,.4)'; c.lineWidth = 3; c.setLineDash([5, 6]); c.beginPath(); c.arc(x, cy, r - 2, 0, 7); c.stroke(); c.setLineDash([]); text('？', x, cy + 11, { px: 28, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.4)' }); return; }
+      c.fillStyle = '#1c120c'; c.beginPath(); c.arc(x, cy, r + 4, 0, 7); c.fill(); c.fillStyle = nd.icon === 'boss' || nd.icon === 'chief' ? '#6e1c16' : '#33241a'; c.beginPath(); c.arc(x, cy, r, 0, 7); c.fill(); c.strokeStyle = BRASS; c.lineWidth = 3; c.beginPath(); c.arc(x, cy, r - 2, 0, 7); c.stroke();
+      const im = A.icons[nd.icon]; if (im) pix(im, x - 23, cy - 23, 46, 46); else text(nd.tag[0], x, cy + 11, { px: 28, w: 900, fam: SERIF, align: 'center', col: CREAM });
+      if (fell) { c.strokeStyle = 'rgba(20,6,4,.9)'; c.lineWidth = 12; c.lineCap = 'round'; for (const d of [-1, 1]) { c.beginPath(); c.moveTo(x - 22, cy - 22 * d); c.lineTo(x + 22, cy + 22 * d); c.stroke(); } c.strokeStyle = '#e0483a'; c.lineWidth = 7; for (const d of [-1, 1]) { c.beginPath(); c.moveTo(x - 22, cy - 22 * d); c.lineTo(x + 22, cy + 22 * d); c.stroke(); } c.lineCap = 'butt'; }
+      text(fit(R.nodeName(nd), gap - 6, 15, 900, SERIF), x, cy + 58, { px: 15, w: 900, fam: SERIF, align: 'center', col: fell ? RED : INK }); }); }
+  // 同行夥伴
+  { const y0 = Y + 416; head('同行夥伴', y0, 1); k.party.forEach((p, i) => { const x = L + 6 + i * 136, y = y0 + 22, d = DEFS[p.id]; skin.face(A.face[p.id], x + 20, y, 76, p.down ? .55 : 0);
+      text(d.name, x + 58, y + 104, { px: 21, w: 900, fam: SERIF, align: 'center', col: INK }); text(p.down ? '倒下' : p.on ? '出戰' : '候補', x + 58, y + 126, { px: 15, w: 900, align: 'center', col: p.down ? RED : p.on ? '#1f6a5c' : INK2 }); }); }
+  // 強化
+  { const y0 = Y + 600; head('拿到的強化', y0, 2); if (!k.ups.length) text('這一輪沒有拿強化', L + 16, y0 + 60, { px: 20, w: 700, col: INK2 });
+    k.ups.forEach(([key, n], i) => { const x = L + 6 + i * 104, y = y0 + 18, im = A.icons['up_' + key]; c.fillStyle = '#1c120c'; c.fillRect(x + 12, y - 2, 68, 68); c.fillStyle = '#3a2a1e'; c.fillRect(x + 15, y + 1, 62, 62); if (im) pix(im, x + 18, y + 4, 56, 56);
+      if (n > 1) { c.fillStyle = RED; c.fillRect(x + 60, y + 46, 32, 24); text(`×${n}`, x + 76, y + 64, { px: 17, w: 900, align: 'center', col: '#fff8e6' }); } text(fit(R.UPGRADES[key].name, 100, 15, 900), x + 46, y + 88, { px: 15, w: 900, align: 'center', col: INK }); }); }
+  // 數字
+  { const y0 = Y + 748, cu = easeOut(sat((el - 1.35) / .6)), cells = k.win ? [['總回合數', Math.round(k.rounds * cu), INK], ['同行人數', k.party.length, INK], ['獎金', Math.round(k.bonus * cu).toLocaleString('en-US'), '#a8741a']] : [['總回合數', Math.round(k.rounds * cu), INK], ['走到', `第 ${k.floor + 1} 站`, INK], ['同行人數', k.party.length, INK]]; head('統計', y0, 3);
+    cells.forEach(([lab, v, col], i) => { const x = L + i * (IW / 3); text(lab, x + 16, y0 + 44, { px: 18, w: 700, col: INK2, ls: 3 }); text(String(v), x + 16, y0 + 100, { px: 54, w: 900, col }); if (i) { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x - 4, y0 + 24, 2, 84); } }); }
+  c.globalAlpha = sat(el / .25);
+  if (k.win) text('今天，準時下班。', L + 8, Y + PH - 74, { px: 38, w: 900, fam: SERIF, col: INK, ls: 6 }); else wrap('提示：看到「蓄力」就防禦或用坦克的奧義；血少先喝珍珠奶茶；岔路多去茶水間。', IW - 400, 20).forEach((ln, i) => text(ln, L + 8, Y + PH - 100 + i * 30, { px: 20, w: 700, col: INK2 }));
+  { const se = el - 1.9; if (se > 0) skin.stamp(k.win ? '討伐完成' : '未結案', X + PW - 210, Y + 112, -.12, 46, se < .2 ? lerp(2.4, 1, easeOut(se / .2)) : 1); }
+  c.restore(); if (phase === 'over') bigButton(k.win ? '再玩一次' : '再挑戰一次', X + PW - 64 - 180, Y + PH - 88, 360, 92);
+}
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; c.fillStyle = 'rgba(10,7,6,.76)'; c.fillRect(0, 0, W, H);
     text('不 想 上 班 RPG', W / 2, 168, { px: 34, w: 700, align: 'center', col: BRASS, ls: 10 });
@@ -614,8 +649,7 @@ function drawOverlay() {
     toggles(W / 2 - 166, 930);
     { const tip = a2hs(); if (tip) { const x = 1392, y = 52, w = 492, h = 150, pe = pressed && pressed.opt === 'a2hs' ? 1 : 0; zones.push({ x, y, w, h, opt: 'a2hs' }); c.save(); c.translate(0, pe ? 4 : 0); skin.paper(x, y, w, h, { clips: [x + 60, x + w - 60] });
         if (iconImg) { c.imageSmoothingEnabled = false; c.drawImage(iconImg, x + 20, y + 22, 106, 106); c.imageSmoothingEnabled = true; } text(tip[0], x + 144, y + 62, { px: 28, w: 900, fam: SERIF, col: INK }); text(tip[1], x + 144, y + 98, { px: 20, w: 700, col: INK2 }); text(installEvt ? '' : '點一下這張紙就不再提醒', x + 144, y + 128, { px: 16, w: 500, col: 'rgba(43,31,24,.55)' }); c.restore(); } } text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 1022, { px: 21, w: 500, align: 'center', col: 'rgba(239,230,207,.7)' }); }
-  if (phase === 'over') { zones = []; if (state.over === 'win') bigButton('再玩一次', 1500, 930, 400, 110);
-    else { text('全員倒下', W / 2, 400, { px: 150, w: 900, fam: SERIF, align: 'center', ls: 20, col: '#ff8a78', stroke: 'rgba(20,6,8,.9)', sw: 16 }); text(`倒在第 ${run.floor + 1} 站「${R.STAGES[run.node.stage].name}」` + (state.hasBoss ? `　${DEFS.boss.name}還剩 ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}% 的血` : ''), W / 2, 500, { px: 32, w: 500, align: 'center', col: COL.text }); text('提示：看到「蓄力」就防禦或用坦克的奧義；血少先喝珍珠奶茶；岔路多去茶水間', W / 2, 560, { px: 24, w: 500, align: 'center', col: COL.dim }); bigButton('再挑戰一次', W / 2, 760); } }
+  drawReport();
 }
 
 // ---------- 操作 ----------
@@ -655,7 +689,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
-window.__game = { get state() { return state; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
+window.__game = { get state() { return state; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load'; audioReady.then(() => { if (phase === 'load') phase = 'title'; });
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
