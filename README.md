@@ -53,3 +53,9 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 改數值後跑 `node tools/sim.mjs 1000`：三種打法（會想的、只放奧義不補血、只按攻擊）的勝率與回合數。目前：會想的約 96%、平均 6.5 回合；只放奧義不補血約 93%；只按攻擊必輸。
 - 實際操作測試：`node tools/playtest.mjs [seed] [smart|mash] [快轉]`，無頭瀏覽器自動打一場，截圖在 `out/play/`。
 - 介面沿用影片版的黑金風格；另一個 session 在 `ui-proposals/` 有改版提案，還沒定案。
+
+## 上線（2026-11-19）
+- 遊戲網址：https://pokemonida99.github.io/a4-rpg-battle/ （repo：pokemonida99/a4-rpg-battle，公開）
+- `main` 是原始碼；`gh-pages` 是 `zsh tools/deploy.sh` 整理出來的遊戲檔（只放跑得到的素材，首頁就是遊戲）。
+- 改版：改 `js/game.js` 的 `VERSION` → commit、push main → `zsh tools/deploy.sh`。上線後用 `PLAY_URL=https://pokemonida99.github.io/a4-rpg-battle/ node tools/playtest.mjs` 測線上版。
+- 不上傳：`ref/`（參考照）、`art/raw/`、`out/`、`ui-proposals/`。

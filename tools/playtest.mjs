@@ -9,7 +9,9 @@ fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive:
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--window-size=1920,1080', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage(); await page.setViewport({ width: 1920, height: 1080 }); const errors = [];
 page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
-await page.goto(`http://localhost:4630/game.html?mute&fast=${fast}&seed=${seed}`);
+// PLAY_URL=https://…/ 可以改測線上版
+const BASE = process.env.PLAY_URL || 'http://localhost:4630/game.html'; page.on('response', r => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
+await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}`);
 await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 });
 const shot = async name => { const url = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const x = c.getContext('2d'); x.drawImage(document.getElementById('gl'), 0, 0); x.drawImage(document.getElementById('hud'), 0, 0); return c.toDataURL('image/jpeg', .85); }); fs.writeFileSync(path.join(OUT, name + '.jpg'), Buffer.from(url.split(',')[1], 'base64')); };
 await shot('00_title');
