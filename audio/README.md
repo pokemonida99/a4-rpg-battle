@@ -69,3 +69,32 @@
 ## 配樂（已取消）
 
 使用者要求不要用 ElevenLabs 生配樂（之後用 Suno 自己生）。這個通知到之前已經生成了兩首（Music v2.5、純音樂、各 1 版：battle 70 秒 1,050 點、victory 35 秒 525 點），已從 `audio/bgm/` 移除，沒有再重生；原檔另存在 `audio/bgm_elevenlabs/battle.mp3`、`victory.mp3`（混音不會讀到），要不要用由使用者決定。`audio/bgm/` 裡的 battle.wav、victory.wav 不是這次做的。
+
+## 普攻發力聲／短台詞（2026-11-19 追加，20 檔，vo/atk_*.mp3）
+
+ElevenLabs 文字轉語音 Eleven v4，聲音同上面喊招（小葵 Yu-Ting、Kevin Roy、阿傑 Neil Chuang、小米 Jessica、Vivi Hsin-Yi）。每句生一次（網站一次給兩版，挑一版），沒重生。_1、_2 是發力聲（裁成 0.5 秒內，只留第一聲），_3、_4 是短台詞；Vivi 四句是應援。處理：頭尾靜音裁掉、峰值 -1 dB、192k mp3。清單在 `vo/attack.json`。點數 5,521 → 4,877（644 點）。
+
+| 檔 | 秒 | 送出的文字 |
+|---|---|---|
+| atk_kui_1 | 0.45 | [energetic battle cry, short sharp shout] 喝！ |
+| atk_kui_2 | 0.47 | [energetic battle cry, short sharp shout] 哈！ |
+| atk_kui_3 | 0.71 | [excited, shouting] 看招！ |
+| atk_kui_4 | 1.93 | [exasperated, shouting, teasing] 這樣不行吧！ |
+| atk_kevin_1 | 0.46 | [confident, short grunt, shouting] 喝！ |
+| atk_kevin_2 | 0.39 | [cocky, short shout] 嘿！ |
+| atk_kevin_3 | 0.98 | [confident, smug] 交給我！ |
+| atk_kevin_4 | 1.49 | [cocky, relaxed] 輕鬆啦！（第 2 版） |
+| atk_jie_1 | 0.49 | [low, weary, dismissive] 哼。 |
+| atk_jie_2 | 0.50 | [low, short heavy grunt, shouting] 喝！ |
+| atk_jie_3 | 1.08 | [low, weary, bored] 隨便啦。（第 2 版） |
+| atk_jie_4 | 1.25 | [low, weary, impatient] 快點結束。 |
+| atk_mi_1 | 0.50 | [calm, short light shout] 嘿！ |
+| atk_mi_2 | 0.50 | [calm, short light shout] 哈！ |
+| atk_mi_3 | 0.94 | [calm, polite customer service voice] 不好意思。 |
+| atk_mi_4 | 0.97 | [calm, polite customer service voice] 請稍等。 |
+| atk_vivi_1 | 0.93 | [bright, cheering, energetic] 加油！ |
+| atk_vivi_2 | 1.21 | [bright, confident, cheering] 你們可以的！ |
+| atk_vivi_3 | 0.63 | [commanding, shouting] 上吧！ |
+| atk_vivi_4 | 1.06 | [bright, commanding, confident] 交給你們了！ |
+
+要人耳確認：發力聲原檔多半喊了兩三聲，只留第一聲；阿傑 1、3、4 原音很小聲（拉高 15～22 dB，可能偏氣音或有底噪）；Vivi「上吧」原檔有兩段，只留第一段 0.63 秒，要聽是不是完整的「上吧」。
