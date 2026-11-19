@@ -129,3 +129,8 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 小米的攻擊台詞重做成「恕不受理！」「這通，我掛了！」。
 - 測試：`node tools/sim.mjs`（兩個主角 × 三種打法的通關率）、`STAGE=crowd TEAM=wu,fairy,hui node tools/playtest.mjs 11 smart 6`（指定隊伍自動試玩）。
 - 接下來要做的事在 `docs/TODO.md`。
+
+## v0.6.1（2026-11-20）載入變快
+
+- v0.6.0 上線後開場要等一分鐘以上：角色圖是一張一張排隊下載（16 人、一百多張）。`js/battle.js` 改成所有人、所有圖同時下載（`Promise.all`），載完再照順序放進場景。
+- 線上入口是根網址（`deploy.sh` 把 `game.html` 改名成 `index.html`），測線上版用 `PLAY_URL=https://pokemonida99.github.io/a4-rpg-battle/ node tools/playtest.mjs`。

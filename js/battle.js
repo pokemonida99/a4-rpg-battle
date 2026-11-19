@@ -57,8 +57,8 @@ export async function setupStage(E) {
   const img = url => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('載不到 ' + url)); im.src = url; });
   const units = {}, A = { face: {}, bust: {}, eyes: {}, items: {} };
   for (const k of ['tea', 'coffee']) { try { A.items[k] = await img(`art/items/${k}.png`); } catch (e) { A.items[k] = null; } }
-  for (const id of PARTY) {
-    const d = DEFS[id], f = {}; for (const k of ['ready', 'wind', 'act', 'win']) f[k] = await loadTex(`art/chars/${id}_${k}.png`);
+  await Promise.all(PARTY.map(async id => {      // 五個人同時載（逐張排隊在網路上會很慢）
+    const d = DEFS[id], f = {}; await Promise.all(['ready', 'wind', 'act', 'win'].map(async k => { f[k] = await loadTex(`art/chars/${id}_${k}.png`); }));
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)));
     f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready];
     for (const k of ['hurt', 'guard', 'cheer']) { if ((k === 'cheer') !== (id === 'vivi') && k !== 'guard') continue; const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }      // 試玩版用：受擊、防禦（Vivi 是應援、防禦）
@@ -66,17 +66,18 @@ export async function setupStage(E) {
     if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
     const s = d.hgt * PPU / f.ready.image.height; f.ult.k = ult.every(Boolean) ? f.ready.image.height / ult[0].image.height : 1;      // 逐格圖的像素密度可能跟站姿圖不同，用第一格的高度對齊
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: s, tint: 0xf2ecff, phase: PARTY.indexOf(id) * .37 });
-    A.bust[id] = await img(`art/cutin/bust_${id}.png`); A.eyes[id] = await img(`art/cutin/eyes_${id}.jpg`);
-  }
-  for (const id of EXTRA) { const d = DEFS[id], f = {}; let ok = true;
-    for (const k of ['ready', 'wind', 'act', 'win']) { f[k] = await tryTex(`art/chars/${id}_${k}.png`); if (!f[k]) ok = false; }
-    let bust = null; try { bust = await img(`art/cutin/bust_${id}.png`); } catch (e) { ok = false; }
-    if (!ok) { d.missing = true; continue; }
+    [A.bust[id], A.eyes[id]] = await Promise.all([img(`art/cutin/bust_${id}.png`), img(`art/cutin/eyes_${id}.jpg`)]);
+  }));
+  // 新夥伴：所有人、所有圖同時載，載完再照順序放進場景
+  const extra = await Promise.all(EXTRA.map(async id => { const opt = p => p.catch(() => null);
+    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opt(img(`art/cutin/bust_${id}.png`)), opt(img(`art/cutin/eyes_${id}.jpg`))]);
+    return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes }; }));
+  for (const { id, f, hurt, guard, ko, bust, eyes } of extra) { const d = DEFS[id];
+    if (!f.ready || !f.wind || !f.act || !f.win || !bust) { d.missing = true; continue; }
     f.ult = [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1;
-    for (const k of ['hurt', 'guard']) { const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }
-    { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }
+    if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (ko.every(Boolean)) f.ko = ko;
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
-    A.bust[id] = bust; try { A.eyes[id] = await img(`art/cutin/eyes_${id}.jpg`); } catch (e) { A.eyes[id] = null; }
+    A.bust[id] = bust; A.eyes[id] = eyes;
     d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)];      // 頭像：半身像上半部中間偏左（臉朝左）
   }
   { const d = DEFS.boss, idle = await loadTex('art/enemy/boss_idle.png'), atk = await loadTex('art/enemy/boss_atk.png');
