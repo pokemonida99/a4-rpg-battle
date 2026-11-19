@@ -3,7 +3,7 @@
 目標：做到可以上架販售的獨立遊戲水準。每次開工先看這份，做完的移到最下面「已完成」。
 GPT 的完整討論在 `design/gpt_discussion.md`。
 
-## 現況（v0.7.0，2026-11-20 已上線）
+## 現況（v0.7.1，2026-11-20；線上是 v0.7.0，v0.7.1 只在本機，還沒 push）
 
 - 一個人出發（小葵或阿傑，招式三選一）→ 八站行程表 → 路上招募／救援 → 奧客總經理 → 結案報告。
 - 夥伴 16 人：小葵、阿傑、Kevin、小米、Vivi、小燕、黑輪、茶茶、阿強、學姊、小蝶（舞孃）、老油條、鼠仙女、棕鼠、灰鼠、許許。全員都有 8 格出招動畫。
@@ -41,12 +41,13 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 ## 工作規則
 
 - 上線（`zsh tools/deploy.sh`）與 push 之前都要先問使用者。
-- 圖一律請 GPT 生（`tools/gen.sh`，最多同時兩條佇列），生完用 `tools/newchar.py`／`tools/atk.py`／`tools/mapart.py` 切，並看 `out/check_*.png`、`out/atk_*.png` 確認每個姿勢都面向左邊。半身像切完跑 `tools/bustfix.py`。
+- 圖一律請 GPT 生（`tools/gen.sh`，最多同時兩條佇列），生完用 `tools/newchar.py`／`tools/atk.py`／`tools/mapart.py` 切，並看 `out/check_*.png`、`out/atk_*.png` 確認每個姿勢都面向左邊。半身像切完跑 `tools/bustfix.py`。新角色要在 `js/game.js` 的 `EYE` 表補眼睛高度，卡片上的臉才不會太低。
 - 改數值跑 `node tools/sim.mjs`；改流程跑 `node tools/playtest.mjs`（可加 `STAGE=chief TEAM=wu,fairy,hui` 指定隊伍）。
 - 聲音只有音效與人聲用 ElevenLabs（rpg-audio 那個 session），配樂給 Suno 提示詞。
 
 ## 已完成
 
+- v0.7.1：選角卡半身像改用眼睛高度對位（臉不再掉到框底）；通關鏡頭拉遠。
 - v0.7.0：11 個新夥伴的 8 格出招動畫（GPT 生、`tools/atk.py` 切）。
 - v0.6.3：結算畫面換成結案報告；半身像殘留底色修正。
 - v0.6.2：進度自動存檔（帶版本號、壞檔作廢）、標題畫面「繼續上班」。

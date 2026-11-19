@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.7.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.7.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -581,6 +581,8 @@ function drawHub() {
   if (hubMsg) { const el = (performance.now() - hubMsg.t) / 1000; if (el < 4.5) { const a = Math.min(1, el / .2, (4.5 - el) / .5), w = Math.min(1100, mw(hubMsg.text, 28, 900, SERIF) + 90), mx = BPX + bw / 2; c.save(); c.globalAlpha = a; skin.paper(mx - w / 2, 118 - (1 - Math.min(1, el / .2)) * 20, w, 64, { clips: [mx] }); text(hubMsg.text, mx, 162, { px: 28, w: 900, fam: SERIF, align: 'center', col: INK }); c.restore(); } }
 }
 // 選卡畫面：兩到三張夾在木板上的紙卡，上面是圖（角色半身像或小圖示），下面是說明
+// 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
+const EYE = { kui: .40, jie: .45, kevin: .31, mi: .39, vivi: .33, yan: .37, heilun: .35, cha: .35, qiang: .30, senpai: .39, wu: .42, you: .30, fairy: .43, zong: .44, hui: .43, xu: .39 };
 function drawPick() {
   drawTable(.62); const n = menu.items.length, CWd = n <= 2 ? 520 : 450, CH = 640, gap = 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
   skin.wood(x0 - 46, 64, CWd * n + gap * (n - 1) + 92, 930); text(menu.title, W / 2, 158, { px: 62, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 }); wrap(menu.sub || '', CWd * n + gap * (n - 1) - 40, 25).slice(0, 2).forEach((s, i) => text(s, W / 2, 212 + i * 34, { px: 25, w: 700, align: 'center', col: 'rgba(239,230,207,.9)' }));
@@ -588,7 +590,7 @@ function drawPick() {
     c.save(); c.translate(0, (on && !dn ? -12 : 0) + (dn ? 6 : 0)); skin.paper(x, y, CWd, CH, { clips: [x + CWd / 2] });
     // 圖
     const ax = x + 18, ay = y + 22, aw = CWd - 36, col = it.bust ? DEFS[it.bust].color : '#3a2a1e'; c.fillStyle = '#241812'; c.fillRect(ax, ay, aw, AH); c.fillStyle = col; c.globalAlpha = it.bust ? .34 : 1; c.fillRect(ax + 4, ay + 4, aw - 8, AH - 8); c.globalAlpha = 1; c.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < AH - 8; k += 6) c.fillRect(ax + 4, ay + 4 + k, aw - 8, 2);
-    if (it.bust && A.bust[it.bust]) { const im = A.bust[it.bust], bh = 420, bw = bh * im.width / im.height; c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, aw - 8, AH - 8); c.clip(); pix(im, ax + aw / 2 - bw / 2, ay + 8, bw, bh); c.restore(); }
+    if (it.bust && A.bust[it.bust]) { const im = A.bust[it.bust], bh = 372, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + (AH - 8) * .45 - (EYE[it.bust] || .38) * bh); c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, aw - 8, AH - 8); c.clip(); pix(im, ax + aw / 2 - bw / 2, by, bw, bh); c.restore(); }
     else if (it.icon) { const s = 168; if (A.icons[it.icon]) pix(A.icons[it.icon], ax + aw / 2 - s / 2, ay + AH / 2 - s / 2, s, s); else text(it.label[0], ax + aw / 2, ay + AH / 2 + 34, { px: 96, w: 900, fam: SERIF, align: 'center', col: CREAM }); }
     c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
     if (on) { c.strokeStyle = TEAL; c.lineWidth = 6; c.strokeRect(x + 8, y + 8, CWd - 16, CH - 16); } if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, CWd, CH); }
