@@ -84,7 +84,7 @@ export const nodeName = nd => nd.name || STAGES[nd.stage].name;
 export const UPGRADES = {
   raise: { name: '加薪', desc: '全員攻擊力 ＋15%' }, leave: { name: '特休', desc: '全員 HP 上限 ＋20%，並且補滿' }, chair: { name: '人體工學椅', desc: '受到的傷害 －15%' },
   drinks: { name: '手搖飲團購', desc: '珍珠奶茶 ＋2' }, coffee: { name: '新咖啡機', desc: '黑咖啡 ＋2，全員 SP 補滿' }, morale: { name: '士氣大振', desc: '每場戰鬥開始時氣勢 ＋30' }, bento: { name: '加菜金', desc: '雞排便當 ＋1' },
-  learn: { name: '在職進修', desc: '主角學會一個還不會的招式' },
+  learn: { name: '在職進修', desc: '主角學會一個還不會的招式，自己挑' },
 };
 const BASE = JSON.parse(JSON.stringify(STAT));
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -119,12 +119,13 @@ export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
 export function rest(run) { let sum = 0; for (const id of run.roster) { if (id !== 'vivi') { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * .5)); run.hp[id] += v; sum += v; } run.sp[id] = STAT[id].sp; } return sum; }
-const unlearned = run => run.starter ? SKILLS[run.starter].map(k => k.key).filter(k => !run.skills[run.starter].includes(k)) : [];
+export const unlearned = run => run.starter ? SKILLS[run.starter].map(k => k.key).filter(k => !run.skills[run.starter].includes(k)) : [];
 export function offerUpgrades(run) { const pool = Object.keys(UPGRADES).filter(k => !(k === 'morale' && run.moStart > MO.start) && !(k === 'learn' && !unlearned(run).length)); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
-export function applyUpgrade(run, key) { run.picks.push(key);
+// opt：在職進修要學哪一招（沒給就學排在最前面那個還不會的）
+export function applyUpgrade(run, key, opt) { run.picks.push(key);
   if (key === 'raise') run.atk *= 1.15; else if (key === 'chair') run.def *= .85; else if (key === 'morale') run.moStart += 30; else if (key === 'drinks') run.items.tea += 2; else if (key === 'bento') run.items.bento += 1;
   else if (key === 'coffee') { run.items.coffee += 2; for (const id of run.roster) run.sp[id] = STAT[id].sp; }
-  else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u[0]); }
+  else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u.includes(opt) ? opt : u[0]); }
   else if (key === 'leave') { for (const id of ALL) if (id !== 'vivi') STAT[id].hp = Math.round(STAT[id].hp * 1.2); for (const id of run.roster) run.hp[id] = STAT[id].hp; } }
 
 // ---------- 存檔：站與站之間的進度（戰鬥打到一半不存，重開會回到進站前） ----------

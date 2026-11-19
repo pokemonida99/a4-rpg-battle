@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.7.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.7.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -434,16 +434,25 @@ function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || 
   openCards({ title: nd.name, sub: '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: '選完回到行程表', items: list.map(id => heroCard(id, () => { R.join(run, id); met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍`); })) }); }
 function openUpgrade(gift) { const offers = R.offerUpgrades(run);
   openCards({ title: gift ? '福委會' : '過關獎勵', sub: gift ? '這個月的福利，選一個：' : (rescued ? `救出了${DEFS[rescued].name}！` : '') + '全員回復兩成五 HP、三成 SP，倒下的人也站起來了。再選一個強化：', foot: '選完回到行程表', items: offers.map(k => ({ label: R.UPGRADES[k].name, icon: 'up_' + k, lines: R.UPGRADES[k].desc.split('，'), big: true, go: () => pickUpgrade(k) })) }); }
-function pickUpgrade(k) { R.applyUpgrade(run, k); snd(now, 'buff', .8); R.advance(run); const r = rescued; rescued = null; openHub(`拿到強化「${R.UPGRADES[k].name}」` + (r ? `　${DEFS[r].name}加入隊伍` : '')); }
+function pickUpgrade(k, opt) {
+  if (k === 'learn' && !opt) { const u = R.unlearned(run), id = run.starter; if (u.length > 1) return openCards({ title: '在職進修', sub: `${DEFS[id].name}要學哪一招？`, foot: '選一個招式，選完回到行程表', items: R.SKILLS[id].filter(q => u.includes(q.key)).map(q => ({ label: q.name, tag: `SP ${q.sp}　${q.note}`, icon: 'sk_' + q.key, lines: [q.desc], go: () => pickUpgrade(k, q.key) })) }); }
+  R.applyUpgrade(run, k, opt); snd(now, 'buff', .8); R.advance(run); const r = rescued; rescued = null; openHub((k === 'learn' ? `${DEFS[run.starter].name}學會「${R.SKILLS[run.starter].find(q => q.key === run.skills[run.starter].at(-1)).name}」` : `拿到強化「${R.UPGRADES[k].name}」`) + (r ? `　${DEFS[r].name}加入隊伍` : '')); }
 
 // ---------- 大地圖（行程表）：攤在會議桌上的公司剖面圖。選下一站、調整隊伍順序、看道具強化與夥伴名冊 ----------
-let hubMsg = null, hubSel = -1;
+let hubMsg = null, hubSel = -1, sheet = null;      // sheet＝正在看資料卡的那個人
 function hubItems() { const fl = R.MAP[run.floor], items = fl.map((nd, i) => ({ label: R.nodeName(nd), node: i, go: () => { if (hubSel === i) chooseNode(i); else hubSel = i; } }));
   items.push({ label: '出發', depart: true, get off() { return hubSel < 0; }, go: () => chooseNode(hubSel) });
   run.roster.forEach((id, r) => { if (r > 0) items.push({ label: '上移', re: r, d: -1, go: () => { R.reorder(run, r, -1); refreshHub(); } }); if (r < run.roster.length - 1) items.push({ label: '下移', re: r, d: 1, go: () => { R.reorder(run, r, 1); refreshHub(); } }); });
+  run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => openSheet(id) }));      // 點隊伍那一列或名冊的頭像看資料卡
+  for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
   return items; }
+// 資料卡：素質、招式、奧義。這一輪同行的人可以用「上一位／下一位」翻；名冊裡沒同行的人只看基本資料
+const sheetList = () => run.roster.includes(sheet) ? run.roster : DEX.filter(id => (PREF.met || []).includes(id));
+function openSheet(id) { sheet = id; menu = { kind: 'sheet', items: [{ label: '上一位', go: () => stepSheet(-1) }, { label: '下一位', go: () => stepSheet(1) }, { label: '回行程表', back: true, go: closeSheet }] }; focus = 2; }
+function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; }
+function closeSheet() { sheet = null; menu = { kind: 'hub', items: hubItems() }; focus = 0; }
 const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItems() }; focus = Math.min(f, menu.items.length - 1); };
-function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; hubSel = R.MAP[run.floor].length === 1 ? 0 : -1; menu = { kind: 'hub', items: hubItems() }; focus = 0; for (const id of run.roster) met(id); saveGame(); }
+function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; hubSel = R.MAP[run.floor].length === 1 ? 0 : -1; menu = { kind: 'hub', items: hubItems() }; focus = 0; for (const id of run.roster) met(id); saveGame(); }
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
   else if (nd.type === 'rest') { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在茶水間休息：全隊共回復 ${v} HP，SP 補滿` : '在茶水間休息：SP 補滿（HP 本來就是滿的）'); }
@@ -521,6 +530,7 @@ const TAGCOL = { 戰鬥: INK2, 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
 const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[nd.stage]; return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}社畜小兵 ×${st.minions.length}　打贏可以三選一強化`]; };
 function drawHub() {
+  if (sheet) return drawSheet();
   drawTable(.3); const nF = R.MAP.length, fl = R.MAP[run.floor], tp = performance.now() / 1000, bw = 1536 * MK, bh = 1024 * MK;
   text('上班旅人', 40, 74, { px: 54, w: 900, fam: SERIF, col: CREAM, ls: 10, stroke: 'rgba(20,10,4,.9)', sw: 8 }); text(`今日行程　第 ${run.floor + 1}／${nF} 站`, 336, 70, { px: 26, w: 700, col: BRASS, ls: 4, stroke: 'rgba(20,10,4,.8)', sw: 5 }); toggles(1558, 40);
   // 藍圖
@@ -559,10 +569,10 @@ function drawHub() {
     c.save(); c.translate(pe >= 0 && off ? Math.sin(pe * 22) * 6 * (1 - Math.min(1, pe)) : 0, dn ? 5 : 0); skin.paper(bx, by, BW2, bh2, { old: off }); if (!off) { c.fillStyle = '#1e3b36'; c.fillRect(bx + 6, by + 6, BW2 - 12, bh2 - 12); c.fillStyle = on ? '#3f9c88' : TEAL; c.fillRect(bx + 8, by + 8, BW2 - 16, bh2 - 16); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(bx + 8, by + 8, BW2 - 16, 5); }
     if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(bx, by, BW2, bh2); } text('出發', bx + BW2 / 2, by + bh2 / 2 + 17, { px: 46, w: 900, fam: SERIF, align: 'center', ls: 12, col: off ? 'rgba(43,31,24,.36)' : '#fff8e6' }); c.restore(); }
   // 右欄：隊伍（前四位出戰，可以調順序）
-  const PX = 1294, PY = 100, PW = 600, act = R.active(run); skin.wood(PX, PY, PW, 508); text('隊伍', PX + 26, PY + 44, { px: 28, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text('前四位出戰　用箭頭調整順序', PX + PW - 26, PY + 42, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
+  const PX = 1294, PY = 100, PW = 600, act = R.active(run); skin.wood(PX, PY, PW, 508); text('隊伍', PX + 26, PY + 44, { px: 28, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text('點人看資料　箭頭調順序（前四位出戰）', PX + PW - 26, PY + 42, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
   for (let i = 0; i < 6; i++) { const id = run.roster[i], y = PY + 60 + i * 72 + (i >= 4 ? 8 : 0);
     if (!id) { c.strokeStyle = 'rgba(239,230,207,.2)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.strokeRect(PX + 16, y + 2, PW - 32, 60); c.setLineDash([]); text(i < 4 ? '出戰空位' : '候補空位', PX + PW / 2, y + 39, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.32)' }); continue; }
-    const d = DEFS[id], on = act.includes(id), hp = run.hp[id], mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(PX + 14, y, PW - 28, 64, { old: !on }); c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(PX + 14, y, 9, 64); skin.face(A.face[id], PX + 32, y + 6, 52);
+    const d = DEFS[id], on = act.includes(id), hp = run.hp[id], mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(PX + 14, y, PW - 28, 64, { old: !on }); { const vi = menu.items.findIndex(m => m.view === id && m.row === i); if (vi >= 0) { zones.push({ x: PX + 14, y, w: PW - 28 - 104, h: 64, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(PX + 16, y + 2, PW - 32, 60); } } } c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(PX + 14, y, 9, 64); skin.face(A.face[id], PX + 32, y + 6, 52);
     text(d.name, PX + 96, y + 29, { px: 23, w: 900, fam: SERIF, col: INK }); text(id === 'vivi' ? '公主・後排' : d.job, PX + 104 + mw(d.name, 23, 900, SERIF), y + 28, { px: 14, w: 700, col: INK2 }); text(on ? '出戰' : '候補', PX + 96, y + 54, { px: 14, w: 900, col: on ? '#1f6a5c' : INK2 });
     if (id !== 'vivi') { skin.bar(PX + 138, y + 43, 170, 11, hp / mx, low ? '#c8443a' : '#4f9a4a'); text(`${hp}／${mx}`, PX + 316, y + 55, { px: 15, w: 700, col: low ? RED : INK }); } text(`SP ${run.sp[id]}`, PX + 458, y + 29, { px: 16, w: 700, col: '#27507e', align: 'right' });
     for (const dd of [-1, 1]) { const idx = menu.items.findIndex(m => m.re === i && m.d === dd); if (idx < 0) continue; const ax = PX + PW - 28 - (dd < 0 ? 96 : 48), ay = y + 9, pe = pressK(idx), dn = pe >= 0, hov = focus === idx; zones.push({ x: ax - 2, y: y, w: 46, h: 64, i: idx, off: false });
@@ -576,9 +586,42 @@ function drawHub() {
   // 夥伴名冊：這一輪同行的是亮的；以前遇過的是暗的；還沒遇過的是問號
   const RY = UY + 88, RH = H - 14 - RY, seen = PREF.met || []; skin.wood(PX, RY, PW, RH); text('夥伴名冊', PX + 26, RY + 42, { px: 26, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`遇過 ${DEX.filter(id => seen.includes(id)).length}／${DEX.length}`, PX + PW - 26, RY + 40, { px: 18, w: 700, align: 'right', col: BRASS });
   DEX.forEach((id, j) => { const col = j % 8, row = j / 8 | 0, x = PX + 22 + col * 70, y = RY + 56 + row * 100, inRun = run.roster.includes(id), known = seen.includes(id) && A.face[id]; skin.paper(x, y, 64, 92, { old: !inRun });
-    if (known) { c.save(); c.globalAlpha = inRun ? 1 : .55; skin.face(A.face[id], x + 5, y + 5, 54); c.restore(); text(fit(DEFS[id].name, 60, 13, 900), x + 32, y + 80, { px: 13, w: 900, align: 'center', col: inRun ? INK : INK2 }); if (inRun) { c.fillStyle = TEAL; c.fillRect(x + 5, y + 84, 54, 4); } }
+    if (known) { const vi = menu.items.findIndex(m => m.view === id && m.dex); if (vi >= 0) { zones.push({ x, y, w: 64, h: 92, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(x + 2, y + 2, 60, 88); } } c.save(); c.globalAlpha = inRun ? 1 : .55; skin.face(A.face[id], x + 5, y + 5, 54); c.restore(); text(fit(DEFS[id].name, 60, 13, 900), x + 32, y + 80, { px: 13, w: 900, align: 'center', col: inRun ? INK : INK2 }); if (inRun) { c.fillStyle = TEAL; c.fillRect(x + 5, y + 84, 54, 4); } }
     else { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x + 5, y + 5, 54, 54); text('？', x + 32, y + 46, { px: 36, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.38)' }); } });
   if (hubMsg) { const el = (performance.now() - hubMsg.t) / 1000; if (el < 4.5) { const a = Math.min(1, el / .2, (4.5 - el) / .5), w = Math.min(1100, mw(hubMsg.text, 28, 900, SERIF) + 90), mx = BPX + bw / 2; c.save(); c.globalAlpha = a; skin.paper(mx - w / 2, 118 - (1 - Math.min(1, el / .2)) * 20, w, 64, { clips: [mx] }); text(hubMsg.text, mx, 162, { px: 28, w: 900, fam: SERIF, align: 'center', col: INK }); c.restore(); } }
+}
+// 資料卡：左邊半身像與名字，右邊素質、招式、奧義
+function sheetBtn(label, x, y, w, h, i, main) { const pe = pressK(i), dn = pe >= 0, on = focus === i; zones.push({ x, y, w, h, i, off: false }); c.save(); c.translate(0, dn ? 5 : 0); skin.paper(x, y, w, h);
+  if (main) { c.fillStyle = '#1e3b36'; c.fillRect(x + 6, y + 6, w - 12, h - 12); c.fillStyle = on ? '#3f9c88' : TEAL; c.fillRect(x + 8, y + 8, w - 16, h - 16); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(x + 8, y + 8, w - 16, 5); } else if (on) { c.strokeStyle = TEAL; c.lineWidth = 5; c.strokeRect(x + 6, y + 6, w - 12, h - 12); }
+  if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, w, h); } text(label, x + w / 2, y + h / 2 + 13, { px: 34, w: 900, fam: SERIF, align: 'center', ls: 6, col: main ? '#fff8e6' : INK }); c.restore(); }
+function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = run.roster.includes(id), on = inRun && R.active(run).includes(id), X = 150, Y = 56, PW = 1620, PH = 968, viv = id === 'vivi';
+  drawTable(.66); skin.wood(X, Y, PW, PH);
+  // 左：半身像、名字、職業
+  const lx = X + 40, ly = Y + 46, lw = 500, lh = PH - 92; skin.paper(lx, ly, lw, lh, { clips: [lx + lw / 2] });
+  { const ax = lx + 18, ay = ly + 22, aw = lw - 36, AH = 440, im = A.bust[id]; c.fillStyle = '#241812'; c.fillRect(ax, ay, aw, AH); c.fillStyle = d.color || '#3a2a1e'; c.globalAlpha = .34; c.fillRect(ax + 4, ay + 4, aw - 8, AH - 8); c.globalAlpha = 1; c.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < AH - 8; k += 6) c.fillRect(ax + 4, ay + 4 + k, aw - 8, 2);
+    if (im) { const bh = 620, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + (AH - 8) * .43 - (EYE[id] || .38) * bh); c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, aw - 8, AH - 8); c.clip(); pix(im, ax + aw / 2 - bw / 2, by, bw, bh); c.restore(); }
+    c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
+    let ty = ay + AH + 84; text(d.name, lx + lw / 2, ty, { px: 64, w: 900, fam: SERIF, align: 'center', col: INK, ls: 6 }); ty += 44; text(`${viv ? '公主' : d.job}　${R.ROLE[id]}`, lx + lw / 2, ty, { px: 24, w: 900, align: 'center', col: RED, ls: 3 }); c.fillStyle = RED; c.fillRect(lx + lw / 2 - 70, ty + 14, 140, 4); ty += 58;
+    text(inRun ? (on ? '出戰中' : '候補（排到前四位才會上場）') : '這一輪沒有同行', lx + lw / 2, ty, { px: 22, w: 900, align: 'center', col: on ? '#1f6a5c' : INK2 }); ty += 26;
+    if (d.shout) wrap(`「${d.shout}」`, lw - 80, 24).slice(0, 3).forEach((ln, k) => text(ln, lx + lw / 2, ty + 44 + k * 36, { px: 24, w: 700, fam: SERIF, align: 'center', col: INK2 }));
+    if (on) skin.stamp('出戰', lx + lw - 84, ay + AH + 2, -.12, 22); }
+  // 右：素質、招式、奧義
+  const rx = lx + lw + 30, rw = X + PW - 40 - rx, rh = lh - 124; skin.paper(rx, ly, rw, rh); const cx = rx + 40, cw = rw - 80; let y = ly + 58;
+  const head = (s, note) => { c.fillStyle = RED; c.fillRect(cx, y - 24, 7, 28); text(s, cx + 20, y, { px: 26, w: 900, fam: SERIF, col: INK, ls: 8 }); const x1 = cx + 40 + mw(s, 26, 900, SERIF) + s.length * 8; c.fillStyle = 'rgba(43,31,24,.22)'; c.fillRect(x1, y - 10, cx + cw - x1 - (note ? mw(note, 18) + 18 : 0), 2); if (note) text(note, cx + cw, y - 3, { px: 18, w: 700, align: 'right', col: INK2 }); y += 20; };
+  head('素質', inRun && run.picks.length ? `已拿 ${run.picks.length} 個強化` : '');
+  { const up = run.atk > 1.001 ? `強化 ＋${Math.round((run.atk - 1) * 100)}%` : '', cut = run.def < .999 ? `強化 －${Math.round((1 - run.def) * 100)}%` : '', cells = viv ? [['位置', '後排', '不會被攻擊'], ['應援', `氣勢 ＋${R.MO.cheer}`, '每次行動替全隊加氣勢'], ['速度', st.spd, '數字大的先行動'], ['SP', inRun ? `${run.sp[id]}／${st.sp}` : st.sp, '放招式用'], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]]
+      : [['HP', inRun ? `${run.hp[id]}／${st.hp}` : st.hp, '', inRun ? run.hp[id] / st.hp : null, '#4f9a4a'], ['SP', inRun ? `${run.sp[id]}／${st.sp}` : st.sp, '放招式與奧義用', inRun ? run.sp[id] / st.sp : null, '#3d6fa8'], ['攻擊', Math.round(st.atk * (inRun ? run.atk : 1)), inRun ? up : ''], ['速度', st.spd, '數字大的先行動'], ['受到的傷害', inRun && cut ? `×${run.def.toFixed(2)}` : '×1', inRun ? cut : ''], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]];
+    const colW = cw / 3; cells.forEach(([k, v, note, bar, bcol], i) => { const x = cx + (i % 3) * colW, yy = y + 12 + Math.floor(i / 3) * 92; text(k, x, yy + 16, { px: 18, w: 900, col: INK2, ls: 3 }); text(String(v), x, yy + 56, { px: 38, w: 900, col: INK }); if (bar != null) skin.bar(x, yy + 66, colW - 60, 11, bar, bar < .3 && k === 'HP' ? '#c8443a' : bcol); else if (note) text(fit(note, colW - 20, 17), x, yy + 80, { px: 17, w: 700, col: note.startsWith('強化') ? '#1f6a5c' : INK2 }); }); y += 12 + Math.ceil(cells.length / 3) * 92 + 38; }
+  const sk = R.SKILLS[id] || [], known = k => !inRun || (run.skills[id] || []).includes(k.key), rowH = sk.length > 2 ? 86 : 96;
+  head('招式', id === run.starter && sk.some(k => !known(k)) ? '還沒學的招式，拿到強化「在職進修」可以學' : '只花 SP，不用氣勢');
+  sk.forEach(k => { const ok = known(k), im = A.icons['sk_' + k.key]; c.save(); c.globalAlpha = ok ? 1 : .42; if (im) pix(im, cx, y + 8, 64, 64); else { c.fillStyle = '#33241a'; c.fillRect(cx + 4, y + 12, 56, 56); c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(cx + 5.5, y + 13.5, 53, 53); gem(cx + 32, y + 40, 15, CREAM); }
+    text(k.name, cx + 84, y + 36, { px: 30, w: 900, fam: SERIF, col: INK, ls: 2 }); const nx = cx + 84 + mw(k.name, 30, 900, SERIF) + k.name.length * 2 + 24; text(`SP ${k.sp}`, nx, y + 34, { px: 20, w: 900, col: '#27507e' }); text(fit(k.note, cx + cw - nx - 110, 20, 900), nx + mw(`SP ${k.sp}`, 20, 900) + 22, y + 34, { px: 20, w: 900, col: RED });
+    text(fit(k.desc, cw - 90, 21), cx + 84, y + 68, { px: 21, w: 700, col: INK2 }); c.restore(); if (!ok) skin.stamp('還沒學', cx + cw - 70, y + 38, -.1, 18); y += rowH; }); y += 34;
+  head('奧義', `SP ${st.cost}　氣勢 ${R.MO.ult}`);
+  { const im = A.icons.up_morale; c.fillStyle = '#6e1c16'; c.fillRect(cx + 4, y + 12, 56, 56); c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(cx + 5.5, y + 13.5, 53, 53); if (im) pix(im, cx + 8, y + 16, 48, 48); text(`「${d.skill}」`, cx + 70, y + 38, { px: 32, w: 900, fam: SERIF, col: INK, ls: 2 }); wrap(d.desc || (R.ULTS[id] || [])[1] || '', cw - 90, 21).slice(0, 2).forEach((ln, k) => text(ln, cx + 84, y + 70 + k * 30, { px: 21, w: 700, col: INK2 })); }
+  // 下方按鈕
+  const by = ly + lh - 100, n = sheetList().length; if (n > 1) { sheetBtn('上一位', rx, by, 230, 100, 0); sheetBtn('下一位', rx + 250, by, 230, 100, 1); text(`${sheetList().indexOf(id) + 1}／${n}`, rx + 580, by + 50, { px: 26, w: 900, align: 'center', col: CREAM }); text(inRun ? '隊伍' : '名冊', rx + 580, by + 80, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.7)' }); }
+  sheetBtn('回行程表', rx + rw - 330, by, 330, 100, 2, true);
 }
 // 選卡畫面：兩到三張夾在木板上的紙卡，上面是圖（角色半身像或小圖示），下面是說明
 // 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
@@ -696,7 +739,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
-window.__game = { get state() { return state; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
+window.__game = { get state() { return state; }, sheet: id => openSheet(id), get sheetId() { return sheet; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load'; audioReady.then(() => { if (phase === 'load') phase = 'title'; });
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
