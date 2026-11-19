@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>不想上班 RPG｜討伐奧客總經理（試玩版）</title>
+<link rel="icon" href="data:,">
+<meta property="og:title" content="不想上班 RPG｜討伐奧客總經理（試玩版）">
+<meta property="og:description" content="五個社畜組隊打奧客總經理的回合制小遊戲。">
+<meta property="og:image" content="og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  @font-face { font-family: "Noto Sans TC"; src: url(fonts/NotoSansTC.ttf); font-weight: 100 900; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  #stage { position: absolute; left: 50%; top: 50%; width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); transform: translate(-50%, -50%); cursor: pointer; touch-action: none; }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  #rotate { display: none; position: fixed; left: 0; right: 0; bottom: 6vh; text-align: center; color: #e2bf6c; font: 500 16px "Noto Sans TC", sans-serif; letter-spacing: .2em; }
+  @media (orientation: portrait) { #rotate { display: block; } }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <canvas id="hud" width="1920" height="1080"></canvas>
+</div>
+<div id="rotate">把手機橫放會比較好玩</div>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>

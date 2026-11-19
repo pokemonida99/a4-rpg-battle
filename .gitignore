@@ -1,0 +1,10 @@
+out/
+dist/
+ref/
+art/raw/
+ui-proposals/
+audio/bgm/*.wav
+audio/bgm_elevenlabs/
+js/*.bak
+*.log
+.DS_Store
