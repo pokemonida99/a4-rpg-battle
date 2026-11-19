@@ -80,6 +80,7 @@ export function makeSkin(c, A, S, D) {
       for (let k = 1; k < mx; k++) { c.fillStyle = '#1d120b'; c.fillRect(x + 64 + (w - 78) * k / mx - 1, y + 9, 2, 16); }
       if (sh <= 0) { const el = lastChange(S.shield[id], t); stamp('理虧', x + w - 46, y + 12, -.2, 30, el < .2 ? lerp(2.2, 1, easeOut(el / .2)) : 1); }
       if (guard && boss) { paper(x, y + 42, w, 30, { tint: 'rgba(178,58,48,.14)' }); text('護衛中　傷害無效', x + w / 2, y + 64, { px: 18, w: 900, align: 'center', col: RED, ls: 1 }); }
+      if (boss && !guard && S.pot && S.pot()) { paper(x, y + 42, w, 30, { tint: 'rgba(202,162,76,.2)' }); text('甩鍋中　第一下小兵背', x + w / 2, y + 64, { px: 18, w: 900, align: 'center', col: INK, ls: 1 }); }
       if (guard && !boss) { const [hx, hy] = S.proj(id, 1.12), by = hy - 6 + Math.sin(t * 4 + px) * 3; paper(hx - 28, by - 22, 56, 24); text('護衛', hx, by - 4, { px: 16, w: 900, align: 'center', col: RED }); } }
     if (S.units.boss.alive || stepAt(S.bossBar, t, false)) { const hp = valAt(S.hp.boss, t, .7), d = D.boss, x = 48, y = 944, w = 620, since = lastChange(S.hp.boss, t), jit = since < .4 && S.hp.boss.length > 1 ? Math.sin(since * 70) * 6 * (1 - since / .4) : 0;
       wood(x, y, w, 100); const nw = text(d.name, x + 34 + jit, y + 46, { px: 34, w: 900, col: CREAM, shadow: 'rgba(20,10,4,.75)', ls: 2 }); stamp('BOSS', x + 34 + nw + 62, y + 34, -.1, 20); bar(x + 34, y + 62, w - 68, 16, hp / d.hp, '#c8443a'); }

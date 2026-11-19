@@ -83,3 +83,11 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 開始畫面與戰鬥中左上有「聲音」「畫質」開關（記在裝置上）；開始畫面太慢會自動切省電畫質（關景深、光暈、陰影）。網址 `?low`、`?mute` 也可以。
 - 數值模擬多一個 `casual`（一般玩家）打法。目前：smart 100%、casual 約 71%、rush 約 66%、mash 0%。
 - 還沒做：勝利結算畫面、傷害數字仍是舊的黑金風格；新招式的音效仍借用舊的；三關連打。
+
+## v0.4.0（2026-11-19）三關連打
+- `rules.js` 的 `STAGES`：第一關「加班大隊」（三隻小兵，教學）→ 第二關「甩鍋課長」（中頭目，沒有護衛，但每回合第一次被打會甩給小兵）→ 第三關「奧客總經理」。頭目共用 `'boss'` 位置，進關時把數值蓋到 `STAT.boss`、小兵名單換到 `MINIONS`。
+- 過關：HP 補四成、SP 補一半、倒下的人站起來，再從 `UPGRADES` 隨機三個裡選一個（加薪、特休、人體工學椅、手搖飲團購、新咖啡機、士氣大振、加菜金）。輸了從第一關重來。
+- `game.js`：`run`（一輪的進度）＋`state`（一場戰鬥）；`enterStage()` 重設畫面、`startStage()` 開場、`finish()` 分過關／通關／失敗；強化畫面是 `drawPick()`。網址 `?stage=2` 可以直接從第二關開始測。
+- 甩鍋課長的圖：`art/enemy/chief_{idle,wind,atk,hurt}.png`（原圖 `art/raw/chief.png`，`art/raw/jobs6.sh`，`cut.py --cell 2.82 --gap 4`）。
+- `tools/sim.mjs` 改成跑整輪三關：smart 通關 100%、casual 約 74%、rush 約 90%、mash 過得了第一關但過不了頭目。一輪約 12 回合。
+- `tools/deploy.sh`：`js/*.js` 全部帶上（之前漏了 skin.js，靠本機測建置檔抓到）；字型只留程式裡出現的字（11MB → 0.6MB）。`zsh tools/deploy.sh build` 只建置不推，可用 `python3 -m http.server 4631 --directory dist` 加 `PLAY_URL=http://localhost:4631/ node tools/playtest.mjs` 先測。
