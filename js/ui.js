@@ -33,18 +33,37 @@ export function makeUI(cv, A, S) {
   function turnOrder(t, a) {
     if (a <= 0) return; let cur = null; for (const k of S.order) { if (k.t > t) break; cur = k; } if (!cur) return;
     const u = easeOut(sat((t - cur.t) / .28)), ox = (1 - u) * 46; c.save(); c.globalAlpha *= a;
-    const x0 = 118, y0 = 112; let x = x0 + 58 + 22 + 36; const n = cur.v.length;
-    c.strokeStyle = COL.line; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x + (n - 2) * 80 + 60, y0); c.stroke();
-    cur.v.forEach((id, i) => { const e = D[id].enemy, bd = e ? '#c8423c' : COL.text;
-      if (i === 0) { c.save(); c.shadowColor = e ? 'rgba(255,70,60,.8)' : 'rgba(255,225,150,.8)'; c.shadowBlur = 22; diamond(x0, y0, 58 * lerp(.8, 1, u), A.face[id], e ? '#ff6a5a' : COL.gold); c.restore(); }
-      else diamond(x + (i - 1) * 80 + ox, y0, 36, A.face[id], bd, .18); });
-    txt('行動順序', x0 - 58, y0 + 96, { px: 20, w: 500, col: COL.dim, ls: 6 });
+    const H_ = S.partyMode === 'h', list = H_ ? cur.v.slice(0, 7) : cur.v, R0 = H_ ? 44 : 58, R1 = H_ ? 27 : 36, SP_ = H_ ? 61 : 80, x0 = H_ ? 78 : 118, y0 = H_ ? 66 : 112; let x = x0 + R0 + (H_ ? 14 : 22) + R1; const n = list.length;
+    c.strokeStyle = COL.line; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x + (n - 2) * SP_ + (H_ ? 40 : 60), y0); c.stroke();
+    list.forEach((id, i) => { const e = D[id].enemy, bd = e ? '#c8423c' : COL.text;
+      if (i === 0) { c.save(); c.shadowColor = e ? 'rgba(255,70,60,.8)' : 'rgba(255,225,150,.8)'; c.shadowBlur = 22; diamond(x0, y0, R0 * lerp(.8, 1, u), A.face[id], e ? '#ff6a5a' : COL.gold); c.restore(); }
+      else diamond(x + (i - 1) * SP_ + ox, y0, R1, A.face[id], bd, .18); });
+    if (!H_) txt('行動順序', x0 - 58, y0 + 96, { px: 20, w: 500, col: COL.dim, ls: 6 });
+    c.restore();
+  }
+
+  // ---------- 隊伍狀態（橫排版）：畫面最上面一排五欄，不會蓋到站在右邊的角色。試玩版用 ----------
+  function partyH(t, a) {
+    c.save(); c.globalAlpha *= a; const g = c.createLinearGradient(0, 0, 0, 150); g.addColorStop(0, 'rgba(8,6,16,.78)'); g.addColorStop(.75, 'rgba(8,6,16,.5)'); g.addColorStop(1, 'rgba(8,6,16,0)'); c.fillStyle = g; c.fillRect(560, 0, W - 560, 150);
+    const active = stepAt(S.active, t, null), XL = 632, CW = 252;
+    S.party.forEach((id, i) => { const d = D[id], x = XL + i * CW, y = 46, hp = valAt(S.hp[id], t), sp = valAt(S.sp[id], t), bp = stepAt(S.bp[id], t, 1), w = CW - 26;
+      const since = lastChange(S.hp[id], t), jit = since < .45 && S.hp[id].length > 1 ? Math.sin(since * 60) * 5 * (1 - since / .45) : 0, low = hp / d.hp < .26, on = active === id, down = hp <= 0;
+      if (on) { c.fillStyle = 'rgba(226,191,108,.16)'; c.fillRect(x - 12, 10, CW - 6, 112); c.fillStyle = COL.gold; c.fillRect(x - 12, 10, CW - 6, 3); gem(x - 12, 11, 6, '#fff6d8'); gem(x - 12 + CW - 6, 11, 6, '#fff6d8'); }
+      if (i) { c.fillStyle = 'rgba(243,236,218,.14)'; c.fillRect(x - 16, 22, 1, 92); }
+      c.globalAlpha = a * (down ? .5 : 1);
+      const nw = txt(d.name, x, y, { px: 27, w: 700, col: on ? COL.gold : COL.text, shadow: 'rgba(0,0,0,.7)', sx: 2, sy: 2 }); txt(i === 4 ? '後排' : d.job, x + nw + 8, y - 1, { px: 15, w: 500, col: COL.dim });
+      for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(x + w - 62 + k * 14, y - 9, 4.5, 0, 7); if (k < bp) { c.fillStyle = bp >= 5 ? '#ffd84a' : '#ff6a4a'; c.fill(); } else { c.strokeStyle = 'rgba(243,236,218,.4)'; c.lineWidth = 1.2; c.stroke(); } }
+      txt('HP', x, y + 36, { px: 12, w: 700, col: COL.dim, ls: 1 });
+      const hw = txt(down ? '倒下' : fmt(hp).replace(/,/g, ''), x + 26 + jit, y + 40, { px: down ? 26 : 32, w: 900, col: down || low ? '#ff7a6a' : COL.text, shadow: 'rgba(0,0,0,.7)', sx: 2, sy: 2 }); if (!down) txt('/' + d.hp, x + 30 + hw, y + 39, { px: 15, w: 500, col: COL.dim });
+      txt(String(Math.round(sp)), x + w, y + 40, { px: 20, w: 700, align: 'right', col: '#cfe4ff' }); txt('SP', x + w - measure(String(Math.round(sp)), 20, 700) - 6, y + 38, { px: 11, w: 700, col: COL.dim, align: 'right', ls: 1 });
+      const bw = w - 78; c.fillStyle = 'rgba(243,236,218,.2)'; c.fillRect(x, y + 50, bw, 6); c.fillStyle = low ? COL.red : COL.hp; c.fillRect(x, y + 50, bw * sat(hp / d.hp), 6);
+      c.fillStyle = 'rgba(243,236,218,.2)'; c.fillRect(x + w - 68, y + 50, 68, 6); c.fillStyle = COL.sp; c.fillRect(x + w - 68, y + 50, 68 * sat(sp / d.sp), 6); c.globalAlpha = a; });
     c.restore();
   }
 
   // ---------- 右上：隊伍狀態 ----------
   function party(t, a) {
-    if (a <= 0) return; c.save(); c.globalAlpha *= a;
+    if (a <= 0) return; if (S.partyMode === 'h') return partyH(t, a); c.save(); c.globalAlpha *= a;
     const g = c.createLinearGradient(1380, 0, W, 0); g.addColorStop(0, 'rgba(8,6,16,0)'); g.addColorStop(1, 'rgba(8,6,16,.66)'); c.fillStyle = g; c.fillRect(1380, 0, W - 1380, 520);
     const active = stepAt(S.active, t, null), X1 = 1860, BW = 300;
     S.party.forEach((id, i) => { const d = D[id], y = 72 + i * 88 + (i === 4 ? 10 : 0), hp = valAt(S.hp[id], t), sp = valAt(S.sp[id], t), bp = stepAt(S.bp[id], t, 1), X0 = X1 - BW;
@@ -127,7 +146,7 @@ export function makeUI(cv, A, S) {
 
   // ---------- 上方中央：招式名小框 ----------
   function boxes(t) {
-    for (const b of S.boxes) { if (t < b.t0 || t > b.t1) continue; const a = Math.min(sat((t - b.t0) / .14), sat((b.t1 - t) / .2)), w = measure(b.text, 36, 700, SERIF) + 96, x = W / 2 - w / 2, y = 150 - (1 - a) * 10;
+    for (const b of S.boxes) { if (t < b.t0 || t > b.t1) continue; const a = Math.min(sat((t - b.t0) / .14), sat((b.t1 - t) / .2)), w = measure(b.text, 36, 700, SERIF) + 96, x = W / 2 - w / 2, y = (S.partyMode === 'h' ? 172 : 150) - (1 - a) * 10;
       c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(11,9,20,.88)'; c.fillRect(x, y, w, 66); c.strokeStyle = b.enemy ? '#e2463f' : COL.line; c.lineWidth = 2; c.strokeRect(x + 1, y + 1, w - 2, 64);
       gem(x, y + 33, 8, b.enemy ? '#e2463f' : COL.gold); gem(x + w, y + 33, 8, b.enemy ? '#e2463f' : COL.gold);
       txt(b.text, W / 2, y + 46, { px: 36, w: 700, fam: SERIF, align: 'center', col: b.enemy ? '#ffd9d2' : COL.text }); c.restore(); }
@@ -135,7 +154,7 @@ export function makeUI(cv, A, S) {
 
   // ---------- 左上：大招名牌 ----------
   function cards(t) {
-    for (const k of S.cards) { if (t < k.t0 || t > k.t1) continue; const d = D[k.id], el = t - k.t0, out = sat((k.t1 - t) / .22), u = easeOut(sat(el / .22)), x = 84, y = 96;
+    for (const k of S.cards) { if (t < k.t0 || t > k.t1) continue; const d = D[k.id], el = t - k.t0, out = sat((k.t1 - t) / .22), u = easeOut(sat(el / .22)), x = 84, y = S.partyMode === 'h' ? 158 : 96;
       c.save(); c.globalAlpha = out; const nw = measure(d.skill, 92, 900, SERIF, 4), sx = x - 40, sw = (nw + 120) * u;
       // 色塊：斜切的平行四邊形（先掃進來），上面壓一條細的白線
       c.fillStyle = 'rgba(8,6,16,.72)'; c.beginPath(); c.moveTo(sx - 60, y + 22); c.lineTo(sx + sw + 34, y + 22); c.lineTo(sx + sw, y + 142); c.lineTo(sx - 60, y + 142); c.fill();

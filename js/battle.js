@@ -48,6 +48,7 @@ export async function setupStage(E) {
     const d = DEFS[id], f = {}; for (const k of ['ready', 'wind', 'act', 'win']) f[k] = await loadTex(`art/chars/${id}_${k}.png`);
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)));
     f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready];
+    if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
     const s = d.hgt * PPU / f.ready.image.height; f.ult.k = ult.every(Boolean) ? f.ready.image.height / ult[0].image.height : 1;      // 逐格圖的像素密度可能跟站姿圖不同，用第一格的高度對齊
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: s, tint: 0xf2ecff, phase: PARTY.indexOf(id) * .37 });
     A.bust[id] = await img(`art/cutin/bust_${id}.png`); A.eyes[id] = await img(`art/cutin/eyes_${id}.jpg`);

@@ -59,3 +59,9 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - `main` 是原始碼；`gh-pages` 是 `zsh tools/deploy.sh` 整理出來的遊戲檔（只放跑得到的素材，首頁就是遊戲）。
 - 改版：改 `js/game.js` 的 `VERSION` → commit、push main → `zsh tools/deploy.sh`。上線後用 `PLAY_URL=https://pokemonida99.github.io/a4-rpg-battle/ node tools/playtest.mjs` 測線上版。
 - 不上傳：`ref/`（參考照）、`art/raw/`、`out/`、`ui-proposals/`。
+
+## v0.2.0（2026-11-19，依使用者試玩意見）
+- 隊伍狀態改成最上面一排五欄（`ui.js` 的 `partyH`，`S.partyMode = 'h'` 才啟用，影片版不受影響），行動順序縮小，不再蓋到右邊的角色。
+- 按鈕有按下去的回饋：沉下去、發亮、外框擴散、音效、手機震動，停 0.13 秒才執行；不能按的會左右抖一下。
+- 倒下會跪倒再趴在地上：`art/chars/ko/<id>_1.png`（跪倒）、`_2.png`（趴地），原圖 `art/raw/anim/<id>_ko.png`（`art/raw/jobs4.sh`）。切圖後要置中。
+- 每人有自己的招式（`rules.js` 的 `SKILLS`，只花 SP 不用 BP）：小葵 橫掃千稿／直球吐槽；Kevin 這個我來（挑釁）／盾擊；阿傑 暗影彈幕／加班詛咒；小米 治癒專線／安撫話術；Vivi 老闆請客。演出在 `game.js` 的 `playSkill`。

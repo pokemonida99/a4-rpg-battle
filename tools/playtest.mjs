@@ -22,9 +22,10 @@ await page.evaluate(policy => {
     if (m.kind === 'root') {
       if (policy === 'mash') { note(m.items[0].label); return g.press(0); }
       const hurt = F.filter(h => s.hp[h] > 0 && s.hp[h] < 1100), dead = F.filter(h => s.hp[h] <= 0);
-      if ((dead.length || hurt.length) && !m.items[2].off && id !== 'kui' && id !== 'jie') { note('道具'); return g.press(2); }
-      if (!m.items[1].off && !(id === 'kevin' && !s.charging) && !(id === 'mi' && hurt.length < 1 && F.every(h => s.hp[h] > 1500))) { note('奧義'); return g.press(1); }
-      if (s.charging && !s.aegis && id !== 'vivi') { note('防禦'); return g.press(3); }
+      if ((dead.length || hurt.length) && !m.items[3].off && id !== 'kui' && id !== 'jie') { note('道具'); return g.press(3); }
+      if (!m.items[2].off && !(id === 'kevin' && !s.charging) && !(id === 'mi' && hurt.length < 1 && F.every(h => s.hp[h] > 1500))) { note('奧義'); return g.press(2); }
+      if (s.charging && !s.aegis && id !== 'vivi') { note('防禦'); return g.press(m.items.length - 1); }
+      if (!m.items[1].off && Math.random() < .45) { note('技能'); return g.press(1); }
       note(m.items[0].label); return g.press(0); }
     const i = m.items.findIndex(x => !x.off && !x.back); note('→ ' + m.items[i < 0 ? m.items.length - 1 : i].label); g.press(i < 0 ? m.items.length - 1 : i); }, 120);
 }, policy);
