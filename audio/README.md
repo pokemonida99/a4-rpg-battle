@@ -90,11 +90,13 @@ ElevenLabs 文字轉語音 Eleven v4，聲音同上面喊招（小葵 Yu-Ting、
 | atk_jie_4 | 1.25 | [low, weary, impatient] 快點結束。 |
 | atk_mi_1 | 0.50 | [calm, short light shout] 嘿！ |
 | atk_mi_2 | 0.50 | [calm, short light shout] 哈！ |
-| atk_mi_3 | 0.94 | [calm, polite customer service voice] 不好意思。 |
-| atk_mi_4 | 0.97 | [calm, polite customer service voice] 請稍等。 |
+| atk_mi_3 | 0.97 | [firm, sharp, curt, calm customer service voice, falling tone] 恕不受理！（11/20 重做） |
+| atk_mi_4 | 1.49 | [firm, sharp, decisive, calm customer service voice, falling tone] 這通，我掛了！（11/20 重做） |
 | atk_vivi_1 | 0.93 | [bright, cheering, energetic] 加油！ |
 | atk_vivi_2 | 1.21 | [bright, confident, cheering] 你們可以的！ |
 | atk_vivi_3 | 0.63 | [commanding, shouting] 上吧！ |
 | atk_vivi_4 | 1.06 | [bright, commanding, confident] 交給你們了！ |
 
 要人耳確認：發力聲原檔多半喊了兩三聲，只留第一聲；阿傑 1、3、4 原音很小聲（拉高 15～22 dB，可能偏氣音或有底噪）；Vivi「上吧」原檔有兩段，只留第一段 0.63 秒，要聽是不是完整的「上吧」。
+
+11/20 小米兩句短台詞重做（使用者嫌不像攻擊）：生成一次兩版、挑第一版；「恕不受理」原檔連說兩遍，只留第一遍。點數 4,877 → 4,735（142 點）。

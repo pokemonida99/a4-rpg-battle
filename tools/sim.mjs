@@ -1,65 +1,83 @@
-// 試玩版數值模擬：node tools/sim.mjs [場數=500]
-// 四種打法 × 三種走法各跑幾百輪肉鴿路線（rules.js 的 MAP），看通關率與走到哪一站。
-// 目標：會想的打法幾乎都能通關、一般玩家六七成、只按攻擊過得了第一關但過不了頭目；一輪大約 15～20 回合。
-// 試數值：S2HP=30000 S3HP=60000 S3ATK=950 node tools/sim.mjs
-import { newRun, newState, endStage, enterNode, advance, rest, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, STAT, STAGES, MAP, FRONT, HEROES, MINIONS, MO } from '../js/rules.js';
+// 數值模擬：node tools/sim.mjs [輪數=400]
+// 從阿傑或小葵一個人出發，照行程表（rules.js 的 MAP）走完一輪：沿路招募、救援、休息、選強化。
+// 三種打法 × 兩個起始角色，看通關率、倒在哪一站、通關時隊伍幾個人。
+// 目標：會想的打法大多能通關、一般玩家五到七成、只按攻擊過不了頭目。
+// 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
+import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry,
+  STAT, STAGES, MAP, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS } from '../js/rules.js';
 
 const E = process.env;
-if (E.S2HP) STAGES.chief.boss.hp = +E.S2HP; if (E.S2ATK) STAGES.chief.boss.atk = +E.S2ATK; if (E.S3HP) STAGES.boss.boss.hp = +E.S3HP; if (E.S3ATK) STAGES.boss.boss.atk = +E.S3ATK; if (E.S1HP) STAGES.crowd.minion.hp = +E.S1HP; if (E.NHP) STAGES.night.minion.hp = +E.NHP; if (E.NATK) STAGES.night.minion.atk = +E.NATK;
-if (E.S2ULT) for (const k in STAGES.chief.boss.ult) STAGES.chief.boss.ult[k] = Math.round(STAGES.chief.boss.ult[k] * +E.S2ULT); if (E.S3ULT) for (const k in STAGES.boss.boss.ult) STAGES.boss.boss.ult[k] = Math.round(STAGES.boss.boss.ult[k] * +E.S3ULT);
+if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
+for (const n of [1, 2, 3]) { if (E['S' + n]) SCALE[n][0] = +E['S' + n]; if (E['A' + n]) SCALE[n][1] = +E['A' + n]; }
 
 const lowest = s => FRONT.filter(h => alive(s, h)).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0];
 const weakMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[a] - s.hp[b])[0];
 const target = s => (guarded(s) || !alive(s, 'boss') ? weakMinion(s) : null) || (alive(s, 'boss') ? 'boss' : weakMinion(s));
+const can = (s, id, key, keep = 0) => knows(s, id, key) && s.sp[id] - SKILLS[id].find(k => k.key === key).sp >= keep;
 const POLICY = {
-  // 會想的打法：該清小兵就清、看到蓄力開鐵壁、血少補血、招式和奧義都會用
+  // 會想的打法：看到蓄力會擋、血少補血、每個人的招式都會用、留 SP 放奧義
   smart(s, id) {
-    const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss');
-    const spare = n => s.sp[id] - n >= (s.mo >= 26 ? STAT[id].cost : 0);      // 招式用完還要留得出奧義的 SP
+    const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s);
+    const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
     if (dead.length && s.items.bento) return doItem(s, id, 'bento', dead[0]);
-    if (id === 'kevin') { if (s.charging && canUlt(s, id)) return doUlt(s, id); if (s.charging) return doDefend(s, id); if (!s.taunt && spare(16)) return doSkill(s, id, 'taunt'); return doAttack(s, id, target(s)); }
-    if (id === 'mi') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length >= 2 && spare(48)) return doSkill(s, id, 'soothe'); if (hurt.length && spare(36)) return doSkill(s, id, 'mend', lowest(s)); if (hurt.length && s.items.tea) return doItem(s, id, 'tea', lowest(s)); return doAttack(s, id, target(s)); }
-    if (id === 'vivi') { if (canUlt(s, id) && !guarded(s) && boss) return doUlt(s, id); if (hurt.length && s.items.tea) return doItem(s, id, 'tea', lowest(s)); return doCheer(s); }
-    if (s.charging && !s.aegis && s.hp[id] / STAT[id].hp < .7) return doDefend(s, id);
-    if (canUlt(s, id) && (boss || nMin >= 2)) return doUlt(s, id);
-    if (id === 'kui') { if (nMin >= 2 && spare(24)) return doSkill(s, id, 'sweep'); if (boss && !guarded(s) && spare(18)) return doSkill(s, id, 'retort', 'boss'); }
-    if (id === 'jie') { if (nMin >= 2 && spare(40)) return doSkill(s, id, 'barrage'); if (boss && !guarded(s) && !(s.atkDown.boss > 0) && spare(50)) return doSkill(s, id, 'curse', 'boss'); }
+    if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    if (id === 'mi') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length >= 2 && can(s, id, 'soothe', keep)) return doSkill(s, id, 'soothe'); if (hurt.length && can(s, id, 'mend', keep)) return doSkill(s, id, 'mend', lowest(s)); }
+    if (hurt.length && s.items.tea && (id === 'mi' || id === 'vivi' || me < .4 || FRONT.length === 1)) return doItem(s, id, 'tea', lowest(s));
+    if (id === 'vivi') return canUlt(s, id) && !guarded(s) && boss ? doUlt(s, id) : doCheer(s);
+    if (s.charging && !covered && me < .7) return doDefend(s, id);
+    if (canUlt(s, id) && ['kui', 'jie', 'heilun'].includes(id) && (boss || nMin >= 2)) return doUlt(s, id);
+    if (canUlt(s, id) && id === 'senpai' && (s.evidence >= 2 || s.broken)) return doUlt(s, id);
+    if (id === 'kui') { if (nMin >= 2 && can(s, id, 'sweep', keep)) return doSkill(s, id, 'sweep'); if (can(s, id, 'draft', keep)) return doSkill(s, id, 'draft', t); if (me < .5 && can(s, id, 'counter', keep)) return doSkill(s, id, 'counter'); }
+    if (id === 'jie') { if (nMin >= 2 && can(s, id, 'barrage', keep)) return doSkill(s, id, 'barrage'); if (boss && !guarded(s) && !(s.atkDown.boss > 0) && can(s, id, 'freeze', keep)) return doSkill(s, id, 'freeze', 'boss'); if (!(s.burn[t] > 0) && can(s, id, 'burn', keep)) return doSkill(s, id, 'burn', t); }
+    if (id === 'kevin') { if (!s.taunt && can(s, id, 'taunt', keep)) return doSkill(s, id, 'taunt'); }
+    if (id === 'qiang') { if (s.duty >= 2 && can(s, id, 'box', keep)) return doSkill(s, id, 'box', t); if (!s.carry && can(s, id, 'carry', keep)) return doSkill(s, id, 'carry'); }
+    if (id === 'yan') { if (s.charging && boss && s.queue.includes('boss') && can(s, id, 'delay', 0)) return doSkill(s, id, 'delay', 'boss'); if (!Object.values(s.atkDown).some(v => v > 0) && can(s, id, 'lock', keep)) return doSkill(s, id, 'lock'); }
+    if (id === 'heilun') { if (!(s.mark[t] > 0) && can(s, id, 'mark', keep)) return doSkill(s, id, 'mark', t); if (can(s, id, 'deal', keep)) return doSkill(s, id, 'deal', t); }
+    if (id === 'cha') { if (!s.dodge && can(s, id, 'chat', keep)) return doSkill(s, id, 'chat'); }
+    if (id === 'senpai') { if (s.broken && boss && can(s, id, 'expose', keep)) return doSkill(s, id, 'expose', 'boss'); if (s.evidence < 3 && can(s, id, 'probe', keep)) return doSkill(s, id, 'probe', t); }
+    if (id === 'fairy') { if (dead.length && canUlt(s, id)) return doUlt(s, id); if (can(s, id, 'mice', keep) && !guarded(s)) return doSkill(s, id, 'mice'); }
+    if (id === 'xu') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length && can(s, id, 'mix', keep)) return doSkill(s, id, 'mix', lowest(s)); const dry = FRONT.filter(h => h !== id && alive(s, h) && s.sp[h] < STAT[h].cost)[0]; if (dry && can(s, id, 'transfer', keep)) return doSkill(s, id, 'transfer', dry); }
+    if (id === 'wu') { const best = FRONT.filter(h => h !== id && alive(s, h)).sort((a, b) => STAT[b].atk - STAT[a].atk)[0]; if (canUlt(s, id) && FRONT.filter(h => alive(s, h)).length >= 3) return doUlt(s, id); if (!s.atkUp && can(s, id, 'dance', keep)) return doSkill(s, id, 'dance'); if (best && can(s, id, 'encore', keep)) return doSkill(s, id, 'encore', best); }
+    if (id === 'you') { if (canUlt(s, id) && boss) return doUlt(s, id); if (guarded(s) && boss && can(s, id, 'backdoor', keep)) return doSkill(s, id, 'backdoor', 'boss'); if (s.sp[id] < 60 && !s.evade[id]) return doSkill(s, id, 'slack'); }
+    if (id === 'zong') { if (s.charging && !covered && canUlt(s, id)) return doUlt(s, id); if (me < .5 && can(s, id, 'sip', 0)) return doSkill(s, id, 'sip'); if (can(s, id, 'news', keep)) return doSkill(s, id, 'news', t); }
+    if (id === 'hui') { if (canUlt(s, id) && (boss || nMin >= 2)) return doUlt(s, id); if (s.overtime < 4 && can(s, id, 'overtime', keep)) return doSkill(s, id, 'overtime', t); if (me > .6 && can(s, id, 'allnight', keep)) return doSkill(s, id, 'allnight', t); }
     if (s.sp[id] < STAT[id].cost && s.items.coffee && s.mo >= 38) return doItem(s, id, 'coffee', id);
-    return doAttack(s, id, target(s));
+    return doAttack(s, id, t);
   },
-  // 一般玩家：奧義亮了就放，有人快倒才想到補血，看到蓄力 Kevin 會擋；不太用招式
+  // 一般玩家：奧義亮了就放，有人快倒才補血，看到蓄力坦會擋；偶爾用招式
   casual(s, id) {
-    const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4);
-    if (id === 'kevin' && s.charging) return canUlt(s, id) ? doUlt(s, id) : doDefend(s, id);
-    if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (s.sp.mi >= 36) return doSkill(s, id, 'mend', lowest(s)); if (s.items.tea) return doItem(s, id, 'tea', lowest(s)); }
-    if (id === 'vivi') { if (low.length && s.items.tea) return doItem(s, id, 'tea', lowest(s)); return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s); }
-    if (canUlt(s, id) && id !== 'kevin' && id !== 'mi') return doUlt(s, id);
-    return doAttack(s, id, target(s));
+    const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4), t = target(s);
+    if (s.charging && canUlt(s, id) && ['kevin', 'qiang'].includes(id)) return doUlt(s, id);
+    if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (can(s, id, 'mend')) return doSkill(s, id, 'mend', lowest(s)); }
+    if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
+    if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
+    if (canUlt(s, id) && !['kevin', 'qiang', 'mi', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    if (s.rand() < .35) { const k = SKILLS[id].filter(k => knows(s, id, k.key) && s.sp[id] >= k.sp && (k.target === 'foe' || k.target === 'all'))[0]; if (k) return doSkill(s, id, k.key, t); }
+    return doAttack(s, id, t);
   },
-  // 只會攻擊和放奧義，不補血不防禦
-  rush(s, id) { if (canUlt(s, id)) return doUlt(s, id); return id === 'vivi' ? doCheer(s) : doAttack(s, id, target(s)); },
-  // 只按攻擊（Vivi 只應援），而且不管護衛照打第一個目標
+  // 只按攻擊（Vivi 只應援）
   mash(s, id) { return id === 'vivi' ? doCheer(s) : doAttack(s, id, target(s)); },
 };
-const PICK = { smart: ['raise', 'leave', 'chair', 'coffee', 'drinks', 'morale', 'bento'] };
+const PICK = ['raise', 'leave', 'chair', 'learn', 'coffee', 'drinks', 'morale', 'bento'];
 function battle(policy, run) {
   const s = newState(run); let guard = 0;
-  while (!s.over && guard++ < 80) { for (const id of startRound(s)) { if (s.over) break; if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
+  while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
   return s;
 }
-// 走一輪行程表。route：'safe' 能休息就休息、'greedy' 都選戰鬥或福利、'auto' 血少才休息
-function playRun(policy, seed, route = 'auto') {
-  const run = newRun(mulberry(seed)), rounds = [], pick = () => { const offer = offerUpgrades(run), order = PICK[policy]; applyUpgrade(run, order ? [...offer].sort((a, b) => order.indexOf(a) - order.indexOf(b))[0] : offer[0]); };
-  for (; run.floor < MAP.length;) { const opts = MAP[run.floor], hpK = FRONT.reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / 4; let i = 0;
-    if (opts.length > 1) i = route === 'safe' ? 0 : route === 'greedy' ? 1 : hpK < .62 ? 0 : 1;
+function playRun(policy, seed, starter) {
+  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key); prepare(run);
+  const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
+  while (run.floor < MAP.length) { const opts = MAP[run.floor], off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
+    if (opts.length > 1) { const rec = opts.findIndex((nd, k) => (nd.type === 'recruit' || nd.rescue) && off[k]), rst = opts.findIndex(nd => nd.type === 'rest'); i = policy === 'mash' ? 0 : rst >= 0 && hpK < .55 ? rst : rec >= 0 && run.roster.length < 4 ? rec : opts.length - 1; }
     const nd = enterNode(run, i);
     if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') pick();
-    else { const s = battle(policy, run); rounds.push(s.round); if (s.over !== 'win') return { win: false, floor: run.floor, rounds }; endStage(s, run); if (run.floor < MAP.length - 1) pick(); }
+    else if (nd.type === 'recruit') { const c = off[i] || []; if (c.length) join(run, policy === 'smart' ? c.find(id => ROLE[id] === '補') || c.find(id => ROLE[id] === '坦') || c[0] : c[0]); }
+    else { const s = battle(policy, run); if (s.over !== 'win') return { win: false, floor: run.floor, size: run.roster.length }; endStage(s, run); if (run.floor < MAP.length - 1) pick(); }
     advance(run); }
-  return { win: true, floor: MAP.length, rounds };
+  return { win: true, floor: MAP.length, size: run.roster.length, rounds: run.rounds };
 }
-const N = +(process.argv[2] || 500);
-for (const route of ['auto', 'safe', 'greedy']) { console.log(`── 路線：${{ auto: '血少才休息', safe: '都選茶水間', greedy: '都不休息' }[route]}`);
-  for (const p of Object.keys(POLICY)) { let win = 0, total = 0; const reach = MAP.map(() => 0);
-    for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, route); if (r.win) { win++; total += r.rounds.reduce((a, b) => a + b, 0); } for (let k = 0; k < r.floor; k++) reach[k]++; }
-    console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　走過各站的比例 ${reach.map(v => (v / N * 100).toFixed(0) + '%').join(' → ')}　通關的平均總回合 ${(total / Math.max(1, win)).toFixed(1)}`); } }
+const N = +(process.argv[2] || 400);
+for (const starter of ['kui', 'jie']) { console.log(`── 起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
+  for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; const died = MAP.map(() => 0);
+    for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
+    console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); } }

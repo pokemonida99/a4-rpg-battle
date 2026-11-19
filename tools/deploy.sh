@@ -10,12 +10,12 @@ cp js/*.js dist/js/ && rm -f dist/js/main.js      # main.js 是影片預覽用�
 cp -R vendor dist/ && mkdir -p dist/fonts
 # 字型瘦身：只留遊戲程式裡出現過的字（11MB → 幾百 KB），手機載入快很多。程式裡新增文字後重新 deploy 就會帶進去
 cat dist/js/*.js dist/index.html > dist/_chars.txt && uv run --quiet --with fonttools pyftsubset fonts/NotoSansTC.ttf --text-file=dist/_chars.txt --output-file=dist/fonts/NotoSansTC.ttf --layout-features='*' --notdef-outline && rm dist/_chars.txt
-for d in chars enemy props tex cutin items; do cp -R art/$d dist/art/; done
+for d in chars enemy props tex cutin items map; do cp -R art/$d dist/art/; done
 find dist/art -name '*.json' -delete
 cp audio/sfx/*.mp3 audio/sfx/whoosh.wav dist/audio/sfx/ && rm -f dist/audio/sfx/*_alt.mp3
 cp audio/vo/*.mp3 audio/vo/*.json dist/audio/vo/ && cp audio/bgm/*.mp3 dist/audio/bgm/ && cp audio/pick.json dist/audio/
 [ -f out/shots/game_2_command.jpg ] && ffmpeg -y -v error -i out/shots/game_2_command.jpg -vf "scale=1200:-2,crop=1200:630" -q:v 4 dist/og.jpg
-for f in audio/pick.json audio/vo/attack.json audio/bgm/battle.mp3 audio/bgm/boss.mp3 audio/bgm/map.mp3 audio/bgm/victory.mp3 manifest.webmanifest icons/icon-192.png js/skin.js js/rules.js fonts/NotoSansTC.ttf; do [ -s dist/$f ] || { echo "建置少了 $f，停止"; exit 1; }; done
+for f in audio/pick.json audio/vo/attack.json audio/bgm/battle.mp3 audio/bgm/boss.mp3 audio/bgm/map.mp3 audio/bgm/victory.mp3 manifest.webmanifest icons/icon-192.png js/skin.js js/rules.js fonts/NotoSansTC.ttf art/map/table.jpg art/map/blueprint.jpg art/map/icons/battle.png art/map/icons/up_raise.png art/map/icons/sk_draft.png art/chars/yan_ready.png art/cutin/bust_xu.png; do [ -s dist/$f ] || { echo "建置少了 $f，停止"; exit 1; }; done
 touch dist/.nojekyll
 find dist -name .DS_Store -delete
 du -sh dist

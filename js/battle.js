@@ -20,6 +20,18 @@ export const DEFS = {
     stats: ST(2320, 356, 92, 398, 186, 420, 264, 150), desc: '「很高興為您服務。」全隊 HP 完全回復，並以聖光攻擊敵方單體。', trait: '客服的平常心', traitDesc: '不受任何異常狀態影響。', face: [120, 210, 420] },
   vivi: { name: 'Vivi', job: '公主', tag: '老闆', lv: 50, hp: 9999, sp: 999, color: '#ff6aa8', pal: 'neon', skill: '皇家敕令・準時下班', en: 'ROYAL DECREE : CLOCK OUT ON TIME', cost: 99, eyeY: .56, pos: [5.55, -.55], hgt: 1.62,
     stats: ST(9999, 999, 1, 1, 500, 500, 12, 500), desc: '「全員準時下班！」全隊攻擊力大幅提升，並發動總攻擊。', trait: '老闆的加油', traitDesc: '站在後排，不會被攻擊。平常只負責說加油。', face: [90, 210, 420] },
+  // 以下五個是從《上班啟示錄》來的夥伴（試玩版用；影片裡不出場）。skill＝奧義名，desc 與招式在 rules.js
+  yan: { name: '小燕', job: '時序術士', tag: 'PM', color: '#e2b04a', pal: 'gold', skill: '會議改到下週', en: 'MEETING MOVED TO NEXT WEEK', cost: 140, eyeY: .52, pos: [2.25, -.5], hgt: 1.55, extra: true, shout: '這個會，改到下週！' },
+  heilun: { name: '黑輪', job: '契約商人', tag: '業務', color: '#d8a63a', pal: 'gold', skill: 'VIP 大單，今天簽', en: 'VIP DEAL : SIGN TODAY', cost: 90, eyeY: .52, pos: [2.25, -.5], hgt: 1.66, extra: true, shout: '這單，業績算我的！' },
+  cha: { name: '茶茶', job: '吟遊詩人', tag: '總務', color: '#7fcf9a', pal: 'heal', skill: '大家都是好朋友', en: 'WE ARE ALL FRIENDS', cost: 120, eyeY: .52, pos: [2.25, -.5], hgt: 1.5, extra: true, shout: '大家都是好朋友嘛～' },
+  qiang: { name: '阿強', job: '搬運武僧', tag: '總務', color: '#ff9a4a', pal: 'fire', skill: '一個人扛整個部門', en: 'CARRY THE WHOLE DEPARTMENT', cost: 60, eyeY: .52, pos: [2.25, -.5], hgt: 1.52, extra: true, shout: '這個，我來扛！' },
+  senpai: { name: '學姊', job: '稽核偵探', tag: '總務', color: '#e2564a', pal: 'blood', skill: '紀錄我都留著', en: 'I KEPT ALL THE RECORDS', cost: 110, eyeY: .52, pos: [2.25, -.5], hgt: 1.56, extra: true, shout: '紀錄，我都留著。' },
+  wu: { name: '小蝶', job: '舞孃', tag: '尾牙女王', color: '#ff7fb0', pal: 'candy', skill: '全場跟著我跳', en: 'EVERYBODY DANCE WITH ME', cost: 120, eyeY: .52, pos: [2.25, -.5], hgt: 1.5, extra: true, shout: '全場，跟著我跳！' },
+  you: { name: '老油條', job: '盜賊', tag: '資深專員', color: '#4fb8a8', pal: 'cyber', skill: '這我十年前就做過', en: 'DID THIS TEN YEARS AGO', cost: 100, eyeY: .52, pos: [2.25, -.5], hgt: 1.68, extra: true, shout: '這個，我十年前就做過了。' },
+  fairy: { name: '鼠仙女', job: '召喚師', tag: '社畜老鼠的仙女', color: '#bfe0ff', pal: 'holy', skill: '午夜前的魔法', en: 'MAGIC BEFORE MIDNIGHT', cost: 150, eyeY: .52, pos: [2.25, -.5], hgt: 1.52, extra: true, shout: '午夜之前，都給我站起來。' },
+  zong: { name: '棕鼠', job: '社畜衛兵', tag: '夜班', color: '#c89a6a', pal: 'gold', skill: '再撐一下就下班', en: 'HANG ON TILL CLOCK-OUT', cost: 55, eyeY: .5, pos: [2.25, -.5], hgt: 1.0, extra: true, shout: '再撐一下……就下班了。' },
+  hui: { name: '灰鼠', job: '社畜見習', tag: '業務', color: '#a8b4c4', pal: 'shadow', skill: '報表全部交出去', en: 'ALL REPORTS SUBMITTED', cost: 90, eyeY: .5, pos: [2.25, -.5], hgt: 1.06, extra: true, shout: '報表……全部交出去！' },
+  xu: { name: '許許', job: '櫃檯藥師', tag: '櫃檯', color: '#7fd88a', pal: 'heal', skill: '全部門下午茶', en: 'TEA TIME FOR EVERYONE', cost: 130, eyeY: .52, pos: [2.25, -.5], hgt: 1.54, extra: true, shout: '下午茶到了，大家請用。' },
   boss: { name: '奧客總經理', enemy: true, hp: 120000, pos: [-3.0, -.5], hgt: 3.35, face: [110, 58, 80] },
   ma: { name: '社畜小兵', enemy: true, hp: 3800, pos: [-.6, 1.05], hgt: 1.36, face: [19, 5, 34] },
   mb: { name: '社畜小兵', enemy: true, hp: 3800, pos: [-1.55, -1.7], hgt: 1.36, face: [19, 5, 34] },
@@ -32,6 +44,7 @@ const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 200
 // 喊招台詞與錄音長度（秒）
 export const LINES = { kui: ['吐槽一閃！', 1.67], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
+export const EXTRA = ['yan', 'heilun', 'cha', 'qiang', 'senpai', 'wu', 'you', 'fairy', 'zong', 'hui', 'xu'];      // 新夥伴：圖齊了才載入（少一張必要的圖就整個人不載）
 export const PARTY = ['kui', 'kevin', 'jie', 'mi', 'vivi'], FOES = ['boss', 'ma', 'mb', 'mc', 'md'];
 export const WIDE = { x: .65, y: 1.5, z: -.3, d: 12.9, pitch: 10, fov: 28, blur: 7 };
 const ULT_T = [0, .13, .28, .44, .51, .58, .92, 1.12], PEAK = .58;      // 大招 8 格各自開始的時間；第 6 格是出手的頂點
@@ -55,6 +68,17 @@ export async function setupStage(E) {
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: s, tint: 0xf2ecff, phase: PARTY.indexOf(id) * .37 });
     A.bust[id] = await img(`art/cutin/bust_${id}.png`); A.eyes[id] = await img(`art/cutin/eyes_${id}.jpg`);
   }
+  for (const id of EXTRA) { const d = DEFS[id], f = {}; let ok = true;
+    for (const k of ['ready', 'wind', 'act', 'win']) { f[k] = await tryTex(`art/chars/${id}_${k}.png`); if (!f[k]) ok = false; }
+    let bust = null; try { bust = await img(`art/cutin/bust_${id}.png`); } catch (e) { ok = false; }
+    if (!ok) { d.missing = true; continue; }
+    f.ult = [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1;
+    for (const k of ['hurt', 'guard']) { const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }
+    { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }
+    units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
+    A.bust[id] = bust; try { A.eyes[id] = await img(`art/cutin/eyes_${id}.jpg`); } catch (e) { A.eyes[id] = null; }
+    d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)];      // 頭像：半身像上半部中間偏左（臉朝左）
+  }
   { const d = DEFS.boss, idle = await loadTex('art/enemy/boss_idle.png'), atk = await loadTex('art/enemy/boss_atk.png');
     const seq = await Promise.all([1, 2, 3, 4, 5, 6].map(i => tryTex(`art/enemy/anim/boss_${i}.png`)));
     const hurt = await tryTex('art/enemy/boss_hurt.png'), stun = await tryTex('art/enemy/boss_stun.png');
@@ -65,7 +89,7 @@ export async function setupStage(E) {
     units.mc.show(-1, false); units.md.show(-1, false); }
   // 頭像：隊友從半身像裁臉，敵人從像素圖裁
   const crop = (im, [x, y, s]) => { const c = document.createElement('canvas'); c.width = c.height = 96; const k = c.getContext('2d'); k.imageSmoothingEnabled = false; k.drawImage(im, x, y, s, s, 0, 0, 96, 96); return c; };
-  for (const id of PARTY) A.face[id] = crop(A.bust[id], DEFS[id].face);
+  for (const id of [...PARTY, ...EXTRA]) if (A.bust[id]) A.face[id] = crop(A.bust[id], DEFS[id].face);
   A.face.boss = crop(units.boss.frames.idle.image, DEFS.boss.face); A.face.ma = A.face.mb = A.face.mc = A.face.md = crop(units.ma.frames.idle.image, DEFS.ma.face);
 
   // ---------- 特效 ----------
@@ -83,6 +107,7 @@ export async function setupStage(E) {
   const S = { defs: DEFS, party: PARTY, foes: FOES, units, ui: [], order: [], active: [{ t: -1, v: null }], hp: {}, sp: {}, bp: {}, shield: { boss: [{ t: -1, v: 6 }], ma: [{ t: -1, v: 2 }], mb: [{ t: -1, v: 2 }], mc: [{ t: -1, v: 2 }], md: [{ t: -1, v: 2 }] }, guard: [{ t: -1, v: true }], items: [], reveal: [{ t: -1, v: 0 }], bossBar: [{ t: -1, v: true }],
     menus: [], boxes: [], cards: [], cutins: [], subs: [], nums: [], breaks: [], show: [], results: [], proj: (id, k = 0) => { const u = units[id]; return E.project(u.x, u.h * k, u.z); } };
   const cur = {}; for (const id of [...PARTY, ...FOES]) { cur[id] = DEFS[id].hp; S.hp[id] = [{ t: -1, v: DEFS[id].hp }]; }
+  for (const id of EXTRA) { S.hp[id] = [{ t: -1, v: 1 }]; S.sp[id] = [{ t: -1, v: 1 }]; S.bp[id] = [{ t: -1, v: 0 }]; }
   const curSp = {}; for (const id of PARTY) { curSp[id] = DEFS[id].sp; S.sp[id] = [{ t: -1, v: DEFS[id].sp }]; S.bp[id] = [{ t: -1, v: 3 }]; }
   const sfx = [], snd = (t, id, v = 1) => sfx.push({ t: +t.toFixed(3), id, v });
   const cam = makeCam(E, WIDE);

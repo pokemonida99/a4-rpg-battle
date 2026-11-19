@@ -53,12 +53,12 @@ export function makeSkin(c, A, S, D) {
   }
   // ---------- 上方：隊伍木板（五欄，輪到的人那欄墊一張紙） ----------
   function party(t, a) {
-    if (a <= 0) return; c.save(); c.globalAlpha *= a; const X = 648, Y = 20, CW = 249, BW = CW * 5 + 2, BH = 110, active = stepAt(S.active, t, null); wood(X, Y, BW, BH);
+    if (a <= 0) return; c.save(); c.globalAlpha *= a; const n = S.party.length, Y = 20, CW = 249, BW = CW * n + 2, X = 1895 - BW, BH = 110, active = stepAt(S.active, t, null); wood(X, Y, BW, BH);
     S.party.forEach((id, i) => { const d = D[id], x = X + 1 + i * CW, hp = valAt(S.hp[id], t), sp = valAt(S.sp[id], t), on = active === id, down = hp <= 0, low = hp / d.hp < .26, since = lastChange(S.hp[id], t), jit = since < .45 && S.hp[id].length > 1 ? Math.sin(since * 60) * 5 * (1 - since / .45) : 0;
       if (i) { c.fillStyle = '#24130b'; c.fillRect(x - 1, Y + 10, 2, BH - 20); c.fillStyle = 'rgba(255,214,160,.12)'; c.fillRect(x + 1, Y + 10, 1, BH - 20); }
       if (on) paper(x + 7, Y + 7, CW - 14, BH - 14, { clips: [x + CW / 2] });
       const ink = on ? INK : CREAM, dim = on ? INK2 : 'rgba(239,230,207,.62)', sh = on ? null : 'rgba(20,10,4,.7)', tx = x + 22, w = CW - 44; c.globalAlpha = a * (down ? .55 : 1);
-      const nw = text(d.name, tx, Y + 42, { px: 28, w: 900, col: ink, shadow: sh }); text(i === 4 ? '後排' : d.job, tx + nw + 8, Y + 41, { px: 16, w: 700, col: dim, fam: SANS });
+      const nw = text(d.name, tx, Y + 42, { px: 28, w: 900, col: ink, shadow: sh }); text(id === 'vivi' ? '後排' : d.job, tx + nw + 8, Y + 41, { px: 16, w: 700, col: dim, fam: SANS });
       // 第二行：左邊 HP 數字，右邊 SP。不同手機的字寬不一樣，「／上限」只有放得下才畫（血條本身就看得出比例）
       const spS = String(Math.round(sp)), spW = measure(spS, 20, 900), spL = tx + w - spW - 6 - measure('SP', 12, 700, SANS);
       text('HP', tx, Y + 74, { px: 13, w: 700, col: dim, fam: SANS }); const hw = text(down ? '倒下' : fmt(hp).replace(/,/g, ''), tx + 26 + jit, Y + 77, { px: down ? 24 : 30, w: 900, col: down || low ? (on ? RED : '#ff8a78') : ink, shadow: sh });

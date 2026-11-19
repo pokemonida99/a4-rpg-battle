@@ -11,13 +11,13 @@ const page = await browser.newPage(); await page.setViewport({ width: 1920, heig
 page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
 // PLAY_URL=https://…/ 可以改測線上版
 const BASE = process.env.PLAY_URL || 'http://localhost:4630/game.html'; page.on('response', r => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
-await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}${process.env.STAGE ? '&stage=' + process.env.STAGE : ''}`);
+await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}${process.env.STAGE ? '&stage=' + process.env.STAGE : ''}${process.env.TEAM ? '&team=' + process.env.TEAM : ''}`);
 await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 });
 const shot = async name => { const url = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const x = c.getContext('2d'); x.drawImage(document.getElementById('gl'), 0, 0); x.drawImage(document.getElementById('hud'), 0, 0); return c.toDataURL('image/jpeg', .85); }); fs.writeFileSync(path.join(OUT, name + '.jpg'), Buffer.from(url.split(',')[1], 'base64')); };
 await shot('00_title');
-await page.evaluate((policy, HUB) => {
+await page.evaluate((policy, HUB, PICK) => {
   window.__log = []; __game.start();
-  setInterval(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const i = HUB === 'rest' ? 0 : g.menu.items.length - 1; __log.push(`${Math.round(g.now)}s 行程表：${g.menu.items[i].label}`); return g.press(i); } if (g.phase === 'pick' && g.menu) { __log.push(`${Math.round(g.now)}s 選強化：${g.menu.items[0].label}`); return g.press(0); } if (g.phase !== 'command' || !g.menu) return; const m = g.menu, s = g.state, F = ['kui', 'kevin', 'jie', 'mi'], id = g.actor;
+  setInterval(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const nodes = g.menu.items.filter(x => x.node != null), i = HUB === 'rest' ? 0 : nodes.length - 1; window.__hubN = (window.__hubN || 0) + 1; if (window.__hubN < 12) return;      /* 在大地圖停一下讓截圖拍得到 */ window.__hubN = 0; __log.push(`${Math.round(g.now)}s 行程表：${nodes[i].label}　隊伍 ${g.run.roster.join(',')}`); return g.go(i); } if (g.phase === 'pick' && g.menu) { window.__pickN = (window.__pickN || 0) + 1; if (window.__pickN < 10) return; window.__pickN = 0; const k = PICK === 'last' ? g.menu.items.length - 1 : 0; __log.push(`${Math.round(g.now)}s 選卡「${g.menu.title}」：${g.menu.items[k].label}`); return g.press(k); } if (g.phase !== 'command' || !g.menu) return; const m = g.menu, s = g.state, F = g.front, id = g.actor;
     const note = t => __log.push(`${Math.round(g.now)}s R${s.round} ${id}: ${t}`);
     if (m.kind === 'root') {
       if (policy === 'mash') { note(m.items[0].label); return g.press(0); }
@@ -28,16 +28,16 @@ await page.evaluate((policy, HUB) => {
       if (!m.items[1].off && Math.random() < .45) { note('技能'); return g.press(1); }
       note(m.items[0].label); return g.press(0); }
     const i = m.items.findIndex(x => !x.off && !x.back); note('→ ' + m.items[i < 0 ? m.items.length - 1 : i].label); g.press(i < 0 ? m.items.length - 1 : i); }, 120);
-}, policy, process.env.HUB || 'fight');
+}, policy, process.env.HUB || 'fight', process.env.PICK || 'first');
 let n = 1, lastLog = 0; const t0 = Date.now();
-while (Date.now() - t0 < 420000) {
+while (Date.now() - t0 < 520000) {
   await new Promise(r => setTimeout(r, 900)); const st = await page.evaluate(() => ({ phase: __game.phase, now: __game.now, over: __game.state.over, round: __game.state.round, stage: __game.run.floor, hp: __game.state.hp, n: __log.length }));
   if (n < 90 && n % 2 === 1 | 1) await shot(String(n++).padStart(2, '0') + `_s${st.stage + 1}r${st.round}_${Math.round(st.now)}s`);
   if (st.phase === 'over') { await new Promise(r => setTimeout(r, 1500)); await shot('99_end'); break; }
 }
 const fin = await page.evaluate(() => ({ phase: __game.phase, now: Math.round(__game.now), over: __game.state.over, round: __game.state.round, summons: __game.state.summons, stage: __game.run.floor + 1, picks: __game.run.picks, hp: __game.state.hp, log: __log }));
 await browser.close();
-console.log(fin.log.join('\n')); console.log(JSON.stringify({ phase: fin.phase, now: fin.now, over: fin.over, stage: fin.stage, round: fin.round, picks: fin.picks, hp: fin.hp })); console.log('錯誤：', errors.length ? errors : '無');
+console.log(fin.log.join('\n')); console.log(JSON.stringify({ phase: fin.phase, now: fin.now, over: fin.over, stage: fin.stage, round: fin.round, picks: fin.picks, hp: fin.hp })); { const real = errors.filter(e => !/404|Failed to load resource/.test(e)), miss = errors.filter(e => e.startsWith('404')); fs.writeFileSync(path.join(OUT, 'log.txt'), fin.log.join('\n')); console.log('錯誤：', real.length ? real : '無', miss.length ? `（另有 ${miss.length} 個檔案 404：${[...new Set(miss.map(m => m.split('/').pop().split('_')[0]))].join(' ')}）` : ''); }
 // 截圖排成總覽圖，每張 6 格
 const files = fs.readdirSync(OUT).filter(f => f.endsWith('.jpg')).sort().map(f => path.join(OUT, f));
 for (let i = 0; i * 6 < files.length; i++) { const g = files.slice(i * 6, i * 6 + 6); if (g.length < 2) break;
