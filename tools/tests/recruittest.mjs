@@ -17,5 +17,5 @@ for (const m of Object.keys(R.MAPS)) for (const fl of R.MAPS[m]) for (const nd o
 for (const k of ['rec_elevator', 'rec_loan', 'rec_lunch']) { const run = R.newRun(R.mulberry(5), 'kui', 'draft', 'office'); ok(R.EVENTS[k] && R.EVENTS[k].recruit && R.eventOk(run, k, 0), k + ' 可以選'); const msg = R.applyEvent(run, k, 0); ok(run.roster.length === 2 && typeof msg === 'string' && msg.includes(R.NAME[run.roster[1]]), `${k} 帶了一個人：${msg}`);
   const full = R.newRun(R.mulberry(5), 'kui', 'draft', 'office'); for (const h of ['kevin', 'mi', 'jie', 'qiang', 'xu']) R.join(full, h); ok(!R.eventOk(full, k, 0) && R.eventOk(full, k, 1), k + ' 滿編時只能選另一個'); }
 // 人少的時候事件比較常是招募事件
-{ let rec = 0; for (let sd = 1; sd <= 300; sd++) { const run = R.newRun(R.mulberry(sd), 'kui', 'draft', 'office'); run.floor = 4; R.prepare(run); if (R.EVENTS[run.events[4]].recruit) rec++; } console.log(`人少時第五站的事件是招募事件的比例：${Math.round(rec / 3)}%`); ok(rec > 120 && rec < 200, '大約一半'); }
+{ let rec = 0; for (let sd = 1; sd <= 300; sd++) { const run = R.newRun(R.mulberry(sd), 'kui', 'draft', 'office'); run.floor = 4; R.prepare(run); if (R.EVENTS[run.events[4]].recruit) rec++; } console.log(`人少時第五站的事件是招募事件的比例：${Math.round(rec / 3)}%`); ok(rec > 95 && rec < 175, '大約四成'); }
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過'); process.exit(bad ? 1 : 0);

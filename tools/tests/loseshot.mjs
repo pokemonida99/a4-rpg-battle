@@ -1,0 +1,13 @@
+// 打輸的結案報告（「下次試試」）實機檢查。用法：MAPK=office STAGE=chief TEAM=kevin,mi,jie,qiang,xu node loseshot.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
+const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core');
+const OUT = '/Users/hermes/Public/0720/a4-rpg-battle/out/phone2'; const wait = ms => new Promise(r => setTimeout(r, ms)); const MAPK = process.env.MAPK || 'office', STAGE = process.env.STAGE || 'chief';
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] }); const errors = [];
+const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 2.3, isMobile: true, hasTouch: true }); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
+await page.goto(`http://localhost:4630/game.html?mute&seed=8&map=${MAPK}&stage=${STAGE}&team=${process.env.TEAM || 'kevin,mi,jie,qiang,xu'}&fast=6&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 });
+await page.evaluate(() => __game.start()); await page.waitForFunction('__game.phase === "pick" && __game.menu'); await page.evaluate(() => __game.press(0)); await wait(600); await page.evaluate(() => __game.press(0)); await page.waitForFunction('__game.phase === "hub" && __game.menu'); await wait(800);
+await page.evaluate(() => { const g = __game, n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); }); await wait(400); await page.evaluate(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); } });
+// 一直防禦，讓敵人把我方打倒（前排血先壓低，快一點）
+await page.evaluate(() => { setInterval(() => { const g = __game; if (g.phase !== 'command' || !g.menu) return; const s = g.state; for (const h of g.front) if (s.hp[h] > 300) s.hp[h] = 300; const m = g.menu, i = m.items.findIndex(x => (x.label === '攻擊' || x.label === '應援') && !x.off); g.press(i >= 0 ? i : 0); }, 150); });
+await page.waitForFunction('__game.phase === "over"', { timeout: 240000, polling: 300 }); await wait(4500); await page.screenshot({ path: path.join(OUT, `71_lose_${MAPK}.jpg`), type: 'jpeg', quality: 86 });
+console.log(MAPK, STAGE, '錯誤：', errors.length ? errors.slice(0, 4).join(' ／ ') : '無'); await browser.close();
