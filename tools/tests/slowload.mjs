@@ -1,0 +1,20 @@
+// 慢網路下的正式流程（網址不帶 ?map=）：標題一能按就開始，一路打到第一個招募站，確認立繪還沒載完也不會出錯，載完會自己補上。
+// 用法：MBPS=6 node slowload.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
+const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core');
+const OUT = '/Users/hermes/Public/0720/a4-rpg-battle/out/phone2'; const wait = ms => new Promise(r => setTimeout(r, ms)); const MBPS = +(process.env.MBPS || 6), BASE = process.env.BASE || 'http://localhost:4630/game.html';
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] }); const errors = [];
+const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
+const cdp = await page.createCDPSession(); await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 60, downloadThroughput: MBPS * 1024 * 1024 / 8, uploadThroughput: 2 * 1024 * 1024 / 8 }); let total = 0; cdp.on('Network.loadingFinished', e => { total += e.encodedDataLength; });
+const mb = () => (total / 1048576).toFixed(1) + ' MB', t0 = Date.now(), sec = () => ((Date.now() - t0) / 1000).toFixed(1) + ' 秒', shot = n => page.screenshot({ path: path.join(OUT, n + '.jpg'), type: 'jpeg', quality: 82 });
+page.goto(BASE + (BASE.includes('?') ? '&' : '?') + 'mute&fast=6&fresh=' + Date.now()); await page.waitForFunction('!!window.__game', { timeout: 600000 }); console.log(`看到標題畫面：${sec()}、${mb()}`);
+await page.waitForFunction('window.__game.phase === "title"', { timeout: 600000 }); console.log(`可以按開始：${sec()}、${mb()}`); await shot('96_slow_title');
+await page.evaluate(() => { localStorage.removeItem('a4rpg.run'); __game.start(); }); await page.waitForFunction('__game.phase === "pick" && __game.menu'); await wait(500); await shot('97_slow_starter'); await page.evaluate(() => __game.press(0)); await wait(700); await page.evaluate(() => __game.press(0)); await wait(900);
+if (await page.evaluate(() => __game.phase === 'pick')) { await page.evaluate(() => __game.press(0)); await wait(900); }      // 開場旁白卡
+await page.waitForFunction('__game.phase === "hub" && __game.menu', { timeout: 60000 }); await page.evaluate(() => __game.go(0)); await wait(300); await page.evaluate(() => { if (__game.phase === 'hub') __game.go(0); });
+await page.evaluate(() => { window.__iv = setInterval(() => { const g = __game; if (g.phase !== 'command' || !g.menu) return; for (const f of ['ma', 'mb', 'mc']) if (g.state.hp[f] > 1) g.state.hp[f] = 1; const i = g.menu.items.findIndex(x => !x.off && !x.back); g.press(i < 0 ? g.menu.items.length - 1 : i); }, 150); });
+await page.waitForFunction('__game.phase === "pick" && __game.menu && __game.menu.title === "過關獎勵"', { timeout: 180000 }); await page.evaluate(() => clearInterval(window.__iv)); await wait(500); await page.evaluate(() => __game.press(0)); await page.waitForFunction('__game.phase === "hub" && __game.menu', { timeout: 60000 }); await wait(600);
+await page.evaluate(() => __game.go(0)); await wait(300); await page.evaluate(() => { if (__game.phase === 'hub') __game.go(0); }); await wait(900);
+console.log(`到第一個招募站：${sec()}、${mb()}　畫面 ${await page.evaluate(() => __game.menu && __game.menu.title)}`); await shot('98_slow_recruit');
+await page.waitForFunction(() => performance.getEntriesByType('resource').filter(r => r.name.includes('bust_')).length >= 16, { timeout: 600000 }).catch(() => 0); await wait(2500); await shot('99_slow_recruit_later'); console.log(`立繪全部載完：${sec()}、${mb()}`);
+console.log('錯誤：', errors.length ? [...new Set(errors)].slice(0, 5).join(' ／ ') : '無'); await browser.close();

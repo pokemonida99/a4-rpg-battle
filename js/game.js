@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.30.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.30.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -28,8 +28,8 @@ const ui = makeUI(hudCv, A, S), c = hudCv.getContext('2d');
 for (const id of [...R.ALL]) if (!units[id]) R.ALL.splice(R.ALL.indexOf(id), 1);
 // 大地圖與卡片用的圖（桌面、藍圖、站點圖示、強化與招式的小圖示）。載不到就用程式畫的替代
 const loadImg = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
-A.map = { table: await loadImg('art/map/table.jpg'), blueprint: await loadImg('art/map/blueprint.jpg'), cover: await loadImg('art/map/cover.jpg') }; A.icons = {};
-await Promise.all(['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock', ...new Set(Object.keys(R.UPGRADES).map(k => 'up_' + (R.UPGRADES[k].ic || k))), 'sk_ult', ...new Set(Object.values(R.SKILLS).flat().map(k => 'sk_' + (k.ic || k.key)))].map(async n => { A.icons[n] = await loadImg(`art/map/icons/${n}.png`); })); for (const k of Object.values(R.SKILLS).flat()) if (k.ic) A.icons['sk_' + k.key] = A.icons['sk_' + k.ic]; for (const k in R.UPGRADES) if (R.UPGRADES[k].ic) A.icons['up_' + k] = A.icons['up_' + R.UPGRADES[k].ic];      // 新招式先借舊招式的圖示
+A.map = { table: null, blueprint: null, cover: await loadImg('art/map/cover.jpg') }; A.icons = {};
+const uiArt = () => Promise.all([loadImg('art/map/table.jpg').then(im => { A.map.table = im; }), loadImg('art/map/blueprint.jpg').then(im => { A.map.blueprint = im; }), ...['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock', ...new Set(Object.keys(R.UPGRADES).map(k => 'up_' + (R.UPGRADES[k].ic || k))), 'sk_ult', ...new Set(Object.values(R.SKILLS).flat().map(k => 'sk_' + (k.ic || k.key)))].map(async n => { A.icons[n] = await loadImg(`art/map/icons/${n}.png`); })]).then(() => { for (const k of Object.values(R.SKILLS).flat()) if (k.ic) A.icons['sk_' + k.key] = A.icons['sk_' + k.ic]; for (const k in R.UPGRADES) if (R.UPGRADES[k].ic) A.icons['up_' + k] = A.icons['up_' + R.UPGRADES[k].ic]; });      // 新招式先借舊招式的圖示
 // 一輪＝走完行程表（肉鴿路線，rules.js 的 MAP）。開局選人選招式之後才真正開新的一輪；這裡先放一個暫時的，讓開始畫面後面有東西可以看
 const RAND = Q.has('seed') ? R.mulberry(+Q.get('seed')) : Math.random;
 let run = R.newRun(RAND, 'kui', 'draft'); R.prepare(run);
@@ -101,8 +101,9 @@ const SFX_IDS = ['boss_appear', 'boss_charge', 'boss_down', 'break', 'buff', 'ca
 const sfxOr = (a, b) => buf[a] ? a : b, sndIf = (t, id, vol = .7) => { if (buf[id]) snd(t, id, vol); };
 async function loadSound(id, url) { try { const r = await fetch(url); if (!r.ok) return; buf[id] = await AC.decodeAudioData(await r.arrayBuffer()); } catch (e) { /* 少一個聲音不影響遊戲 */ } }
 const pick = await fetch('audio/pick.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
-const audioReady = Promise.all([...SFX_IDS.map(id => loadSound(id, `audio/sfx/${id}.mp3`)), loadSound('whoosh', 'audio/sfx/whoosh.wav'),
-  ...Object.keys(LINES).map(k => loadSound('vo/' + k, `audio/vo/${pick['vo/' + k] || k + '_1'}.mp3`)), loadSound('bgm/battle', 'audio/bgm/battle.mp3'), loadSound('bgm/boss', 'audio/bgm/boss.mp3'), loadSound('bgm/map', 'audio/bgm/map.mp3'), loadSound('bgm/victory', 'audio/bgm/victory.mp3')]);
+let startAudio; const audioReady = new Promise(res => { startAudio = () => Promise.all([...SFX_IDS.map(id => loadSound(id, `audio/sfx/${id}.mp3`)), loadSound('whoosh', 'audio/sfx/whoosh.wav'),
+  ...Object.keys(LINES).map(k => loadSound('vo/' + k, `audio/vo/${pick['vo/' + k] || k + '_1'}.mp3`)), loadSound('bgm/map', 'audio/bgm/map.mp3')]).then(res); });      // 標題畫面出來才開始載（startAudio 在最下面開機完成時呼叫）
+const bgmLater = (ks = ['battle', 'boss', 'victory']) => Promise.all(ks.map(k => loadSound('bgm/' + k, `audio/bgm/${k}.mp3`).then(() => { if (musicId === 'bgm/' + k && !music) { musicId = null; playMusic('bgm/' + k); } })));
 // 戰鬥播放速度：1、1.5、2 倍（左上角的小紙條切換，記在 PREF.spd）。只加快演出，選指令的時候不倒數。看過的頭目開場自動用兩倍帶過（introBoost）
 const SPEEDS = [1, 1.5, 2]; let introBoost = -1;
 const speedNow = () => replay ? 24 : Q.has('fast') ? +Q.get('fast') || 3 : (phase === 'anim' || phase === 'end' || phase === 'command' ? SPEEDS[PREF.spd || 0] * (now < introBoost ? 2 : 1) : 1);
@@ -738,7 +739,7 @@ function flipSheet(to = !sheetReal) { if (to === sheetReal) return; sheetReal = 
 function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; }
 function closeSheet() { sheet = null; sheetRect = null; if (panel) { menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; } else { menu = { kind: 'hub', items: hubItems() }; focus = 0; } }
 const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItems() }; focus = Math.min(f, menu.items.length - 1); };
-function openHub(msg) { playMusic(mus('map')); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
+function openHub(msg) { if (A.prio && run) A.prio([...run.roster, ...Object.values((run.offers || {})[run.floor] || {}).flat()]); playMusic(mus('map')); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => beginBattle()); }
   else if (nd.type === 'rest') openRest(nd);
@@ -1039,6 +1040,7 @@ function drawPick() {
     // 圖
     const ax = x + 18, ay = y + 22, aw = CWd - 36, col = it.bust ? DEFS[it.bust].color : '#3a2a1e'; c.fillStyle = '#241812'; c.fillRect(ax, ay, aw, AH); c.fillStyle = col; c.globalAlpha = it.bust ? .34 : 1; c.fillRect(ax + 4, ay + 4, aw - 8, AH - 8); c.globalAlpha = 1; c.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < AH - 8; k += 6) c.fillRect(ax + 4, ay + 4 + k, aw - 8, 2);
     if (it.bust && A.bust[it.bust]) { const im = A.bust[it.bust], bh = 372, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + (AH - 8) * .45 - (EYE[it.bust] || .38) * bh); c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, aw - 8, AH - 8); c.clip(); pix(im, ax + aw / 2 - bw / 2, by, bw, bh); c.restore(); }
+    else if (it.bust) text('立繪載入中…', ax + aw / 2, ay + AH / 2 + 10, { px: 24, w: 700, align: 'center', col: 'rgba(239,230,207,.75)' });
     else if (it.icon) { const s = 168; if (A.icons[it.icon]) pix(A.icons[it.icon], ax + aw / 2 - s / 2, ay + AH / 2 - s / 2, s, s); else text(it.label[0], ax + aw / 2, ay + AH / 2 + 34, { px: 96, w: 900, fam: SERIF, align: 'center', col: CREAM }); }
     c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
     if (on) { c.strokeStyle = TEAL; c.lineWidth = 6; c.strokeRect(x + 8, y + 8, CWd - 16, CH - 16); } if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, CWd, CH); }
@@ -1111,7 +1113,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多帶六人、四人上場。地圖可以拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上（戰鬥打到一半也會存），下次打開可以「繼續上班」'];
-const CHANGES = [['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'] ];
+const CHANGES = [['v0.30.1', '更快可以開始玩：立繪、介面圖、戰鬥曲改成在背景載入', '傷害預估會算進職位的加減'], ['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (!bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }      // 標題畫面畫得出來就收掉開機畫面（聲音與其餘立繪還在背景載，按鈕的位置會寫進度）
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -1186,6 +1188,8 @@ function frame(ts) {
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
 window.__game = { nodesXY: () => R.reachable(run).map(k => [...sp(lay().stn[run.floor][k]).map(Math.round), R.nodeName(R.MAP[run.floor][k], run)]), get state() { return state; }, get mapCam() { return [...mapCam, mapZ]; }, mapLook: (p, snap) => mapLook(p, snap), sheet: id => openSheet(id), get sheetId() { return sheet; }, openPanel: () => openPanel(), tab: t => { panelTab = t; refreshPanel(); }, flip: () => flipSheet(), get panel() { return panel; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load';      // 標題畫面先出來；聲音與新夥伴的立繪在背景載，載完才能按開始
-{ const rest = A.rest(); const tick = setInterval(() => { loadMsg = A.restN && A.restDone < A.restN ? `夥伴載入中 ${A.restDone}／${A.restN}` : '聲音載入中'; }, 200); Promise.all([audioReady, rest]).then(() => { clearInterval(tick); if (phase === 'load') phase = 'title'; }); }
+startAudio(); const uiP = uiArt(); let restDone = false; const restP = Promise.all([uiP, audioReady]).then(() => bgmLater(['battle'])).then(() => A.rest()).then(() => { restDone = true; }), bgmP = restP.then(() => bgmLater(['boss', 'victory']));      // 順序：介面圖與音效（按開始前要有）→ 戰鬥曲（第一場馬上要用）→ 其餘立繪（快要看到的人先載）→ 魔王曲、通關曲
+A.onFace = id => { const key = 'm_' + id; if (minionU[key]) minionFace[key] = A.face[id]; if (phase !== 'title' && phase !== 'load' && state) { for (const m of R.SLOTS) if (state.kind && state.kind[m] === key) A.face[m] = A.face[id]; if (state.L && state.L.hero === id) A.face.boss = A.face[id]; } };      // 立繪晚到：鏡像敵人借用的頭像補上
+Promise.all(Q.has('map') ? [audioReady, uiP, restP, bgmP] : [audioReady, uiP]).then(() => { if (phase === 'load') phase = 'title'; });
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
