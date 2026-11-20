@@ -899,8 +899,8 @@ function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgb
 }
 // 每一種站「得到什麼／代價是什麼」，給行程表下方的說明用
 const affixAt = nd => { const fl = R.MAP.findIndex(f => f.includes(nd)); return nd.tag === '菁英' && fl >= 0 ? R.AFFIX[(run.affix || {})[fl]] : null; };
-const nodeTrade = nd => nd.type === 'shop' ? [`小物 ${R.PRICE.relic} 點、補給包 ${R.PRICE.supply} 點、特訓 ${R.PRICE.train} 點`, `現在有 ${run.coin || 0} 點報帳額度；不買也可以`] : affixAt(nd) ? [`贏了三選一強化，${affixAt(nd)[2]}` + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), `詞綴「${affixAt(nd)[0]}」：${affixAt(nd)[1]}`] : nd.type === 'supply' ? [nd.sub, '這一站沒有強化'] : nd.type === 'train' ? ['免費把一個招式升級成＋', '不補血、不補 SP'] : nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? '，並救出一位夥伴' : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
-  : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? ['多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
+const nodeTrade = nd => nd.type === 'shop' ? [`小物 ${R.PRICE.relic} 點、補給包 ${R.PRICE.supply} 點、特訓 ${R.PRICE.train} 點`, `現在有 ${run.coin || 0} 點報帳額度；不買也可以`] : affixAt(nd) ? [`贏了三選一強化，${affixAt(nd)[2]}` + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), `詞綴「${affixAt(nd)[0]}」：${affixAt(nd)[1]}`] : nd.type === 'supply' ? [nd.sub, '這一站沒有強化'] : nd.type === 'train' ? ['免費把一個招式升級成＋', '不補血、不補 SP'] : nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? (run.roster.length >= 6 ? '（名冊滿了，這次救不了人）' : '，並救出一位夥伴') : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
+  : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? [run.roster.length >= 6 ? `三位選一位（名冊滿了，會換掉最後一位「${DEFS[R.swapOut(run)]?.name || ''}」）` : '多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
 const nextStops = () => R.MAP.slice(run.floor + 1, run.floor + 4).map(fl => [...new Set(fl.map(nd => nd.tag))].join('或')).join(' → ');
 function drawHub() {
   if (sheet) return drawSheet();
