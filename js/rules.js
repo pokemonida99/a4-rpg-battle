@@ -144,6 +144,11 @@ export const KINDS = {
 for (const [k, like, name, move, note] of [['tw_drone', 'drone', '燈彩值班兵', '燈籠連打'], ['tw_knight', 'knight', '剪黏檔案衛', '屋脊重擊', '一身剪黏很硬：普通攻擊打他只有一半傷害，用招式或奧義'], ['tw_auntie', 'auntie', '總務帳房姑', '帳不是我記的', '一問三不知：用招式打她只有一半傷害，改用普通攻擊'],
   ['tw_courier', 'courier', '限時叫號使', '號碼過了', '動作快，被他打中會扣 25 SP'], ['tw_intern', 'intern', '續攤補給生', '再來一杯', '會幫受傷的敵人回血，先解決他'], ['tw_smoker', 'smoker', '煙霧巡樓伯', '巡一下，抽一根', '二手煙：被他打中的人，下一次普通攻擊傷害減半。改用招式，或先打倒他']])
   KINDS[k] = { ...KINDS[like], like, name, move, note };
+// 台灣篇三種小兵有自己的行為（v0.27）：pack＝同場每多一隻同種的，攻擊多這個比例；late＝被他打中的人「過號」，下一回合排到最後才動；hype＝補血的對象是小兵的話，那隻下一次攻擊 ×1.3
+Object.assign(KINDS.tw_drone, { atk: .9, pack: .2, note: '結伴值班：同場每多一隻值班兵，攻擊多兩成。先打倒一隻，或用全體招式一起清' });
+Object.assign(KINDS.tw_courier, { late: true, note: '動作快，被他打中會扣 25 SP，還會「過號」：下一回合排到最後才動' });
+Object.assign(KINDS.tw_intern, { hype: true, note: '會幫受傷的敵人回血，被補到的小兵下一次攻擊多三成。先解決他' });
+export const packN = (s, id) => { const K = KINDS[s.kind[id]]; return K && K.pack ? MINIONS.filter(m => m !== id && alive(s, m) && s.kind[m] === s.kind[id]).length : 0; };
 // 地獄分公司的一般敵人：長得像原本那幾種，行為不一樣。
 // firstWard＝第一次行動先替自己上護盾；hexMark＝打中的人被「列管」（受到的傷害 +30%，到他行動兩次為止）；heavy＝每第幾次行動是 1.6 倍重擊；wardAlly＝每兩次行動有一次改成替同伴上護盾；hexPoison＝打中的人中毒兩回合（每回合扣這個比例的最大 HP）
 Object.assign(KINDS, {
@@ -580,7 +585,7 @@ export function newState(run = newRun()) {
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp * TUNE.bhp, hk), atk: sc(st.boss.atk * TUNE.batk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * TUNE.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
   const s = { run, kind, hk, L: st.boss, hasBoss: !!st.boss, potUsed: false, rand, hp: {}, sp: {}, mo: run.moStart, defend: {}, items: { ...run.items }, round: 0, queue: [], events: [], shield: st.boss ? st.boss.shield : 0, broken: false, charging: false, bossTurns: 0,
     aegis: false, taunt: false, carry: false, duty: 0, bulwark: false, cover: null, dodge: false, counter: {}, meeting: false, friends: false, evidence: run.picks.includes('dossier') ? 2 : 0, aidUsed: false, plan: {}, tally: { brk: 0, ult: 0, ko: 0 }, burn: {}, mark: {}, atkDown: {}, atkUp: 0, evade: {}, bless: {}, endure: 0, overtime: run.picks.includes('crunch') ? 2 : 0, fairyBuff: act.includes('fairy'), summons: 0, over: null,
-    smoke: {}, echo: null, proj: null, bragLow: 0, inSkill: false, inUlt: false, plusK: 1, fward: {}, acts: {}, hmark: {}, hpoison: {}, noticeT: null, bregen: st.boss && st.boss.backlog ? 2 : 0, backlogAtk: !!(st.boss && st.boss.backlog), reassign: false, reDone: 0, ward: {}, regen: {}, poison: {}, stun: {}, up: {}, downK: {}, guardian: null, warmed: false, dodged: false, locks: null, lockN: 0, cmd: { mo: false, chip: false, lock: false }, curType: null, extra: 0, bonus: {}, onBonus: null, wok: null, sign: st.boss && st.boss.fee ? 3 : 0, layers: st.boss && st.boss.layers ? 1 : 0, layerHit: false };      // smoke[我方]＝被哪個敵人的煙嗆到；echo＝鸚鵡這次要附議誰；proj＝猴子的臨時專案是誰；bragLow＝豬腦蓄力以來底氣最低剩多少
+    smoke: {}, echo: null, proj: null, bragLow: 0, inSkill: false, inUlt: false, plusK: 1, fward: {}, acts: {}, hmark: {}, hpoison: {}, noticeT: null, bregen: st.boss && st.boss.backlog ? 2 : 0, backlogAtk: !!(st.boss && st.boss.backlog), reassign: false, reDone: 0, ward: {}, regen: {}, poison: {}, stun: {}, up: {}, downK: {}, guardian: null, late: {}, fup: {}, warmed: false, dodged: false, locks: null, lockN: 0, cmd: { mo: false, chip: false, lock: false }, curType: null, extra: 0, bonus: {}, onBonus: null, wok: null, sign: st.boss && st.boss.fee ? 3 : 0, layers: st.boss && st.boss.layers ? 1 : 0, layerHit: false };      // smoke[我方]＝被哪個敵人的煙嗆到；echo＝鸚鵡這次要附議誰；proj＝猴子的臨時專案是誰；bragLow＝豬腦蓄力以來底氣最低剩多少
   for (const id of HEROES) { s.hp[id] = run.picks.includes('snackdrawer') && id !== 'vivi' && run.hp[id] > 0 ? Math.min(STAT[id].hp, run.hp[id] + Math.round(STAT[id].hp * .1)) : run.hp[id]; s.sp[id] = run.sp[id]; }
   if (st.boss && run.picks.includes('notebook')) s.shield = Math.max(1, s.shield - 2);
   if (setOn(run, '補給')) for (const id of HEROES) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .12)); if (setOn(run, '氣勢')) s.mo = Math.min(MO.max, s.mo + 15);
@@ -622,7 +627,7 @@ const FX = { ward: (s, dst, v, why) => { if (!alive(s, dst)) return null; v = Ma
 const addFx = (r, x) => { if (x) (r.fxs || (r.fxs = [])).push(x); return x; };
 const lowHp = (s, not) => FRONT.filter(h => alive(s, h) && h !== not).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0];
 const lowSp = (s, not, first = []) => FRONT.filter(h => alive(s, h) && h !== not && s.sp[h] < STAT[h].sp).sort((a, b) => first.includes(b) - first.includes(a) || s.sp[a] / STAT[a].sp - s.sp[b] / STAT[b].sp)[0];
-export const cleanse = (s, id) => { const had = !!s.smoke[id] || s.hmark[id] > 0 || !!(s.hpoison[id] && s.hpoison[id].n > 0); s.smoke[id] = null; s.hmark[id] = 0; s.hpoison[id] = null; return had; };
+export const cleanse = (s, id) => { const had = !!s.smoke[id] || s.hmark[id] > 0 || !!(s.hpoison[id] && s.hpoison[id].n > 0) || !!s.late[id]; s.late[id] = false; s.smoke[id] = null; s.hmark[id] = 0; s.hpoison[id] = null; return had; };
 // 普攻附帶效果
 function rider(s, id, target, r) { const h0 = r.hits[0], hit = h0 && !h0.guard && h0.v > 0;
   if (id === 'kui') addFx(r, FX.ward(s, id, 180)); else if (id === 'kevin') addFx(r, FX.heal(s, id, 180)); else if (id === 'hui') addFx(r, FX.heal(s, id, 120)); else if (id === 'zong') addFx(r, FX.ward(s, id, 200));
@@ -665,6 +670,7 @@ export function startRound(s) { s.round++; s.potUsed = false; s.meeting = false;
   if (rage(s) > 1) s.events.push({ kind: 'rage', k: rage(s) }); if (alive(s, 'boss') && STAT.boss.spd2) list.push(['boss', STAT.boss.spd2]);
   for (const f of ['boss', ...MINIONS]) if (alive(s, f) && !s.plan[f]) planFoe(s, f);      // 剛上場或剛被叫回來的敵人，補上下一步要打誰
   s.queue = list.sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  { const lt = s.queue.filter(q => s.late[q]); if (lt.length) { s.queue = [...s.queue.filter(q => !s.late[q]), ...lt]; s.events.push({ kind: 'late', who: lt }); } s.late = {}; }      // 過號：上一回合被叫號使打中的人，這回合最後才動
   if (s.round === 1 && (s.run.ot >= 3 || s.affix === 'rush')) { const m = MINIONS.filter(x => alive(s, x)).sort((a, b) => STAT[b].spd - STAT[a].spd)[0]; if (m) { s.queue = [m, ...s.queue.filter(q => q !== m)]; s.events.push({ kind: 'rush', who: m }); } }
   return s.queue; }
 // 輪到某個人（回傳 false＝這個人已經倒了，跳過）。自己身上「到下次行動前」的效果在這裡結束
@@ -691,9 +697,9 @@ export function intent(s, id) { if (!alive(s, id)) return null; const raw = s.pl
     if (s.L.echo && s.echo) { if (!alive(s, s.echo)) return { kind: 'echo', echo: s.echo, lost: true }; const K = KINDS[s.kind[s.echo]], hurt = K.heal && hurtFoe(s); return hurt ? { kind: 'echo', echo: s.echo, act: 'heal', target: hurt } : { kind: 'echo', echo: s.echo, act: K.drain ? 'drain' : 'atk', target, weak, drain: K.drain }; }
     return { kind: 'atk', target, weak }; }
   const K = KINDS[s.kind[id]], nAct = (s.acts[id] || 0) + 1; if (K.firstWard && nAct === 1) return { kind: 'ward', target: id }; if (K.wardAlly && nAct % 2 === 0) return { kind: 'ward', target: wardWho(s, id) };
-  if (K.heal) { const hurt = hurtFoe(s); if (hurt) return { kind: 'heal', target: hurt }; }
+  if (K.heal) { const hurt = hurtFoe(s); if (hurt) return { kind: 'heal', target: hurt, hype: !!K.hype && hurt !== 'boss' && hurt !== id }; }
   if (K.heavy && nAct % K.heavy === 0) return { kind: 'atk', target, weak, heavy: true }; if (K.hexMark || K.hexPoison) return { kind: 'atk', target, weak, hex: K.hexMark ? '列管' : '中毒' };
-  return K.aoe ? { kind: 'aoe', weak } : { kind: K.drain ? 'drain' : 'atk', target, weak, drain: K.drain, smoke: !!K.smoke }; }
+  return K.aoe ? { kind: 'aoe', weak } : { kind: K.drain ? 'drain' : 'atk', target, weak, drain: K.drain, smoke: !!K.smoke, late: !!K.late, pack: packN(s, id), hyped: !!s.fup[id] }; }
 // 傷害預估（不含浮動與爆擊）：普通攻擊或某一招打某個敵人大約多少。打不到（護衛中）回傳 0；這一招不是攻擊回傳 null
 const SKPOW = { draft: 1.7, sweep: s => foes(s).length === 1 ? 1.5 : .75, bash: 1.4, barrage: .8, burn: 1.1, freeze: 1, delay: .7, deal: 1.2, box: s => 1.5 * (1 + .3 * s.duty), probe: .9, expose: (s, t) => t === 'boss' && s.broken ? 2 : 1.3, backdoor: 1.1, mice: .45, news: 1.2, overtime: 1, allnight: 2 };
 export function preview(s, id, target, key) { const sk = key && SKILLS[id].find(x => x.key === key), fd = sk && sk.fx && sk.fx.find(x => x[0] === 'dmg'), pw = key ? SKPOW[key] ?? (fd ? fd[1] : null) : 1; if (pw == null) return null; if (!alive(s, target)) return 0;
@@ -764,7 +770,7 @@ export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.ind
   run.hp[id] = Math.max(0, s.hp[id]); run.sp[id] = s.sp[id]; HEROES[i] = sub; FRONT[j] = sub; s.hp[sub] = run.hp[sub]; s.sp[sub] = run.sp[sub];
   { const a = run.roster.indexOf(id), b = run.roster.indexOf(sub); [run.roster[a], run.roster[b]] = [run.roster[b], run.roster[a]]; }
   BOSS_ULT[sub] = Math.round(s.ultK * (.82 + .18 * STAT[sub].hp / 2680));
-  for (const k of ['ward', 'regen', 'up', 'smoke', 'hmark', 'hpoison', 'defend', 'evade', 'counter', 'bless', 'bonus']) if (s[k]) s[k][id] = k === 'ward' || k === 'up' || k === 'hmark' ? 0 : null;      // 換下去的人身上的狀態都清掉
+  for (const k of ['ward', 'regen', 'up', 'smoke', 'hmark', 'hpoison', 'defend', 'evade', 'counter', 'bless', 'bonus', 'late']) if (s[k]) s[k][id] = k === 'ward' || k === 'up' || k === 'hmark' ? 0 : null;      // 換下去的人身上的狀態都清掉
   if (id === 'kevin') { s.taunt = false; s.aegis = false; } if (id === 'qiang') { s.carry = false; s.bulwark = false; } if (id === 'cha') { s.friends = false; s.dodge = false; } if (s.cover === id) s.cover = null; if (s.guardian === id) s.guardian = null;
   if (s.wok === id) s.wok = sub; if (s.noticeT === id) s.noticeT = sub; for (const f in s.plan) if (s.plan[f] === id) s.plan[f] = sub;      // 敵人原本瞄準他的，改瞄準換上來的人
   s.queue = s.queue.filter(q => q !== id); s.fairyBuff = HEROES.includes('fairy');
@@ -887,16 +893,17 @@ export function enemyTurn(s, id) { newCmd(s);
 function afterHit(s, id, K, hits) { for (const h of hits) { if (!(h.v > 0)) continue;
   if (K.drain && s.sp[h.dst] > 0) { h.spLoss = Math.min(K.drain, s.sp[h.dst]); s.sp[h.dst] -= h.spLoss; h.sp = s.sp[h.dst]; }
   if (K.smoke && alive(s, h.dst)) { s.smoke[h.dst] = id; h.smoke = true; }
+  if (K.late && alive(s, h.dst)) { s.late[h.dst] = true; h.hex = '過號　下回合最後才動'; }
   if (s.affix === 'toxic' && id !== 'boss' && !K.hexPoison && alive(s, h.dst)) { s.hpoison[h.dst] = { k: .04, n: 2 }; h.hex = '中毒'; }
   if (K.hexMark && alive(s, h.dst)) { s.hmark[h.dst] = 2; h.hex = '列管　受傷 ＋30%'; } if (K.hexPoison && alive(s, h.dst)) { s.hpoison[h.dst] = { k: K.hexPoison, n: 2 }; h.hex = '中毒'; } } }
 // 叫一隻小兵（回）來：滿血、重新決定要打誰；上一隻留下的煙不算在新來的頭上
-function callIn(s, m) { s.hp[m] = STAT[m].hp; s.acts[m] = 0; s.fward[m] = 0; planFoe(s, m); for (const h in s.smoke) if (s.smoke[h] === m) s.smoke[h] = null; }
+function callIn(s, m) { s.hp[m] = STAT[m].hp; s.acts[m] = 0; s.fward[m] = 0; s.fup[m] = false; planFoe(s, m); for (const h in s.smoke) if (s.smoke[h] === m) s.smoke[h] = null; }
 function foeAct(s, id, targets, pick, weak, k) {
   if (id !== 'boss') { const K = KINDS[s.kind[id]], nAct = (s.acts[id] = (s.acts[id] || 0) + 1);
     if (K.firstWard && nAct === 1) { s.fward[id] = Math.round(K.firstWard * s.hk); return { kind: 'foeWard', id, dst: id, v: s.fward[id] }; }
     if (K.wardAlly && nAct % 2 === 0) { const t = wardWho(s, id), v = Math.round(K.wardAlly * s.hk); s.fward[t] = Math.max(s.fward[t] || 0, v); return { kind: 'foeWard', id, dst: t, v }; }
-    if (K.heal) { const hurt = hurtFoe(s); if (hurt) { const v = Math.min(Math.round(K.heal * s.hk), STAT[hurt].hp - s.hp[hurt]); s.hp[hurt] += v; return { kind: 'foeHeal', id, dst: hurt, v, hp: s.hp[hurt] }; } }
-    const hv = K.heavy && nAct % K.heavy === 0 ? 1.6 : 1, r = { kind: 'foeAtk', id, weak, heavy: hv > 1, hits: hitHeroes(s, id, K.aoe ? targets.map(h => [h, STAT[id].atk * k * K.aoe]) : [[pick(), STAT[id].atk * k * hv]]) };
+    if (K.heal) { const hurt = hurtFoe(s); if (hurt) { const v = Math.min(Math.round(K.heal * s.hk), STAT[hurt].hp - s.hp[hurt]); s.hp[hurt] += v; const hype = !!K.hype && hurt !== 'boss' && hurt !== id; if (hype) s.fup[hurt] = true; return { kind: 'foeHeal', id, dst: hurt, v, hp: s.hp[hurt], hype }; } }
+    const hv = K.heavy && nAct % K.heavy === 0 ? 1.6 : 1, pn = packN(s, id), up = !!s.fup[id], xk = (1 + (K.pack || 0) * pn) * (up ? 1.3 : 1); s.fup[id] = false; const r = { kind: 'foeAtk', id, weak, heavy: hv > 1, pack: pn, hyped: up, hits: hitHeroes(s, id, K.aoe ? targets.map(h => [h, STAT[id].atk * k * K.aoe * xk]) : [[pick(), STAT[id].atk * k * hv * xk]]) };
     afterHit(s, id, K, r.hits); return r; }
   if (s.broken) { s.broken = false; s.shield = STAT.boss.shield; if (s.L.backlog) { s.bregen = 2; s.backlogAtk = true; }
     if (!(s.run.ot >= 5 && s.stunned1)) { s.stunned1 = true; return { kind: 'stunned', id, shield: s.shield, backlog: !!s.L.backlog }; } s.ignored = true; }      // 加班等級 5：第二次以後理虧不取消行動（底氣照樣回滿）
