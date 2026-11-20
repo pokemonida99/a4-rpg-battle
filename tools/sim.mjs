@@ -5,7 +5,7 @@
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
 import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
-  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain, supply, buy, shopStock, PRICE } from '../js/rules.js';
+  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain, supply, buy, shopStock, PRICE, bench, doSwap } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
 if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
@@ -25,6 +25,7 @@ const POLICY = {
     const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s, smartMinion);
     const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
     if (dead.length && s.items.bento) return doItem(s, id, 'bento', dead[0]);
+    if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
     if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
     else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);
     if (s.sign > 0 && boss && !guarded(s) && !['mi', 'xu', 'vivi'].includes(id) && me > .4) return doAttack(s, id, 'boss');      // 不夜城：先用普攻把招牌打熄

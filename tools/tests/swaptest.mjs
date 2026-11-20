@@ -1,0 +1,17 @@
+import * as R from '../../js/rules.js';
+let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log((c ? 'OK  ' : 'BAD ') + m); };
+const run = R.newRun(R.mulberry(3), 'kui', 'draft', 'office'); for (const h of ['kevin', 'mi', 'jie', 'qiang', 'xu']) R.join(run, h); run.alt = {}; run.floor = 5; run.node = R.MAP[5][0]; run.path = [0, 0, 0, 0, 0]; run.hp.qiang = 3000;
+const s = R.newState(run); R.startRound(s); s.rand = () => .5;
+ok(R.HEROES.join() === 'kui,kevin,mi,jie' && R.bench(s).join() === 'qiang,xu', `上場 ${R.HEROES}；候補 ${R.bench(s)}`);
+s.hp.kui = 300; s.ward.kui = 200; s.plan.ma = 'kui'; const q0 = s.queue.filter(x => x === 'kui').length;
+const r = R.doSwap(s, 'kui', 'qiang');
+ok(r && r.kind === 'swap' && R.HEROES.join() === 'qiang,kevin,mi,jie' && R.FRONT[0] === 'qiang', `換人後上場 ${R.HEROES}`);
+ok(run.hp.kui === 300 && s.hp.qiang === 3000 && run.roster.join() === 'qiang,kevin,mi,jie,kui,xu', `小葵帶著 300 HP 下場；名冊 ${run.roster}`);
+ok(s.plan.ma === 'qiang' && !s.ward.kui && !s.queue.includes('kui'), '敵人改瞄準阿強；小葵的護盾清掉、這回合不再行動');
+ok(R.BOSS_ULT.qiang > 0 && R.bench(s).join() === 'kui,xu', `頭目大招對阿強 ${R.BOSS_ULT.qiang}；候補 ${R.bench(s)}`);
+const r2 = R.enemyTurn(s, 'ma'); ok(r2.hits[0].dst === 'qiang', '小兵真的打阿強');
+R.startRound(s); ok(s.queue.includes('qiang') && !s.queue.includes('kui'), '下一回合阿強會行動');
+s.over = 'win'; R.endStage(s, run); ok(run.hp.kui === 300 && run.hp.qiang > 0 && R.active(run).includes('qiang') && !R.active(run).includes('kui'), '打完：小葵留在候補、血沒有被動到');
+const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run)))); ok(back && back.run.roster[0] === 'qiang', '存檔照新的順序');
+ok(R.doSwap(s, 'vivi', 'kui') === null, 'Vivi 不能換');
+console.log(bad ? `有 ${bad} 項沒過` : '全部通過');

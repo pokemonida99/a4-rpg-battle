@@ -111,3 +111,32 @@ ElevenLabs 文字轉語音 Eleven v4，聲音同上面喊招（小葵 Yu-Ting、
 要人耳確認：發力聲原檔多半喊了兩三聲，只留第一聲；阿傑 1、3、4 原音很小聲（拉高 15～22 dB，可能偏氣音或有底噪）；Vivi「上吧」原檔有兩段，只留第一段 0.63 秒，要聽是不是完整的「上吧」。
 
 11/20 小米兩句短台詞重做（使用者嫌不像攻擊）：生成一次兩版、挑第一版；「恕不受理」原檔連說兩遍，只留第一遍。點數 4,877 → 4,735（142 點）。
+
+## 11/21 追加 16 檔（今晚新內容：弱點、護盾、鎖、合體技、狀態、台灣篇頭目機制、新敵人）
+
+一樣是 Sound Effects v3、影響度 30%、每次 4 版；處理照上面（開頭靜音裁掉、聲音結束就切、不超過指定長度、結尾 30 ms 淡出、峰值 -1 dBFS、192k mp3）。實際長度多半比指定的短，因為後面是空白。我聽不到，版本是看波形和頻譜挑的，**請用耳朵確認**。點數 4,439 → 4,249（190 點：16 個各一次 170 點，rage、foe_auntie 重生一次 20 點）。
+
+| 檔名 | 長度(s) | 用的版本 | 提示詞 |
+|---|---|---|---|
+| weak | 0.37 | weak/v1 | Critical weak point hit: a bright crisp high metallic ding instantly followed by one solid heavy punchy impact, satisfying and powerful, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| ward | 0.67 | ward/v2 | Quick magical ward barrier forming: a soft bright shimmering energy hum that briefly swells open, light and airy, fantasy RPG shield spell, clean, no voices, no music |
+| lock_break | 0.40 | lock_break/v2 | A small metal padlock snapping open and breaking: one sharp metallic clack crack, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| lock_all | 0.87 | lock_all/v1 | A huge heavy iron padlock shattering apart with a loud metallic crack, then bright glass-like shards scattering and tinkling to a clean finish, fantasy RPG, no voices, no music |
+| unite | 0.97 | unite/v1 | Combo attack start: two quick sharp sword unsheathing shings in a row, then a fast rising surge of magical energy building upward, anime fantasy RPG, clean, no voices, no music |
+| poison | 0.45 | poison/v3 | Thick sticky toxic liquid bubbling and gurgling, short gloopy poison bubbles popping, fantasy RPG status effect sound, clean, no voices, no music |
+| stun | 0.34 | stun/v2 | Cartoon stun: one comical hollow bonk on the head followed by a short twinkling warble of little stars circling, game sound effect, clean, no voices, no music |
+| coin | 0.42 | coin/v3 | Old mechanical cash register cha-ching: a short bright bell ring with a drawer clunk, game shop purchase sound, clean, no voices, no music |
+| train | 0.80 | train/v2 | Skill level up sound effect: a short quick rising whoosh ending in a bright sparkling chime burst, game upgrade sound, not a melody, clean, no voices, no music |
+| wok_back | 0.86 | wok_back/v4 | A large iron wok struck hard with a loud metallic clang, then a springy boing as it bounces back, comedic fantasy RPG combat sound, clean, no voices, no music |
+| sign_off | 0.76 | sign_off/v2 | Neon sign shorting out: crackling electric buzzing and sizzling sparks, then a sudden power cut thunk into silence, clean, no voices, no music |
+| layer_down | 0.75 | layer_down/v1 | Corrugated sheet metal roofing panels falling down and crashing with a loud rattling clang, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| foe_auntie | 0.39 | 拼接：foe_auntie2/v1 ＋ v3（各取一下，間隔 0.14 秒） | two fast separate feather duster whacks on cloth, whap whap, clearly two distinct hits, comedic game combat sound effect, clean, no voices, no music |
+| foe_smoker | 0.72 | foe_smoker/v2 | an old man giving one dry raspy cough followed by a breathy puff of exhaled smoke, no words, no speech, fantasy RPG combat sound effect, clean, no music |
+| rage | 0.93 | 拼接：rage2/v3 前 0.62 秒（兩下心跳）＋ affix/v4 前 0.38 秒（警示音，壓低 5 dB，0.55 秒進） | 心跳：Two deep low bass heartbeat thumps, the second one coming quicker, followed immediately by one short sharp alarm siren whoop, tense danger warning game sound effect, clean, no voices, no music；警示音同 affix |
+| affix | 0.38 | affix/v1 | Short elite enemy warning alert: a quick sharp two-tone warning beep sting, game UI alert sound, clean, no voices, no music |
+
+備註：
+- **拼接的兩個**：foe_auntie 第一次（a feather duster swatting fast twice…）和重生（上表提示詞）的 8 版都只有一下拍打，所以拿重生的兩版各一下接成兩下。rage 第一次（Danger warning: two low deep heartbeats…）和重生的 8 版都沒有警報聲，重生的 v3 心跳是清楚的兩下，就接上 affix 沒用到的 v4 單音當警報。
+- 頻譜看不太出來、最要人耳確認的：wok_back 有沒有「彈簧」感、stun 有沒有星星顫音（看起來是「咚」加一小段高音尾巴）、coin 像不像收銀機、unite 前面是不是兩聲出鞘。
+- sign_off 原音很小聲（峰值 -38 dB，拉高約 37 dB），底噪可能聽得到。
+- 原檔和沒選的版本在我的暫存區 raw_s3/，沒放進 audio/。

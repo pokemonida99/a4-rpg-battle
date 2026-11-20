@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.23.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.24.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -209,6 +209,11 @@ function playAttack(r, t0) {
   ready(te - .05, id); return te;
 }
 function playDefend(r, t0) { units[r.id].pose(t0, 'guard'); num(t0 + .1, r.id, '防禦', 'text', { col: '#bfd0ff', px: 32, y: r.id === 'vivi' ? 1.0 : 1.2, dx: r.id === 'vivi' ? -110 : 0 }); snd(t0 + .05, 'shield_up', .5); fx('impacts/parry', t0 + .05, r.id, { scale: 1.0, y: .5, palette: 'cyber' }); if (r.spGain) { S.sp[r.id].push({ t: t0 + .35, v: r.sp }); num(t0 + .4, r.id, r.spGain, 'sp', { dy: -60 }); } at(t0 + .3, () => syncBars(now)); return t0 + .75; }
+// 換人：下場的人退到畫面外，上場的人站到同一個位置（隊伍列、血條一起換）
+function playSwap(r, t0) { const out = units[r.id], inn = units[r.sub], pos = DEFS[r.id].pos.slice(); box(t0, 1.6, `換人　${DEFS[r.sub].name}上場`); snd(t0 + .05, 'whoosh', .6); num(t0 + .05, r.id, '交給你了', 'text', { col: '#bfeaff', px: 30, y: 1.3 });
+  out.move(t0 + .1, pos[0] + 5.5, pos[1], .4); DEFS[r.sub].pos = pos; DEFS[r.sub].hp = R.STAT[r.sub].hp; ko[r.sub] = false; S.hp[r.sub] = [{ t: -1, v: r.hp }]; S.sp[r.sub] = [{ t: -1, v: r.sp }]; S.mo.push({ t: t0 + .3, v: r.mo });
+  at(t0 + .5, () => { resetUnit(out, false, 'ready'); out.home = pos.slice(); inn.home = pos.slice(); resetUnit(inn, true, 'ready'); inn.group.position.set(pos[0] + 5.5, inn.group.position.y, pos[1]); inn.move(now, pos[0], pos[1], .35, easeOut); S.party = R.HEROES.slice(); snd(now, 'buff', .5); });
+  fx('spawn/poof', t0 + .8, pos, { scale: 1.3, y: .3 }); num(t0 + .95, r.sub, '換我上！', 'text', { col: '#ffe27a', px: 32, y: 1.35 }); at(t0 + 1.0, () => inn.hop(now, .24, .32)); return t0 + 1.6; }
 function playCheer(r, t0) { grunt(t0 + .25, 'vivi'); const u = units.vivi; u.pose(t0, 'wind').pose(t0 + .3, u.frames.cheer ? 'cheer' : 'act'); snd(t0 + .3, 'buff', .9); fx('holy/feather-burst', t0 + .3, 'vivi', { scale: 1.0, y: 1.6, palette: 'neon' }); num(t0 + .35, 'vivi', '加油！', 'text', { col: '#ffc0dc', px: 34, y: 1.0, dx: -130 });
   R.FRONT.filter(id => R.alive(state, id)).forEach((id, i) => { const tb = t0 + .5 + i * .09; fx('arcane/mana-burst', tb, id, { scale: .8, palette: 'gold', y: .5 }); units[id].hop(tb + .2, .16, .28); }); num(t0 + .7, 'kevin', `氣勢 ＋${R.MO.cheer}`, 'text', { col: '#ffe27a', px: 34, y: 1.5 });
   at(t0 + .75, () => syncBars(now)); ready(t0 + 1.4, 'vivi'); return t0 + 1.5; }
@@ -489,6 +494,7 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   guard: ['護衛中', '小兵還在場上時，打頭目沒有傷害。', '先把小兵清掉。'], pot: ['甩鍋', '課長每回合第一次被打，會甩給小兵承受。', '先用小招騙掉這一下，再放大招。'], audit: ['考績魔導士', '她的大招除了打全體，還會扣 40 氣勢。', '奧義亮了就放，不要存。'],
   parrot: ['鸚鵡長官', '他自己不出主意，只會「附議」一隻小兵，照抄那隻的行動。', '先打倒被附議的小兵，他那一次行動就落空。'], monkey: ['猴子長官', '他蓄力時會把大招丟給一隻小兵當「臨時專案」。', '在他放大招之前打倒那隻小兵，大招就落空。'],
   pig: ['豬腦長官', '他的大招威力看底氣：底氣全滿是 150%。', '蓄力之後多打他幾下，削到理虧只剩 50%。'],
+  swap: ['換人', '名冊排在第五、六位的是候補。輪到前排的人時可以「換人」，把候補換上來。', '換人會用掉這次行動；換下去的人保留現在的 HP 和 SP。'],
   combo: ['連攜', '對有異常狀態的敵人用對的屬性，會有額外效果。六種屬性各一個：', '冰打灼燒中、火打中毒中、打屬性打暈眩中、光打攻擊下降中、暗打被標記的、斬打有護盾的。'],
   unite: ['合體技', '特定的夥伴一起上場，技能選單裡會多一招金色的合體技。', '輪到其中一人、夥伴這回合還沒動時才能放；放了之後兩個人的行動都用掉。'],
   weak: ['弱點', '敵人頭上的兩格是弱點，一開始是「？」，用對屬性打中才會揭曉，之後永遠記得。', '打中弱點：傷害多三成、氣勢 ＋6，打頭目多削 1 點底氣。'], locks: ['屬性鎖', '頭目蓄力時頭上會出現三個屬性鎖。用那個屬性打中他一下，拆一個。', '每拆一個，大招弱 25%；三個全拆，大招取消、頭目理虧。'],
@@ -499,7 +505,7 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   mirror: ['鏡像內戰', '對面是自己人的鏡像，特長跟本人一樣：', '坦克普攻減半、補師會回血、小燕與黑輪扣 SP、阿傑打全體。'] };
 let tipNow = null;
 function pickTip(id) { const seen = PREF.tips || (PREF.tips = []), kinds = R.MINIONS.filter(m => R.alive(state, m) && state.kind[m] !== 'drone').map(m => 'k_' + state.kind[m]);
-  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', R.foes(state).some(f => state.burn[f] > 0 || (state.poison[f] && state.poison[f].n > 0) || state.mark[f] > 0 || state.atkDown[f] > 0 || state.fward[f] > 0 || (f !== 'boss' && state.stun[f])) && 'combo', id !== 'vivi' && R.unitesOf(id).some(U => R.uniteOk(state, id, U)) && 'unite', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.notice && 'hell_gate', state.L && state.L.backlog && 'hell_archive', state.L && state.L.reassign && state.reassign && 'hell_director', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
+  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', id !== 'vivi' && R.bench(state).length > 0 && 'swap', R.foes(state).some(f => state.burn[f] > 0 || (state.poison[f] && state.poison[f].n > 0) || state.mark[f] > 0 || state.atkDown[f] > 0 || state.fward[f] > 0 || (f !== 'boss' && state.stun[f])) && 'combo', id !== 'vivi' && R.unitesOf(id).some(U => R.uniteOk(state, id, U)) && 'unite', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.notice && 'hell_gate', state.L && state.L.backlog && 'hell_archive', state.L && state.L.reassign && state.reassign && 'hell_director', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
   if (!want) return (tipNow = null); seen.push(want); savePref(); const K = want.startsWith('k_') && R.KINDS[want.slice(2)]; tipNow = { t: performance.now(), title: K ? K.name : TIPS[want][0], lines: K ? [K.note + '。'] : TIPS[want].slice(1) }; }
 function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), Wd = 590, X = W - Wd - 14 + (1 - k) * 40, Y = 142, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
   c.save(); c.globalAlpha = k; skin.paper(X, Y, Wd, Hh, { clips: [X + 60] }); c.fillStyle = RED; c.fillRect(X + 22, Y + 22, 7, 30); text(tipNow.title, X + 42, Y + 47, { px: 28, w: 900, fam: SERIF, col: INK, ls: 4 }); text('第一次遇到', X + Wd - 24, Y + 44, { px: 17, w: 700, align: 'right', col: INK2 });
@@ -528,11 +534,11 @@ function drawIntents() { const placed = []; for (const f of R.foes(state)) { con
 let lastLog = [];
 const logStep = s => { lastLog.push(`回合 ${state.round}｜${s}`); if (lastLog.length > 6) lastLog.shift(); }, sumV = hs => (hs || []).reduce((a, h) => a + (h && h.v > 0 ? h.v : 0), 0);
 function act(r) {      // 玩家選完，演出然後換下一個
-  { const nm = DEFS[r.id].name, what = r.kind === 'attack' ? '攻擊' : r.kind === 'skill' ? `「${r.name}」` : r.kind === 'unite' ? `合體技「${r.name}」` : r.kind === 'ult' ? `奧義「${DEFS[r.id].skill}」` : r.kind === 'defend' ? '防禦' : r.kind === 'item' ? `用了${R.ITEMS[r.key].name}` : '應援', v = sumV(r.hits); logStep(`${nm} ${what}` + (v ? `　打 ${v}` : '')); }
+  { const nm = DEFS[r.id].name, what = r.kind === 'attack' ? '攻擊' : r.kind === 'skill' ? `「${r.name}」` : r.kind === 'unite' ? `合體技「${r.name}」` : r.kind === 'ult' ? `奧義「${DEFS[r.id].skill}」` : r.kind === 'defend' ? '防禦' : r.kind === 'swap' ? `換${DEFS[r.sub].name}上場` : r.kind === 'item' ? `用了${R.ITEMS[r.key].name}` : '應援', v = sumV(r.hits); logStep(`${nm} ${what}` + (v ? `　打 ${v}` : '')); }
   phase = 'anim'; menu = null; tipNow = null; const t0 = now + .12;
   showFx(r.fxs, t0 + .7, r.id); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, t0 + .9, r.id);
   if (r.fee) num(t0 + .12, r.id, `服務費　SP －${r.fee}`, 'text', { col: '#8fc0ff', px: 28, y: 1.55 });
-  const te = r.kind === 'attack' ? playAttack(r, t0) : r.kind === 'defend' ? playDefend(r, t0) : r.kind === 'cheer' ? playCheer(r, t0) : r.kind === 'item' ? playItem(r, t0) : r.kind === 'skill' ? playSkill(r, t0) : r.kind === 'unite' ? playUnite(r, t0) : playUlt(r, t0);
+  const te = r.kind === 'attack' ? playAttack(r, t0) : r.kind === 'defend' ? playDefend(r, t0) : r.kind === 'swap' ? playSwap(r, t0) : r.kind === 'cheer' ? playCheer(r, t0) : r.kind === 'item' ? playItem(r, t0) : r.kind === 'skill' ? playSkill(r, t0) : r.kind === 'unite' ? playUnite(r, t0) : playUlt(r, t0);
   at(te, () => { syncBars(now); syncGuard(now); for (const id of [...R.HEROES, 'boss', ...R.MINIONS]) if (S.hp[id].at(-1).v !== state.hp[id]) S.hp[id].push({ t: now, v: state.hp[id] }); S.active.push({ t: now, v: null }); nextTurn(); });
 }
 // 指令選單的內容。每個按鈕：{ label, sub, off（不能按的原因）, go, target（要在誰頭上畫箭頭）, hint }
@@ -544,7 +550,9 @@ function openMenu(kind, arg) {
       { label: '技能', sub: anySk ? skills.map(k => k.name).join('、') : skills.length ? '現在用不了' : '還沒學會', off: !anySk, go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用氣勢。' },
       { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.ultMo(run)}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
+      ...(id !== 'vivi' && R.bench(state).length ? [{ label: '換人', sub: `候補：${R.bench(state).map(h => DEFS[h].name).join('、')}`, go: () => openMenu('swap'), hint: '把自己換下去、換一位候補上來，用掉這次行動；換上來的人下一回合開始行動。' }] : []),
       { label: '防禦', sub: '受傷減半', go: () => act(R.doDefend(state, id)), hint: `到下次行動前受傷減半，回 10 SP、氣勢 ＋${R.MO.defend}，下回合速度 ＋20%。` }];
+  } else if (kind === 'swap') { items = R.bench(state).map(h => ({ label: DEFS[h].name, sub: `HP ${run.hp[h]}　SP ${run.sp[h]}`, hint: `換${DEFS[h].name}上場：${R.SKILLS[h].map(k => k.name).slice(0, 3).join('、')}…`, go: () => act(R.doSwap(state, id, h)) })); items.push(back);
   } else if (kind === 'target') { const sk = arg, bk = sk ? { ...back, go: () => openMenu('skills') } : back, blocked = R.guarded(state) && !(sk && sk.pierce), pot = S.pot() && !(sk && sk.pierce);      // arg＝招式（沒有就是普通攻擊）
     items = R.foes(state).filter(f => f !== 'boss').concat(R.alive(state, 'boss') ? ['boss'] : []).map(f => ({ label: NAME[f], sub: (f === 'boss' ? (blocked ? '護衛中　傷害無效' : pot ? '甩鍋中　第一下小兵背' : `HP ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}%`) : `HP ${state.hp[f]}`) + (() => { const pv = R.preview(state, id, f, sk && sk.key), wk = isKnownWeak(f, sk ? sk.type : R.ATK_TYPE[id]); const tp = sk ? sk.type : R.ATK_TYPE[id], lk = f === 'boss' && state.locks && state.locks.includes(tp); return (pv ? ` 約−${wk ? Math.round(pv * 1.3) : pv}${wk ? '　弱點' : ''}` : '') + (lk ? '　拆鎖' : ''); })(), wk: isKnownWeak(f, sk ? sk.type : R.ATK_TYPE[id]), warn: f === 'boss' && blocked, target: f, go: () => act(sk ? (sk.unite ? R.doUnite(state, id, sk.key, f) : R.doSkill(state, id, sk.key, f)) : R.doAttack(state, id, f)) })); items.push(bk);
   } else if (kind === 'skills') { items = skills.map(k => { const pv = k.target === 'all' && R.foes(state).length ? R.preview(state, id, R.foes(state).find(f => f !== 'boss') || 'boss', k.key) : null; return ({ label: k.name + (R.isPlus(run, id, k.key) ? '＋' : ''), sub: `${k.type ? '〔' + R.TYPES[k.type] + (state.locks && state.locks.includes(k.type) ? '・拆鎖' : '') + '〕' : ''}SP ${R.skCost(run, id, k)}${state.L && state.L.fee && state.sign > 0 ? '＋' + state.L.fee : ''}　${k.note}` + (pv ? `　每個約 ${pv}` : ''), off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) }); });
@@ -712,7 +720,7 @@ const mw = (s, px, w = 700, fam = SANS) => { font(px, w, fam); return c.measureT
 const gem = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.fill(); };
 const fit = (str, room, px, w = 700, fam = SANS) => { font(px, w, fam); while (c.measureText(str).width > room && str.length > 5) str = str.slice(0, -2) + '…'; return str; };
 // 中文折行：超過寬度就換行，標點不放行首
-const wrap = (str, room, px, w = 700) => { font(px, w); const out = []; let line = ''; for (const ch of str) { if (line && c.measureText(line + ch).width > room && !'，。、：；！？）」'.includes(ch)) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; };
+const wrap = (str, room, px, w = 700) => { font(px, w); const out = []; let line = ''; for (const ch of str) { if (line && c.measureText(line + ch).width > room && !'，。、：；！？）」'.includes(ch) && !(/[A-Za-z0-9]/.test(ch) && /[A-Za-z0-9]$/.test(line) && line.length > 6)) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; };
 const pix = (im, x, y, w, h) => { if (!im) return; c.imageSmoothingEnabled = false; c.drawImage(im, x, y, w, h); c.imageSmoothingEnabled = true; };
 const pressK = i => pressed && pressed.i === i && !pressed.big && !pressed.opt ? (performance.now() - pressed.t) / PRESS_MS : -1;
 // 指令按鈕＝資料夾的索引標籤：選到的是綠色、往上拉出來一截；按下去會沉、閃一下；不能按的是舊紙，按了會抖
@@ -1023,8 +1031,8 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 }
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
-const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'], ['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'], ['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'], ['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'] ];
+const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
+const CHANGES = [['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'], ['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'], ['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

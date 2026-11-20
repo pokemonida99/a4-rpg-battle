@@ -570,6 +570,7 @@ export function newState(run = newRun()) {
   if (setOn(run, '補給')) for (const id of HEROES) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .12)); if (setOn(run, '氣勢')) s.mo = Math.min(MO.max, s.mo + 15);
   s.affix = af; if (af === 'armor') for (const f of [...(st.boss ? ['boss'] : []), ...MINIONS]) s.fward[f] = Math.max(s.fward[f] || 0, Math.round(600 * hk));
   s.mo = Math.min(60, s.mo); s.quick = {};      // 開場氣勢最多 60
+  s.ultK = st.boss ? st.boss.ult * TUNE.ult * ak : 0;      // 換人上場時用來算頭目大招對他的傷害
   s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = nx.ward; s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
@@ -740,6 +741,17 @@ export function doItem(s, id, key, target) {
   if (it.revive) { r.revive = true; r.heal = Math.round(STAT[target].hp * it.revive); s.hp[target] = r.heal; }
   r.hp = s.hp[target]; r.sp = s.sp[target]; r.mo = gain(s, MO.item); return after(s, id, r);
 }
+// 換人（FFX 式）：輪到前排某個人時，可以把他換下去、換一位候補上來，用掉這次行動；換上來的人下一回合開始行動。名冊順序跟著換，打完也維持
+export const bench = s => s.run.roster.filter(id => id !== 'vivi' && !HEROES.includes(id) && s.run.hp[id] > 0);
+export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.indexOf(id), run = s.run; if (i < 0 || j < 0 || !bench(s).includes(sub)) return null; newCmd(s);
+  run.hp[id] = Math.max(0, s.hp[id]); run.sp[id] = s.sp[id]; HEROES[i] = sub; FRONT[j] = sub; s.hp[sub] = run.hp[sub]; s.sp[sub] = run.sp[sub];
+  { const a = run.roster.indexOf(id), b = run.roster.indexOf(sub); [run.roster[a], run.roster[b]] = [run.roster[b], run.roster[a]]; }
+  BOSS_ULT[sub] = Math.round(s.ultK * (.82 + .18 * STAT[sub].hp / 2680));
+  for (const k of ['ward', 'regen', 'up', 'smoke', 'hmark', 'hpoison', 'defend', 'evade', 'counter', 'bless', 'bonus']) if (s[k]) s[k][id] = k === 'ward' || k === 'up' || k === 'hmark' ? 0 : null;      // 換下去的人身上的狀態都清掉
+  if (id === 'kevin') { s.taunt = false; s.aegis = false; } if (id === 'qiang') { s.carry = false; s.bulwark = false; } if (id === 'cha') { s.friends = false; s.dodge = false; } if (s.cover === id) s.cover = null; if (s.guardian === id) s.guardian = null;
+  if (s.wok === id) s.wok = sub; if (s.noticeT === id) s.noticeT = sub; for (const f in s.plan) if (s.plan[f] === id) s.plan[f] = sub;      // 敵人原本瞄準他的，改瞄準換上來的人
+  s.queue = s.queue.filter(q => q !== id); s.fairyBuff = HEROES.includes('fairy');
+  return { kind: 'swap', id, sub, hp: s.hp[sub], sp: s.sp[sub], mo: gain(s, MO.item) }; }
 // 招式現在能不能用：SP 夠、而且有對象（補血要有人受傷、代擋要有別的同伴）
 const allyPool = (s, id, sk) => { const a = sk.ally || 'hurt', f = FRONT.filter(h => alive(s, h)); return a === 'hurt' ? f.filter(h => s.hp[h] < STAT[h].hp) : a === 'other' ? f.filter(h => h !== id) : a === 'sp' ? f.filter(h => h !== id && s.sp[h] < STAT[h].sp) : f; };
 // 「再動一次」的護欄：被送行動的那一次不能再送給別人；全隊一回合最多多動 3 次
