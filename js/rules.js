@@ -212,18 +212,18 @@ export const STAGES = {
   // backlog＝舊案回流：開場和每次理虧恢復後，接下來兩次行動開始各回血，而且下一次普通攻擊改成打全體＋中毒
   // reassign＝責任重新分配：血量第一次掉到 70%、35% 時，下一次普通攻擊改成特殊攻擊：前排有兩個人以上身上有護盾 → 只打護盾最多的那個（2.2 倍）；不然打全體（1 倍）
   hell_intro: { name: '地下十九樓', sub: '歡迎報到。門禁顯示：離職流程尚未完成', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3400, atk: 330 }, boss: null },
-  hell_belt: { name: '急件焚化輸送帶', sub: '每一件都是急件', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_runner' }, minion: { hp: 4200, atk: 350 }, boss: null },
+  hell_belt: { name: '急件輸送帶', sub: '每一件都是急件，燒也燒不完', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_runner' }, minion: { hp: 4200, atk: 350 }, boss: null },
   hell_water: { name: '續命飲水機', sub: '喝完再撐一下', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { ma: 'hell_intern' }, minion: { hp: 4000, atk: 340 }, boss: null },
   hell_file: { name: '附件缺一份', sub: '少一份就是沒有交', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { mc: 'hell_auntie' }, minion: { hp: 4200, atk: 350 }, boss: null },
   hell_gate: { name: '門禁人資長', sub: '離職可以，先證明你有到職', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3200, atk: 370 },
     boss: { id: 'hell_gate', like: 'audit', name: '門禁人資長', hp: 44000, spd: 220, spd2: 0, atk: 950, shield: 6, cycle: 4, guard: false, pot: false, notice: true, ult: 950, text: { charge: '蓄力　資格複審', atk: '退件', ult: '奧義　門禁全面管制', summon: '召喚　叫警衛上來', down: '門……怎麼自己開了。' } } },
   hell_loop: { name: '紅單無限迴圈', sub: '簽完這張還有下一張', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_runner', mc: 'hell_intern' }, minion: { hp: 5600, atk: 450 }, boss: null },
-  hell_fridge: { name: '冷藏便當認領處', sub: '上面寫的不是你的名字', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_intern', mc: 'hell_auntie' }, minion: { hp: 5000, atk: 420 }, boss: null },
-  hell_sign: { name: '簽到本人不得代簽', sub: '代簽的請去重排', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { mb: 'hell_auntie', mc: 'hell_smoke' }, minion: { hp: 5000, atk: 420 }, boss: null },
+  hell_fridge: { name: '便當認領處', sub: '冰箱裡的便當，上面寫的不是你的名字', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_intern', mc: 'hell_auntie' }, minion: { hp: 5000, atk: 420 }, boss: null },
+  hell_sign: { name: '不得代簽', sub: '簽到要本人，代簽的請去重排', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { mb: 'hell_auntie', mc: 'hell_smoke' }, minion: { hp: 5000, atk: 420 }, boss: null },
   hell_archive: { name: '永存檔案室主任', sub: '你說做完了？我這邊還查得到', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { ma: 'hell_guard', mb: 'hell_intern' }, minion: { hp: 3800, atk: 400 },
     boss: { id: 'hell_archive', like: 'tw_pot', name: '永存檔案室主任', hp: 46000, spd: 190, spd2: 0, atk: 950, shield: 7, cycle: 4, guard: false, pot: false, backlog: true, ult: 1050, text: { charge: '蓄力　調閱舊案', atk: '歸檔重擊', ult: '奧義　全部退回重辦', summon: '召喚　把檔案櫃推出來', down: '這一件……終於可以結案了。' } } },
   hell_last: { name: '最後一件，真的', sub: '這句話你聽過幾次了', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_smoke', mc: 'hell_intern' }, minion: { hp: 6000, atk: 480 }, boss: null },
-  hell_vending: { name: '販賣機顯示處理中', sub: '錢已經投下去了', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_runner', mc: 'hell_smoke' }, minion: { hp: 5600, atk: 460 }, boss: null },
+  hell_vending: { name: '販賣機故障', sub: '螢幕顯示處理中，錢已經投下去了', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_runner', mc: 'hell_smoke' }, minion: { hp: 5600, atk: 460 }, boss: null },
   hell_director: { name: '永續加班總監', sub: '不是不讓你走，是團隊還需要你', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { ma: 'hell_guard', mb: 'hell_auntie' }, minion: { hp: 4000, atk: 430 },
     boss: { id: 'hell_director', like: 'boss', name: '永續加班總監', hp: 78000, spd: 205, spd2: 0, atk: 1250, shield: 9, cycle: 4, guard: false, pot: false, reassign: true, ult: 1150, text: { charge: '蓄力　再開一個會', atk: '責任落實', ult: '奧義　全員留下', summon: '召喚　叫下一班上來', down: '……核准。' } } },
   // ---- 鏡像內戰的關卡：hero＝這個頭目長得像誰（畫面拿那個夥伴的圖翻過來用） ----
@@ -253,7 +253,7 @@ export const MAPS = { office: [
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'night', pool: ['night', 'night_a', 'night_s'], tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'battle', stage: 'chief', pool: ['chief', 'parrot', 'monkey'], tag: '頭目', icon: 'chief' }],
-  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }],
+  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
   [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'audit', pool: ['audit', 'pig'], tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'boss', tag: '魔王', icon: 'boss' }],
@@ -265,7 +265,7 @@ export const MAPS = { office: [
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm3', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'battle', stage: 'm_kevin', tag: '頭目', icon: 'chief' }],
-  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }],
+  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
   [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm_fairy', tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'm_vivi', tag: '魔王', icon: 'boss' }],
@@ -273,7 +273,7 @@ export const MAPS = { office: [
 // 台灣篇：十二站、三條支線（上、中、下）。to＝從這一站可以走到下一層的哪幾站（沒寫就是都可以）；相鄰的路才換得過去
 const LANE = [[0, 1], [0, 1, 2], [1, 2]], B = (stage, tag = '戰鬥', icon = 'battle', more = {}) => ({ type: 'battle', stage, tag, icon, ...more }), RESCUE = { rescue: true, sub: '打贏救出一位夥伴' };
 const N = (type, name, tag, icon, sub) => ({ type, name, tag, icon, sub }), REST = name => N('rest', name, '休息', 'rest', 'HP 回復一半　SP 補滿'), GIFT = name => N('gift', name, '福利', 'gift', '直接三選一強化'), EVT = name => N('event', name, '事件', 'event', '不知道會遇到什麼'), REC = (name, icon = 'recruit') => N('recruit', name, '招募', icon, '三位同事選一位同行');
-const lanes = fl => fl.map((nd, i) => ({ ...nd, to: LANE[i] }));
+const lanes = fl => fl.map((nd, i) => ({ ...nd, to: LANE[i] })), SHOPN = name => N('shop', name, '採買', 'shop', '用報帳額度買小物、補給、特訓');
 MAPS.taiwan = [
   [B('tw_intro')],
   lanes([REC('里民活動中心'), B('tw_rescue1', '救援', 'rescue', RESCUE), REC('巷口早餐店', 'hunt')]),
@@ -282,7 +282,7 @@ MAPS.taiwan = [
   [B('tw_pot', '頭目', 'chief')],
   lanes([REC('獵頭攤車', 'hunt'), EVT('夜市入口'), REST('豆花攤')]),
   lanes([B('tw_queue'), B('tw_night', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('tw_alley')]),
-  [GIFT('福委會攤位'), REST('剉冰店'), EVT('夜市後門')],
+  [GIFT('福委會攤位'), REST('剉冰店'), SHOPN('夜市雜貨攤')],
   [EVT('天橋')],
   lanes([B('tw_stairs', '救援', 'rescue', RESCUE), REST('頂樓水塔'), GIFT('頂樓菜園')]),
   [B('tw_hall'), EVT('曬衣場'), REC('頂樓鄰居')],
@@ -294,16 +294,16 @@ const SUP = (name, give, sub) => ({ type: 'supply', name, tag: '補給', icon: '
 MAPS.hell = [
   [B('hell_intro')],
   [REC('地下報到處')],
-  own([B('hell_belt'), B('hell_water', '救援', 'rescue', RESCUE), EVT('新人教育先簽到')]),
-  [GIFT('沒收物品保管櫃'), SUP('員工餐，還熱的', { tea: 2 }, '珍珠奶茶 ＋2'), B('hell_file')],
+  own([B('hell_belt'), B('hell_water', '救援', 'rescue', RESCUE), EVT('新人教育')]),
+  [GIFT('沒收物品櫃'), SUP('員工餐', { tea: 2 }, '珍珠奶茶 ＋2'), B('hell_file')],
   [B('hell_gate', '頭目', 'chief')],
-  [REST('午休室：燈不會關'), REC('地下獵頭分行', 'hunt')],
+  [REST('午休室'), REC('地下獵頭分行', 'hunt'), SHOPN('地下福利社')],
   own([B('hell_loop', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('hell_fridge', '救援', 'rescue', RESCUE), B('hell_sign')]),
-  [EVT('自願加班同意書'), SUP('福委會尚有預算', { bento: 1, coffee: 1 }, '雞排便當 ＋1　黑咖啡 ＋1'), TRAIN('職能盤點小教室')],
+  [EVT('加班同意書'), SUP('福委會預算', { bento: 1, coffee: 1 }, '雞排便當 ＋1　黑咖啡 ＋1'), TRAIN('職能小教室')],
   [B('hell_archive', '頭目', 'chief')],
-  [REST('緊急照明茶水間')],
-  own([B('hell_last', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('hell_vending'), EVT('離職面談先對答案')]),
-  [GIFT('離職紀念品'), SUP('這杯喝完就走', { tea: 1, coffee: 1, bento: 1 }, '奶茶、咖啡、便當各 ＋1'), TRAIN('交接最後一次')],
+  [REST('緊急茶水間')],
+  own([B('hell_last', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('hell_vending'), EVT('離職面談')]),
+  [GIFT('離職紀念品'), SUP('最後一杯', { tea: 1, coffee: 1, bento: 1 }, '奶茶、咖啡、便當各 ＋1'), TRAIN('最後交接')],
   [B('hell_director', '魔王', 'boss')],
 ];
 export const supply = (run, nd) => { for (const k in nd.give || {}) run.items[k] += nd.give[k]; };
@@ -438,6 +438,13 @@ export const eventOk = (run, key, i) => { const o = EVENTS[key] && EVENTS[key].o
 export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[key].opts[i].go(run) : null; }
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
+// 報帳處（採買站）：打贏戰鬥會拿到「報帳額度」（run.coin：一般 40、菁英 70、頭目 90），在採買站花掉。一站賣三樣：一個小物、一份補給包（奶茶、咖啡、便當各一）、一次特訓
+export const PRICE = { relic: 70, supply: 45, train: 60 };
+export const coinFor = nd => 40 + (nd.tag === '菁英' ? 30 : 0) + (nd.tag === '頭目' || nd.tag === '魔王' ? 50 : 0);
+export function shopStock(run) { const o = run.shop || (run.shop = {}); if (!o[run.floor]) { const pool = Object.keys(UPGRADES).filter(k => UPGRADES[k].once && k !== 'learn' && !run.picks.includes(k) && !(UPGRADES[k].need && !UPGRADES[k].need.some(id => run.roster.includes(id)))); o[run.floor] = { relic: pool.length ? pool[Math.floor(run.rand() * pool.length)] : null, sold: [] }; } return o[run.floor]; }
+export function buy(run, what, arg) { const st = shopStock(run); if (st.sold.includes(what) || run.coin < PRICE[what]) return false;
+  if (what === 'relic') { if (!st.relic) return false; applyUpgrade(run, st.relic); } else if (what === 'supply') { for (const k in run.items) run.items[k]++; } else if (what === 'train') { if (!arg || isPlus(run, arg[0], arg[1])) return false; applyTrain(run, arg[0], arg[1]); } else return false;
+  run.coin -= PRICE[what]; st.sold.push(what); return true; }
 // 菁英詞綴：每一場菁英戰抽一條（記在 run.affix[樓層]，行程表上先看得到）：[名字, 規則, 打贏多拿什麼]
 export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '小兵的攻擊會讓人中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
 export const affixOf = (run, floor = run.floor, nd = run.node) => nd && nd.tag === '菁英' ? (run.affix || {})[floor] || null : null;
@@ -448,7 +455,7 @@ export const OT_MAX = OVERTIME.length;
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)) };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)) };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
@@ -479,6 +486,7 @@ export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
   addTally(s, run); run.tally.fights++;
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
+  run.lastCoin = coinFor(run.node); run.coin = (run.coin || 0) + run.lastCoin;
   run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
@@ -537,7 +545,7 @@ export function loadRun(data, rand = Math.random) {
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
-    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
     return { run, pend: d.pend || null, rescued: d.rescued || null };
   } catch (e) { return null; }
