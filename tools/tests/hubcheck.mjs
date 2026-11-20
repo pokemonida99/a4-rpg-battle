@@ -1,0 +1,13 @@
+// 行程表每一層的選項有沒有被介面擋住（不用看圖，用座標檢查）：四張地圖、每一層各開一次。
+// 可以放心顯示的範圍：左邊隊伍欄右側 x≥345、下面訊息列上方 y≤750、上面 y≥70；右上角三顆按鈕（x≥1600 且 y≤165）不能壓到。站名在圖示右邊，約佔 190 寬
+import { createRequire } from 'node:module';
+const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core'); const wait = ms => new Promise(r => setTimeout(r, ms));
+const N = { office: 10, mirror: 10, taiwan: 12, hell: 13 }, only = process.argv.slice(2);
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] }); let bad = 0, n = 0;
+const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 1, isMobile: true, hasTouch: true }); const errors = []; page.on('pageerror', e => errors.push(e.message));
+for (const map of Object.keys(N)) { if (only.length && !only.includes(map)) continue; for (let fl = 1; fl <= N[map]; fl++) {
+  await page.goto(`http://localhost:4630/game.html?mute&seed=6&map=${map}${fl > 1 ? '&floor=' + fl : ''}&team=kevin,mi&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 });
+  await page.evaluate(() => { localStorage.removeItem('a4rpg.run'); }); await page.reload(); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); await page.evaluate(() => __game.start()); try { await page.waitForFunction('__game.phase === "pick" && __game.menu', { timeout: 15000 }); } catch (e) { console.log(`？ ${map} 第 ${fl} 站按開始沒反應：`, await page.evaluate(() => __game.phase), errors.slice(-2).join(' ／ ')); continue; } await page.evaluate(() => __game.press(0)); await wait(700); await page.evaluate(() => __game.press(0)); try { await page.waitForFunction('__game.phase === "hub" && __game.menu', { timeout: 15000 }); } catch (e) { console.log(`？ ${map} 第 ${fl} 站進不了行程表：`, await page.evaluate(() => __game.phase + '／' + (__game.menu ? __game.menu.title || __game.menu.kind : '-'))); continue; } await wait(1300);
+  const pts = await page.evaluate(() => __game.nodesXY()); n++;
+  for (const [x, y, name] of pts) { const why = x < 345 ? '太左（被隊伍欄擋）' : x + 190 > 1900 ? '太右（站名出界）' : y < 70 ? '太上' : y > 750 ? '太下（被訊息列擋）' : x + 190 > 1600 && y < 190 ? '壓到右上角按鈕' : ''; if (why) { bad++; console.log(`✗ ${map} 第 ${fl} 站「${name}」(${x}, ${y})：${why}`); } } } }
+console.log(bad ? `共 ${n} 層，有 ${bad} 個選項位置不好` : `共 ${n} 層，選項都在看得到的範圍`, errors.length ? '錯誤：' + errors.slice(0, 3).join(' ／ ') : ''); await browser.close();
