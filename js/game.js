@@ -1059,7 +1059,7 @@ function bigButton(label, cx, cy, w = 440, h = 116, act = 'go') { const on = poi
 // ---------- 結案報告（結算）：通關或全員倒下之後，把這一輪的路線、夥伴、強化攤在一張公文上 ----------
 let report = null;
 const STYLE_TAG = { ember: '灼燒', bounty: '標記', riposte: '反擊', dossier: '證據', crunch: '加班', tempo: '氣勢', morale: '氣勢', weakpoint: '抓理虧', raise: '火力', chair: '耐久', leave: '耐久', firstaid: '耐久', learn: '多招', drinks: '補給', coffee: '補給', bento: '補給' };
-function loseTips() { const T = [], fr = R.FRONT, st = state, sp = fr.length ? fr.reduce((a, h) => a + st.sp[h] / R.STAT[h].sp, 0) / fr.length : 0, bn = run.roster.filter(h => !R.HEROES.includes(h) && run.hp[h] > 0);
+function loseTips() { const T = [], fr = R.FRONT, st = state, sp = fr.length ? fr.reduce((a, h) => a + st.sp[h] / R.STAT[h].sp, 0) / fr.length : 0, bn = R.bench(state);
   if (BT.ultKill) T.push('頭目蓄力的那一回合，按「防禦」受傷減半；或用對屬性拆掉他頭上的鎖，大招會變弱。');
   if (st.round >= 4 && BT.wk < 3) T.push('這一場很少打中弱點。換不同屬性的招式試試，打中一次就會記進圖鑑。');
   if (st.items.tea > 0 || st.items.bento > 0) T.push(`還有${st.items.tea > 0 ? ` ${st.items.tea} 杯珍珠奶茶` : ''}${st.items.tea > 0 && st.items.bento > 0 ? '和' : ''}${st.items.bento > 0 ? '雞排便當' : ''}沒用到：快倒的時候別省。`);

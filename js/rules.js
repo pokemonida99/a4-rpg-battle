@@ -620,7 +620,7 @@ export function newState(run = newRun()) {
   s.affix = af; if (af === 'armor') for (const f of [...(st.boss ? ['boss'] : []), ...MINIONS]) s.fward[f] = Math.max(s.fward[f] || 0, Math.round(600 * hk));
   s.mo = Math.min(60, s.mo); s.quick = {};      // 開場氣勢最多 60
   s.ultK = st.boss ? st.boss.ult * TUNE.ult * ak : 0;      // 換人上場時用來算頭目大招對他的傷害
-  s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = nx.ward; s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
+  s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = Math.round(nx.ward * jobWard(s)); s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
 }
@@ -688,7 +688,7 @@ export function startRound(s) { s.round++; s.potUsed = false; s.meeting = false;
   s.warmed = false; s.dodged = false;
   for (const h of FRONT) { const g = s.regen[h]; if (g && g.n > 0 && alive(s, h)) { g.n--; const x = FX.heal(s, h, g.v); if (x) s.events.push({ kind: 'regen', dst: h, v: x.v, hp: x.hp }); } }
   if (setOn(s.run, '耐久')) for (const h of FRONT) if (alive(s, h)) { const x = FX.heal(s, h, Math.round(STAT[h].hp * .03)); if (x) s.events.push({ kind: 'regen', dst: h, v: x.v, hp: x.hp }); }
-  if (has(s, 'partition')) { for (const h of FRONT) if (alive(s, h)) s.ward[h] = Math.max(s.ward[h] || 0, 150); s.events.push({ kind: 'passive', who: FRONT.find(h => alive(s, h)), name: '桌上隔板　全員護盾 150' }); }
+  if (has(s, 'partition')) { for (const h of FRONT) if (alive(s, h)) s.ward[h] = Math.max(s.ward[h] || 0, Math.round(150 * jobWard(s))); s.events.push({ kind: 'passive', who: FRONT.find(h => alive(s, h)), name: '桌上隔板　全員護盾 150' }); }
   // 每回合開始的被動
   if (HEROES.includes('vivi')) s.events.push({ kind: 'passive', who: 'vivi', name: '公主有交代', mo: gain(s, 3) });
   if (FRONT.includes('qiang') && alive(s, 'qiang') && s.duty > 0) { const x = FX.heal(s, 'qiang', 100 * s.duty); if (x) s.events.push({ kind: 'regen', dst: 'qiang', v: x.v, hp: x.hp, name: '扛久就習慣' }); }
@@ -802,7 +802,7 @@ export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.ind
   if (id === 'kevin') { s.taunt = false; s.aegis = false; } if (id === 'qiang') { s.carry = false; s.bulwark = false; } if (id === 'cha') { s.friends = false; s.dodge = false; } if (s.cover === id) s.cover = null; if (s.guardian === id) s.guardian = null;
   if (s.wok === id) s.wok = sub; if (s.noticeT === id) s.noticeT = sub; for (const f in s.plan) if (s.plan[f] === id) s.plan[f] = sub;      // 敵人原本瞄準他的，改瞄準換上來的人
   s.queue = s.queue.filter(q => q !== id); s.fairyBuff = HEROES.includes('fairy');
-  const free = s.swapRound !== s.round; s.swapRound = s.round; if (free) s.queue.unshift(sub);      // 每回合第一次換人不用掉行動：換上來的人接著行動（第二次起才用掉行動）
+  const free = s.swapRound !== s.round && s.onBonus !== id; s.swapRound = s.round; if (free) s.queue.unshift(sub);      // 每回合第一次換人不用掉行動：換上來的人接著行動（第二次起才用掉行動）
   return { kind: 'swap', id, sub, free, hp: s.hp[sub], sp: s.sp[sub], mo: free ? s.mo : gain(s, MO.item) }; }
 // 招式現在能不能用：SP 夠、而且有對象（補血要有人受傷、代擋要有別的同伴）
 const allyPool = (s, id, sk) => { const a = sk.ally || 'hurt', f = FRONT.filter(h => alive(s, h)); return a === 'hurt' ? f.filter(h => s.hp[h] < STAT[h].hp) : a === 'other' ? f.filter(h => h !== id) : a === 'sp' ? f.filter(h => h !== id && s.sp[h] < STAT[h].sp) : f; };
