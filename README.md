@@ -339,3 +339,13 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 ### v0.24.0 換人
 
 名冊排第五、六位的候補，戰鬥中可以換上場（`rules.js` 的 `bench(s)`、`doSwap(s, 下場的人, 上場的人)`）：輪到前排某個人時選「換人」，用掉這次行動；下場的人帶著現在的 HP／SP 回候補，身上的狀態清掉，敵人原本瞄準他的改瞄準上場的人；上場的人下一回合開始行動。名冊順序跟著換，打完也維持。Vivi 不能換。畫面：指令列多一顆「換人」（有候補才出現，指令變六顆時排兩排）、`playSwap()`。測試 `tools/tests/swaptest.mjs`。
+
+### v0.25.0 職位、開場與結局、新音效
+
+跟 GPT 做了第三輪（`design/combat2/p_f.txt` → `gpt_f.md`，我的取捨在 `gpt_f_notes.md`）。
+
+- **職位**（`rules.js` 的 `JOBS`、`offerJobs`，`run.job`）：選完主角和第一招之後，三個職位挑一個（也可以選「一般職員」不代理），整趟有效，各有一個好處和一個限制：救火組長、福利委員、風控專員、專案窗口、值班主任、教育委員、採購主任、人資專員、會議主持。傷害類的在 `jobDmg`、回復與護盾在 `jobHeal`／`jobWard`；開局就生效的（多一位夥伴、開局額度、開場氣勢）直接寫進 run，所以存檔讀回不用重算。第一次玩不會出現（`PREF.seen` 少於 3 場）。行程表標題和「道具強化」頁最上面看得到現在的職位。
+- **開場與結局**（`game.js` 的 `STORY`）：四張地圖各四句開場（第一次走那張地圖才出現，`PREF.intro`）和三句結局（通關的結案報告右下角「後記」）。全部是旁白，沒有讓角色開口。
+- **音效**：音效 session 做的 16 個（`weak ward lock_break lock_all unite poison stun coin train wok_back sign_off layer_down foe_auntie foe_smoker rage affix`）接好了；`sndIf()`／`sfxOr()` 檔案不在就退回原本共用的聲音。
+- **模擬器**：`MIX=1` 會多印每種指令的比例與行動後平均剩多少 SP（GPT 要的「是不是被迫普攻」指標）；`JOB=fire` 指定職位。九種職位的通關率都在沒職位的 ±10 個百分點內。
+- 測試網址：`&job=pick` 看選職位畫面、`&job=fire` 直接指定、`&intro=1` 看開場。截圖腳本 `tools/tests/jobshot.mjs`、`storyshot.mjs`、`swapshot.mjs`；規則測試多一支 `jobtest.mjs`。

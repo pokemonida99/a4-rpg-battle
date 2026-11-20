@@ -19,6 +19,7 @@ const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 
 const projT = s => s.charging && s.proj && alive(s, s.proj) ? s.proj : null, echoT = s => !s.charging && !s.broken && s.echo && alive(s, s.echo) ? s.echo : null;
 const target = (s, wm = weakMinion) => (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
 const can = (s, id, key, keep = 0) => knows(s, id, key) && s.sp[id] - SKILLS[id].find(k => k.key === key).sp >= keep;
+const MIX = {};      // 行動比例統計：每種指令用了幾次（檢查是不是只會一直普攻）
 const POLICY = {
   // 會想的打法：看到蓄力會擋、血少補血、每個人的招式都會用、留 SP 放奧義
   smart(s, id) {
@@ -78,11 +79,11 @@ const POLICY = {
 const PICK = ['raise', 'weakpoint', 'tabs', 'leave', 'chair', 'cutter', 'redpen', 'thermos', 'firstaid', 'partition', 'bell', 'applause', 'notebook', 'tempo', 'blanket', 'snackdrawer', 'cheatsheet', 'countdown', 'mug', 'carbon', 'fridge', 'ember', 'riposte', 'dossier', 'crunch', 'bounty', 'learn', 'coffee', 'drinks', 'morale', 'bento'];
 function battle(policy, run) {
   const s = newState(run); let guard = 0;
-  while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
+  while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) { const r = POLICY[policy](s, id), k = r && r.kind || 'none'; MIX[k] = (MIX[k] || 0) + 1; if (id !== 'vivi' && (k === 'attack' || k === 'skill' || k === 'ult' || k === 'unite')) { MIX.spN = (MIX.spN || 0) + 1; MIX.spSum = (MIX.spSum || 0) + s.sp[id] / STAT[id].sp; } } else enemyTurn(s, id); } }
   return s;
 }
 function playRun(policy, seed, starter, map = 'office') {
-  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map, +(E.OT || 0)); prepare(run);      // OT=3 試加班等級
+  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map, +(E.OT || 0), E.JOB || null); prepare(run);      // OT=3 試加班等級
   if (E.ALT && map === 'office') for (const kv of E.ALT.split(',')) { const [k, v] = kv.split(':'); if (STAGES[v]) run.alt[k] = v; }
   const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
   const MAP = MAPS[map]; while (run.floor < MAP.length) { const opts = MAP[run.floor], ok = reachable(run), off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
@@ -97,12 +98,12 @@ function playRun(policy, seed, starter, map = 'office') {
 }
 const N = +(process.argv[2] || 400);
 for (const map of (E.MAP || 'office,taiwan,hell,mirror').split(',')) for (const starter of ['kui', 'jie']) { const MAP = MAPS[map]; console.log(`── ${{ mirror: '鏡像內戰', taiwan: '台灣篇', hell: '地獄分公司' }[map] || '一般行程'}　起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
-  for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; const died = MAP.map(() => 0);
+  for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; for (const k of Object.keys(MIX)) delete MIX[k]; const died = MAP.map(() => 0);
     for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter, map); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
-    console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); } }
+    console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); if (process.env.MIX && p !== 'mash') { const tot = ['attack', 'skill', 'ult', 'unite', 'defend', 'item', 'swap', 'cheer'].reduce((n, k) => n + (MIX[k] || 0), 0), pc = k => ((MIX[k] || 0) / tot * 100).toFixed(0) + '%'; console.log(`       行動比例　普攻 ${pc('attack')}　招式 ${pc('skill')}　奧義 ${pc('ult')}　合體技 ${pc('unite')}　防禦 ${pc('defend')}　道具 ${pc('item')}　換人 ${pc('swap')}　應援 ${pc('cheer')}　行動後平均剩 SP ${(MIX.spSum / MIX.spN * 100).toFixed(0)}%`); } } }
 // ---------- 存檔自我檢查：每一站存檔再讀回來要一模一樣；壞掉或版本不對的存檔要作廢 ----------
 { const R2 = await import('../js/rules.js'); let n = 0, bad = 0; const strip = r => JSON.stringify(R2.saveRun(r));
-  for (let seed = 1; seed <= 40; seed++) { const rand = mulberry(seed * 31 + 5), run = newRun(rand, seed % 2 ? 'kui' : 'jie', null); prepare(run);
+  for (let seed = 1; seed <= 40; seed++) { const rand = mulberry(seed * 31 + 5), run = newRun(rand, seed % 2 ? 'kui' : 'jie', null, 'office', 0, [null, 'fire', 'welfare', 'risk', 'window', 'duty', 'edu', 'buyer', 'hr', 'host'][seed % 10]); prepare(run);
     while (run.floor < MAP.length - 1) { const fl = MAP[run.floor], i = Math.floor(rand() * fl.length), nd = enterNode(run, i), off = run.offers[run.floor] || {};
       if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') applyUpgrade(run, offerUpgrades(run)[0]); else if (nd.type === 'event') R2.applyEvent(run, run.events[run.floor], 0); else if (nd.type === 'recruit') { if ((off[i] || []).length) join(run, off[i][0]); }
       else { for (const id of run.roster) run.hp[id] = Math.max(1, Math.round(STAT[id].hp * rand())); const who = nd.rescue && off[i]; if (who) join(run, who[0]); applyUpgrade(run, offerUpgrades(run)[Math.floor(rand() * 3)]); }

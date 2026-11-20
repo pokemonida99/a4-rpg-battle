@@ -441,6 +441,21 @@ export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[k
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
 // 報帳處（採買站）：打贏戰鬥會拿到「報帳額度」（run.coin：一般 40、菁英 70、頭目 90），在採買站花掉。一站賣三樣：一個小物、一份補給包（奶茶、咖啡、便當各一）、一次特訓
+// 職位：開局選一個，整輪有效。[名字, 好處, 限制, 一句話]
+export const JOBS = {
+  fire: ['救火組長', '每場戰鬥第一回合，造成的傷害 ＋30%', '第三回合起，普攻傷害 －15%', '先救，誰點的火晚點再查。'],
+  welfare: ['福利委員', '戰鬥中的回復量 ＋30%', '造成的傷害 －8%', '照顧大家也算在工作內容裡。'],
+  risk: ['風控專員', '防禦時多回 20 SP，並得到 300 護盾', '每場戰鬥第一回合，造成的傷害 －20%', '風險我先寫進會議紀錄了。'],
+  window: ['專案窗口', '打中弱點傷害再 ＋10%，出手的人 SP ＋6', '沒打中弱點的攻擊，傷害 －10%', '需求麻煩一次講清楚。'],
+  duty: ['值班主任', '護盾量 ＋35%', '戰鬥中的回復量 －20%', '問題先擋著，明天再說。'],
+  edu: ['教育委員', '主角一開始就會全部招式', '過關獎勵從三選一變成二選一', '預算都拿去上課了。'],
+  buyer: ['採購主任', '開局有 60 點報帳額度，之後多拿五成', '休息站回復的 HP 少三成', '省到了，命也快沒了。'],
+  hr: ['人資專員', '開局多一位同事同行（隨機）', '受到的傷害 ＋5%', '人我找來了，剩下的你們自己喬。'],
+  host: ['會議主持', '每場戰鬥開場氣勢 ＋20', '招式的 SP 消耗 ＋10%', '大家先 sync 一下，五分鐘就好。'] };
+// 開局給三個職位挑（沒有採買站的地圖不出採購主任）
+export function offerJobs(rand = Math.random, map = 'office') { const pool = Object.keys(JOBS).filter(k => k !== 'buyer' || (MAPS[map] || []).some(fl => fl.some(nd => nd.type === 'shop'))); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
+const jobDmg = (s, o, wk, type) => { const j = s.run.job; return j === 'fire' ? (s.round <= 1 ? 1.3 : o.basic && s.round >= 3 ? .85 : 1) : j === 'welfare' ? .92 : j === 'risk' ? (s.round <= 1 ? .8 : 1) : j === 'window' ? (wk ? 1.1 : type ? .9 : 1) : 1; };
+const jobHeal = s => s.run.job === 'welfare' ? 1.3 : s.run.job === 'duty' ? .8 : 1, jobWard = s => s.run.job === 'duty' ? 1.35 : 1;
 export const PRICE = { relic: 70, supply: 45, train: 60 };
 export const coinFor = nd => 40 + (nd.tag === '菁英' ? 30 : 0) + (nd.tag === '頭目' || nd.tag === '魔王' ? 50 : 0);
 export function shopStock(run) { const o = run.shop || (run.shop = {}); if (!o[run.floor]) { const pool = Object.keys(UPGRADES).filter(k => UPGRADES[k].once && k !== 'learn' && !run.picks.includes(k) && !(UPGRADES[k].need && !UPGRADES[k].need.some(id => run.roster.includes(id)))); o[run.floor] = { relic: pool.length ? pool[Math.floor(run.rand() * pool.length)] : null, sold: [] }; } return o[run.floor]; }
@@ -455,12 +470,13 @@ export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'
 export const OT_MAX = OVERTIME.length;
 // ---------- 一輪遊戲的進度 ----------
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
-export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0) {
+export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)) };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
+  if (starter && run.job) { const j = run.job; if (j === 'edu') run.skills[starter] = SKILLS[starter].map(k => k.key); else if (j === 'buyer') run.coin = 60; else if (j === 'host') run.moStart += 20; else if (j === 'hr') { run.def *= 1.05; const pool = ALL.filter(id => id !== 'vivi' && !STARTERS.includes(id)); join(run, pool[Math.floor(rand() * pool.length)]); } }
   return run;
 }
 // 加入名冊（滿血滿 SP、會全部招式）
@@ -488,13 +504,13 @@ export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
   addTally(s, run); run.tally.fights++;
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
-  run.lastCoin = coinFor(run.node); run.coin = (run.coin || 0) + run.lastCoin;
+  run.lastCoin = Math.round(coinFor(run.node) * (run.job === 'buyer' ? 1.5 : 1)); run.coin = (run.coin || 0) + run.lastCoin;
   run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
-export function rest(run) { let sum = 0; for (const id of run.roster) { if (id !== 'vivi') { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * (run.ot >= 4 ? .25 : .5))); run.hp[id] += v; sum += v; } run.sp[id] = STAT[id].sp; } return sum; }
+export function rest(run) { let sum = 0; for (const id of run.roster) { if (id !== 'vivi') { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * (run.ot >= 4 ? .25 : .5) * (run.job === 'buyer' ? .7 : 1))); run.hp[id] += v; sum += v; } run.sp[id] = STAT[id].sp; } return sum; }
 export const unlearned = run => run.starter ? SKILLS[run.starter].map(k => k.key).filter(k => !run.skills[run.starter].includes(k)) : [];
-export function offerUpgrades(run) { const pool = Object.keys(UPGRADES).filter(k => { const U = UPGRADES[k]; return !(k === 'morale' && run.picks.includes('morale')) && !(k === 'learn' && !unlearned(run).length) && !(U.once && run.picks.includes(k)) && !(U.need && !U.need.some(id => run.roster.includes(id))); }); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
+export function offerUpgrades(run) { const pool = Object.keys(UPGRADES).filter(k => { const U = UPGRADES[k]; return !(k === 'morale' && run.picks.includes('morale')) && !(k === 'learn' && !unlearned(run).length) && !(U.once && run.picks.includes(k)) && !(U.need && !U.need.some(id => run.roster.includes(id))); }); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, run.job === 'edu' ? 2 : 3); }
 // opt：在職進修要學哪一招（沒給就學排在最前面那個還不會的）
 export function applyUpgrade(run, key, opt) { run.picks.push(key);
   if (key === 'raise') run.atk *= 1.15; else if (key === 'chair') run.def *= .85; else if (key === 'morale') run.moStart += 30; else if (key === 'drinks') run.items.tea += 2; else if (key === 'bento') run.items.bento += 1;
@@ -509,7 +525,7 @@ export const tagCount = (run, tag) => run.picks.filter(k => UP_TAG[k] === tag).l
 function statPick(key) { for (const id of ALL) { if (id !== 'vivi') STAT[id].hp = Math.round(STAT[id].hp * 1.2); if (key === 'blanket') STAT[id].spd = Math.round(STAT[id].spd * .9); } }
 // ---------- 特訓：休息站可以不休息，改挑一個招式升級成「＋」（每招一次）：傷害與回復量 ＋25%，SP 消耗 －20% ----------
 export const isPlus = (run, id, key) => (run.plus || []).includes(id + ':' + key);
-export const skCost = (run, id, sk) => Math.ceil(sk.sp * (isPlus(run, id, sk.key) ? .8 : 1) * (setOn(run, '技巧') ? .9 : 1) * (run.picks.includes('redpen') && (sk.type || sk.fx && sk.fx.some(x => x[0] === 'dmg')) ? 1.2 : 1));
+export const skCost = (run, id, sk) => Math.ceil(sk.sp * (run.job === 'host' ? 1.1 : 1) * (isPlus(run, id, sk.key) ? .8 : 1) * (setOn(run, '技巧') ? .9 : 1) * (run.picks.includes('redpen') && (sk.type || sk.fx && sk.fx.some(x => x[0] === 'dmg')) ? 1.2 : 1));
 export const uniteCost = (run, U, i) => Math.ceil(U.sp[i] * (run.picks.includes('carbon') ? .7 : 1) * (run.picks.includes('redpen') && U.type ? 1.2 : 1));
 export const ultMo = run => run.picks.includes('bell') ? 35 : MO.ult;
 export function offerTrain(run) { const act = active(run), pool = run.roster.filter(id => id !== 'vivi' || true).flatMap(id => (run.skills[id] || []).filter(k => !isPlus(run, id, k)).map(k => [id, k])); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
@@ -547,7 +563,7 @@ export function loadRun(data, rand = Math.random) {
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
-    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
     return { run, pend: d.pend || null, rescued: d.rescued || null };
   } catch (e) { return null; }
@@ -599,8 +615,8 @@ const vary = (s, v, k = .08) => Math.round(v * (1 - k + s.rand() * 2 * k));
 const check = s => { if (s.hasBoss ? s.hp.boss <= 0 : MINIONS.every(m => !alive(s, m))) s.over = 'win'; else if (FRONT.every(id => !alive(s, id))) s.over = 'lose'; };
 const gain = (s, n) => { s.mo = Math.max(0, Math.min(MO.max, s.mo + n)); return s.mo; };
 // 附帶效果的結果都記成 r.fxs 裡的一筆，畫面照著演：{ t: 'ward'|'heal'|'sp'|'mo'|'tag', dst, v, hp, sp, mo, text }
-const FX = { ward: (s, dst, v, why) => { if (!alive(s, dst)) return null; s.ward[dst] = Math.max(s.ward[dst] || 0, v); return { t: 'ward', dst, v, why }; },
-  heal: (s, dst, v, why) => { if (!alive(s, dst)) return null; const x = Math.min(v, STAT[dst].hp - s.hp[dst]); s.hp[dst] += x; return x > 0 ? { t: 'heal', dst, v: x, hp: s.hp[dst], why } : null; },
+const FX = { ward: (s, dst, v, why) => { if (!alive(s, dst)) return null; v = Math.round(v * jobWard(s)); s.ward[dst] = Math.max(s.ward[dst] || 0, v); return { t: 'ward', dst, v, why }; },
+  heal: (s, dst, v, why) => { if (!alive(s, dst)) return null; const x = Math.min(Math.round(v * jobHeal(s)), STAT[dst].hp - s.hp[dst]); s.hp[dst] += x; return x > 0 ? { t: 'heal', dst, v: x, hp: s.hp[dst], why } : null; },
   sp: (s, dst, v, why) => { if (!alive(s, dst)) return null; const x = Math.min(v, STAT[dst].sp - s.sp[dst]); s.sp[dst] += x; return x > 0 ? { t: 'sp', dst, v: x, sp: s.sp[dst], why } : null; },
   mo: (s, v, why) => ({ t: 'mo', v, mo: gain(s, v), why }), tag: (dst, text) => ({ t: 'tag', dst, text }) };
 const addFx = (r, x) => { if (x) (r.fxs || (r.fxs = [])).push(x); return x; };
@@ -692,7 +708,7 @@ function hitFoe(s, src, dst, base, o = {}) {
   if (dst === 'boss' && s.locks && s.locks.length && type && !s.cmd.lock) { const i = s.locks.indexOf(type); if (i >= 0) { s.locks.splice(i, 1); s.cmd.lock = true; lk.lock = s.locks.length; lk.lockType = type; if (!s.locks.length) { s.locks = null; s.charging = false; s.broken = true; s.shield = 0; s.tally.brk++; lk.lockAll = true; lk.brk = true; } } }
   if (dst === 'boss' && guarded(s) && !o.pierce) return { src, dst, v: 0, guard: true, hp: s.hp.boss, shield: s.shield, ...lk };
   if (dst === 'boss' && s.L.pot && !s.potUsed && !o.pierce) { const m = MINIONS.find(x => alive(s, x)); if (m) { s.potUsed = true; return { ...hitFoe(s, src, m, base, { ...o, type }), pot: true, ...lk }; } }      // 甩鍋：這回合第一下由小兵背
-  const bl = !!s.bless[src]; if (bl) s.bless[src] = false; const crit = bl || (!o.noCrit && s.rand() < .12); let v = vary(s, base) * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (s.up[src] > 0 ? 1.25 : 1) * (crit ? (bl ? 2 : 1.5) : 1) * (src === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (src === 'zong' || src === 'hui') ? 1.2 : 1) * (dst === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[dst] > 0 ? 1.3 : 1); const armor = o.basic && dst !== 'boss' && KINDS[s.kind[dst]].armor; if (armor) v *= armor; const dull = s.inSkill && dst !== 'boss' && KINDS[s.kind[dst]].dull; if (dull) v *= dull; const wk = !!type && weakOf(s, dst).includes(type); if (wk) v *= (has(s, 'tabs') ? 1.5 : 1.3) + (setOn(s.run, '火力') ? .15 : 0);
+  const bl = !!s.bless[src]; if (bl) s.bless[src] = false; const crit = bl || (!o.noCrit && s.rand() < .12); let v = vary(s, base) * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (s.up[src] > 0 ? 1.25 : 1) * (crit ? (bl ? 2 : 1.5) : 1) * (src === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (src === 'zong' || src === 'hui') ? 1.2 : 1) * (dst === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[dst] > 0 ? 1.3 : 1); const armor = o.basic && dst !== 'boss' && KINDS[s.kind[dst]].armor; if (armor) v *= armor; const dull = s.inSkill && dst !== 'boss' && KINDS[s.kind[dst]].dull; if (dull) v *= dull; const wk = !!type && weakOf(s, dst).includes(type); if (wk) v *= (has(s, 'tabs') ? 1.5 : 1.3) + (setOn(s.run, '火力') ? .15 : 0); if (s.run.job) v *= jobDmg(s, o, wk, type);
   let combo = null, chip2 = 0;
   if (type === 'ice' && s.burn[dst] > 0) { combo = 'ice'; v *= 1.4; s.burn[dst] = 0; } else if (type === 'fire' && s.poison[dst] && s.poison[dst].n > 0) { combo = 'fire'; v *= 1.4; s.poison[dst].n = 0; }
   else if (type === 'blunt' && dst !== 'boss' && s.stun[dst]) { combo = 'blunt'; v *= 1.4; } else if (type === 'holy' && s.atkDown[dst] > 0) { combo = 'holy'; v *= 1.2; chip2 = 1; }
@@ -704,6 +720,7 @@ function hitFoe(s, src, dst, base, o = {}) {
   if (dst === 'boss' && s.L.layers && s.inSkill && s.layers > 0 && !s.layerHit) { s.layers--; s.layerHit = true; r.layerDown = s.layers; }      // 鐵皮：一招拆一層
   if (r.kill && dst === s.proj) r.projDown = true;      // 猴子的臨時專案被打倒：大招放不出來了
   if (r.kill && s.mark[dst] > 0) { s.mark[dst] = 0; gain(s, 20); r.bounty = true; if (FRONT.includes('heilun') && alive(s, 'heilun')) { const x = FX.sp(s, 'heilun', 10, '成交有回饋'); if (x) r.fxs = [x]; } if (has(s, 'bounty')) { r.bountySp = 25; for (const h of FRONT) if (alive(s, h)) s.sp[h] = Math.min(STAT[h].sp, s.sp[h] + 25); } }
+  if (wk && s.run.job === 'window' && !s.cmd.jsp && HEROES.includes(src)) { s.cmd.jsp = true; const x = FX.sp(s, src, 6, '專案窗口'); if (x) (r.fxs || (r.fxs = [])).push(x); }
   if (dst === 'boss' && !s.broken && !r.kill) { const more = (wk && !s.cmd.chip ? 1 : 0) + chip2; if (wk) s.cmd.chip = true; s.shield = Math.max(0, s.shield - (o.sh ?? 1) - more); if (s.charging) s.bragLow = Math.min(s.bragLow, s.shield); if (s.shield === 0) { s.broken = true; r.brk = true; s.tally.brk++; } }
   if (dst === 'boss') r.shield = s.shield; check(s); return r;
 }
@@ -730,13 +747,13 @@ function hitHeroes(s, src, list) {
 // 普通攻擊：回復自己 6% 最大 SP（至少 8）。防禦：受傷減半，另外回 10 SP
 export function doAttack(s, id, target) { newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
   const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
-export function doDefend(s, id) { newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); return after(s, id, r); }
+export function doDefend(s, id) { newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(s.run.job === 'risk' ? 30 : 10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
 export function doCheer(s) { return { kind: 'cheer', id: 'vivi', mo: gain(s, MO.cheer) }; }
 export const itemsLeft = s => s.run.ot >= 1 ? Math.max(0, 2 - s.itemUses) : 99;
 export function itemTargets(s, key) { const it = ITEMS[key]; if (itemsLeft(s) <= 0) return []; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
 export function doItem(s, id, key, target) {
   const it = ITEMS[key]; s.items[key]--; s.itemUses++; s.smoke[id] = null; const r = { kind: 'item', id, key, target };
-  if (it.hp) { r.heal = Math.min(it.hp, STAT[target].hp - s.hp[target]); s.hp[target] += r.heal; }
+  if (it.hp) { r.heal = Math.min(Math.round(it.hp * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += r.heal; }
   if (it.sp) { r.spGain = Math.min(it.sp, STAT[target].sp - s.sp[target]); s.sp[target] += r.spGain; }
   if (it.revive) { r.revive = true; r.heal = Math.round(STAT[target].hp * it.revive); s.hp[target] = r.heal; }
   r.hp = s.hp[target]; r.sp = s.sp[target]; r.mo = gain(s, MO.item); return after(s, id, r);
@@ -768,8 +785,8 @@ export function doSkill(s, id, key, target) {
   else if (key === 'barrage') { for (const f of all()) push(hitFoe(s, id, f, atk * .8)); r.spGain = Math.min(15, STAT[id].sp - s.sp[id]); s.sp[id] += r.spGain; }
   else if (key === 'burn') { const h = push(hitFoe(s, id, target, atk * 1.1)); if (h && !h.guard && alive(s, h.dst)) { s.burn[h.dst] = has(s, 'ember') ? 3 : 2; r.burn = h.dst; } }
   else if (key === 'freeze') { const h = push(hitFoe(s, id, target, atk)); if (h && !h.guard && !h.kill) { s.atkDown[h.dst] = h.dst === 'boss' ? 4 : 2; r.down = [h.dst]; } }
-  else if (key === 'mend') { const v = Math.min(kv(1500), STAT[target].hp - s.hp[target]); s.hp[target] += v; r.heals = [{ dst: target, v, hp: s.hp[target] }]; }
-  else if (key === 'soothe') r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(kv(700), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h] }; });
+  else if (key === 'mend') { const v = Math.min(Math.round(kv(1500) * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += v; r.heals = [{ dst: target, v, hp: s.hp[target] }]; }
+  else if (key === 'soothe') r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(Math.round(kv(700) * jobHeal(s)), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h] }; });
   else if (key === 'treat') r.spGains = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(kv(60), STAT[h].sp - s.sp[h]); s.sp[h] += v; return { dst: h, v, sp: s.sp[h] }; });
   else if (key === 'delay') { push(hitFoe(s, id, target, atk * .7)); if (s.queue.includes(target) && alive(s, target)) { const moved = s.queue.filter(q => q === target); s.queue = s.queue.filter(q => q !== target).concat(moved); r.delayed = target; } }
   else if (key === 'lock') { r.down = all(); for (const f of r.down) s.atkDown[f] = Math.max(s.atkDown[f] || 0, 1); }
@@ -787,12 +804,12 @@ export function doSkill(s, id, key, target) {
   else if (key === 'backdoor') push(hitFoe(s, id, target, atk * 1.1, { pierce: true }));
   else if (key === 'mice') { const n = 4 + HEROES.filter(h => h === 'zong' || h === 'hui').length; for (let i = 0; i < n; i++) { const fs = all().filter(f => !(f === 'boss' && guarded(s))); if (!fs.length) break; push(hitFoe(s, id, fs[Math.floor(s.rand() * fs.length)], atk * .45)); } }
   else if (key === 'wand') { s.bless[target] = true; r.bless = target; }
-  else if (key === 'sip') { const v = Math.min(kv(900), STAT[id].hp - s.hp[id]); s.hp[id] += v; s.defend[id] = true; r.heals = [{ dst: id, v, hp: s.hp[id] }]; }
+  else if (key === 'sip') { const v = Math.min(Math.round(kv(900) * jobHeal(s)), STAT[id].hp - s.hp[id]); s.hp[id] += v; s.defend[id] = true; r.heals = [{ dst: id, v, hp: s.hp[id] }]; }
   else if (key === 'news') { const h = push(hitFoe(s, id, target, atk * 1.2)); if (h && !h.guard && !h.kill) { s.atkDown[h.dst] = Math.max(s.atkDown[h.dst] || 0, 1); r.down = [h.dst]; } }
   else if (key === 'overtime') { push(hitFoe(s, id, target, atk)); s.overtime = Math.min(4, s.overtime + 1); r.overtime = s.overtime; }
   else if (key === 'allnight') { r.selfDmg = Math.min(s.hp[id] - 1, Math.round(STAT[id].hp * .15)); s.hp[id] -= r.selfDmg; r.selfHp = s.hp[id]; push(hitFoe(s, id, target, atk * 2, { sh: 2 })); }
   else if (key === 'transfer') { const v = Math.min(kv(80), STAT[target].sp - s.sp[target]); s.sp[target] += v; r.spGains = [{ dst: target, v, sp: s.sp[target] }]; }
-  else if (key === 'mix') { const v = Math.min(kv(1100), STAT[target].hp - s.hp[target]); s.hp[target] += v; s.defend[target] = true; r.heals = [{ dst: target, v, hp: s.hp[target] }]; r.shielded = target; }
+  else if (key === 'mix') { const v = Math.min(Math.round(kv(1100) * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += v; s.defend[target] = true; r.heals = [{ dst: target, v, hp: s.hp[target] }]; r.shielded = target; }
   else if (sk.fx) runFx(s, id, sk, target, r, push, all);
   s.inSkill = false; s.plusK = 1; s.curType = null; if (K > 1) r.plus = true; if (fee) r.fee = fee; gain(s, MO.skill); after(s, id, r); r.sp = s.sp[id]; return r;
 }
@@ -820,10 +837,10 @@ export function doUlt(s, id) {
   } else if (id === 'senpai') { const t = prime(); if (t) push(hitFoe(s, id, t, 3400 + 2600 * s.evidence, { sh: 2 })); r.evidence = s.evidence; s.evidence = 0;
   } else if (id === 'wu') { r.encore = FRONT.filter(h => h !== id && alive(s, h)).slice(0, Math.max(0, EXTRA_MAX - s.extra)); s.queue = [...r.encore, ...s.queue]; for (const h of r.encore) s.bonus[h] = (s.bonus[h] || 0) + 1; s.extra += r.encore.length;
   } else if (id === 'you') { const t = alive(s, 'boss') ? 'boss' : prime(); if (t) push(hitFoe(s, id, t, 5200, { sh: 3, pierce: true }));
-  } else if (id === 'fairy') { r.heals = FRONT.filter(h => h !== id || alive(s, h)).map(h => { const up = !alive(s, h), v = up ? Math.round(STAT[h].hp * .3) : Math.min(Math.round(STAT[h].hp * .2), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h], revive: up }; });
+  } else if (id === 'fairy') { r.heals = FRONT.filter(h => h !== id || alive(s, h)).map(h => { const up = !alive(s, h), v = up ? Math.round(STAT[h].hp * .3) : Math.min(Math.round(STAT[h].hp * .2 * jobHeal(s)), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h], revive: up }; });
   } else if (id === 'zong') { s.endure = 2;
   } else if (id === 'hui') { for (let i = 0; i < 4; i++) { const fs = all().filter(f => !(f === 'boss' && guarded(s))); if (!fs.length) break; push(hitFoe(s, id, fs[Math.floor(s.rand() * fs.length)], 1500, { sh: 1 })); }
-  } else if (id === 'xu') { r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(Math.round(STAT[h].hp * .4), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h] }; });
+  } else if (id === 'xu') { r.heals = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(Math.round(STAT[h].hp * .4 * jobHeal(s)), STAT[h].hp - s.hp[h]); s.hp[h] += v; return { dst: h, v, hp: s.hp[h] }; });
     r.spGains = FRONT.filter(h => alive(s, h)).map(h => { const v = Math.min(60, STAT[h].sp - s.sp[h]); s.sp[h] += v; return { dst: h, v, sp: s.sp[h] }; }); s.items.tea++; r.tea = true; }
   s.curType = null; s.inUlt = false; after(s, id, r); r.sp = s.sp[id]; return r;
 }

@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.24.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.25.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -628,10 +628,23 @@ function pickOt() { const mx = Math.min(R.OT_MAX, (PREF.ot || {})[mapKey] || 0);
   openCards({ title: '今天要加班到幾級？', sub: '加班等級越高，對我方不利的規則越多（往上累加）。通關最高等級會再解鎖下一級。', foot: '選一個', items: lv.map(v => ({ label: v ? `加班等級 ${v}` : '準時下班', tag: v ? `共 ${v} 條規則` : '正常難度', icon: v ? 'elite' : 'rest', big: true, lines: v ? R.OVERTIME.slice(Math.max(0, v - 3), v).map(o => `${o[0]}：${o[1]}`) : ['沒有額外規則'], go: () => { otKey = v; pickStarter(); } })) }); }
 function pickStarter() {
   openCards({ title: '今天誰先去上班？', sub: '從一個人開始。路上會遇到同事，最多帶四個人上場。', foot: '選一位主角', items: R.STARTERS.map(id => heroCard(id, () => pickSkill(id), true)) }); }
-function pickSkill(id) { openCards({ title: `${DEFS[id].name}的第一招`, sub: '三個招式先帶一個。其他的之後可以靠強化「在職進修」學會。', foot: '選一個招式就出發', items: R.SKILLS[id].map(k => ({ label: k.name, tag: `SP ${k.sp}　${k.note}`, icon: 'sk_' + k.key, lines: [k.desc], go: () => beginRun(id, k.key) })) }); }
+function pickSkill(id) { openCards({ title: `${DEFS[id].name}的第一招`, sub: '三個招式先帶一個。其他的之後可以靠強化「在職進修」學會。', foot: '選一個招式就出發', items: R.SKILLS[id].map(k => ({ label: k.name, tag: `SP ${k.sp}　${k.note}`, icon: 'sk_' + k.key, lines: [k.desc], go: () => pickJob(id, k.key) })) }); }
+// 職位：整趟有效的一個好處＋一個限制。第一次玩先不出現（已經有路線、主角、招式要選）；測試網址有 ?map= 時也跳過，要看就加 &job=pick，要指定就 &job=fire
+// 每張地圖的開場與結局（旁白，不讓特定角色開口）。開場只在第一次走這張地圖時出現；結局在通關的結案報告上
+const STORY = {
+  office: { icon: 'boss', title: '今天的行程', intro: ['早上八點五十九分，打卡鐘還沒響。', '聽說奧客總經理今天又要來「了解一下進度」。', '一個人擋不住，路上能拉幾個同事算幾個。', '目標很簡單：今天，準時下班。'], end: ['奧客總經理收起名片，說他「再回去想想」。', '沒有人加薪，也沒有人被表揚。', '但六點整，辦公室的燈真的關了。'] },
+  taiwan: { icon: 'chief', title: '颱風天，照常上班', intro: ['颱風警報發了，公司群組只回一句：「照常上班。」', '廟埕在趕燈會、夜市在衝業績、頂樓還在加蓋。', '每一關的主管都說：這個很急。', '那就一關一關去問，到底是誰說不能放假。'], end: ['鐵皮屋頂終於不再往上蓋了。', '處長說停班停課的公告「其實早上就簽了」。', '風雨很大，大家第一次覺得回家的路很好走。'] },
+  hell: { icon: 'elite', title: '離職申請處理中', intro: ['離職申請被退件，理由欄寫著：「請洽地下分公司」。', '電梯一路往下，樓層顯示早就不是數字。', '這裡的人都說自己只是暫時支援，已經支援很久了。', '把章蓋齊，才能從正門走出去。'], end: ['最後一個章蓋下去，永續加班總監只說了兩個字：「核准。」', '離職申請單自己燒了起來，灰飄得很輕。', '電梯往上，這次按鈕有反應。'] },
+  mirror: { icon: 'elite', title: '鏡像內戰', intro: ['公司引進了「數位分身」，說可以幫大家分擔工作。', '結果分身比本人準時、比本人聽話，還不會請假。', '主管開始問：那本人還需要來嗎？', '去跟自己把話講清楚。'], end: ['分身們排成一列，交回了識別證。', '鏡子裡的那個自己，最後只說了一句「辛苦了」。', '原來最難應付的同事，一直是自己。'] } };
+const JOB_ICON = { fire: 'up_ember', welfare: 'up_firstaid', risk: 'up_partition', window: 'up_tabs', duty: 'sk_nightshift', edu: 'up_learn', buyer: 'shop', hr: 'recruit', host: 'up_bell' };
+let jobKey = null;
+function pickJob(id, key) { jobKey = R.JOBS[Q.get('job')] ? Q.get('job') : null; if (Q.get('job') !== 'pick' && (Q.has('map') || (PREF.seen || []).length < 3)) return beginRun(id, key);
+  openCards({ title: '今天代理什麼職位？', sub: '整趟行程都有效：一個好處、一個限制。不想代理也可以。', foot: '選一個就出發', items: [...R.offerJobs(Math.random, mapKey).map(j => ({ label: R.JOBS[j][0], tag: `「${R.JOBS[j][3]}」`, icon: JOB_ICON[j], lines: ['好處：' + R.JOBS[j][1], '限制：' + R.JOBS[j][2]], go: () => { jobKey = j; beginRun(id, key); } })), { label: '一般職員', tag: '不代理', icon: 'rest', lines: ['沒有好處，也沒有限制'], go: () => { jobKey = null; beginRun(id, key); } }] }); }
 // 測試用：網址加 ?stage=chief 或 ?floor=5（第幾站）直接跳過去，隊伍用 ?team=kevin,mi
-function beginRun(id, key) { run = R.newRun(RAND, id, key, mapKey, Q.has('ot') ? +Q.get('ot') : otKey); if (Q.has('stage') || Q.has('floor')) { const f = Q.has('floor') ? Math.min(R.MAP.length - 1, +Q.get('floor') - 1) : R.MAP.findIndex(fl => fl.some(nd => nd.stage === Q.get('stage') || (nd.pool || []).includes(Q.get('stage')))); { const nd = Q.has('stage') && R.MAP.flat().find(nd => (nd.pool || []).includes(Q.get('stage'))); if (nd) run.alt[nd.stage] = Q.get('stage'); } if (f > 0) { for (const h of (Q.get('team') || 'kevin,mi,vivi').split(',')) if (units[h]) R.join(run, h); run.floor = f; for (let k = 0; k < f; k++) run.path[k] = 0; } }
-  R.prepare(run); snd(now, 'buff', .8); openHub(`${DEFS[id].name}出發，第一招「${R.SKILLS[id].find(k => k.key === key).name}」`); }
+function beginRun(id, key) { run = R.newRun(RAND, id, key, mapKey, Q.has('ot') ? +Q.get('ot') : otKey, jobKey); for (const h of run.roster) met(h); if (Q.has('stage') || Q.has('floor')) { const f = Q.has('floor') ? Math.min(R.MAP.length - 1, +Q.get('floor') - 1) : R.MAP.findIndex(fl => fl.some(nd => nd.stage === Q.get('stage') || (nd.pool || []).includes(Q.get('stage')))); { const nd = Q.has('stage') && R.MAP.flat().find(nd => (nd.pool || []).includes(Q.get('stage'))); if (nd) run.alt[nd.stage] = Q.get('stage'); } if (f > 0) { for (const h of (Q.get('team') || 'kevin,mi,vivi').split(',')) if (units[h]) R.join(run, h); run.floor = f; for (let k = 0; k < f; k++) run.path[k] = 0; } }
+  R.prepare(run); snd(now, 'buff', .8); const hubMsg = () => openHub(`${DEFS[id].name}出發，第一招「${R.SKILLS[id].find(k => k.key === key).name}」` + (run.job ? `　代理${R.JOBS[run.job][0]}` : '') + (run.job === 'hr' && run.roster[1] ? `　${DEFS[run.roster[1]].name}同行` : ''));
+  const ST = STORY[run.map], seenIntro = PREF.intro || (PREF.intro = []); if (!ST || (Q.has('map') && !Q.has('intro')) || (seenIntro.includes(run.map) && !Q.has('intro'))) return hubMsg(); seenIntro.push(run.map); savePref();
+  openCards({ title: ST.title, sub: '', foot: '', wide: true, items: [{ label: '出發', icon: ST.icon, big: true, lines: ST.intro, go: hubMsg }] }); }
 function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || {})[i] || []; if (!list.length) { R.advance(run); return openHub('名冊已經滿了，這一站沒有人可以帶'); }
   openCards({ title: nd.name, sub: '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: '選完回到行程表', items: list.map(id => heroCard(id, () => { R.join(run, id); met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍`); })) }); }
 // 事件站：抽到的事件攤開成兩張選項卡，代價與好處都寫在卡上；選不了的（東西不夠）是舊紙
@@ -826,12 +839,12 @@ function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgb
       if (im) pix(im, x + 14, y + 10, 78 * im.width / im.height, 78); text(`×${bag[k]}`, x + w - 18, y + 68, { px: 48, w: 900, align: 'right', col: bag[k] ? INK : RED }); text(it.name, x + 16, y + 124, { px: 32, w: 900, fam: SERIF, col: INK }); text(fit(it.note, w - 28, 26, 700), x + 16, y + 156, { px: 26, w: 700, col: INK2 }); });
     text('道具在戰鬥中輪到自己時，從「道具」指令使用', RX + 22, RY + 226, { px: 26, w: 700, col: 'rgba(239,230,207,.72)' });
     // 強化：名字和效果都寫出來
-    const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; const ks = Object.keys(cnt), UY = RY + 304;
+    const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; const ks = [...(run.job ? ['@job'] : []), ...Object.keys(cnt)], UY = RY + 304, upOf = k => k === '@job' ? { name: R.JOBS[run.job][0], desc: '好處：' + R.JOBS[run.job][1], bad: '限制：' + R.JOBS[run.job][2] } : R.UPGRADES[k], jo = run.job ? 32 : 0, upIc = k => A.icons[k === '@job' ? JOB_ICON[run.job] : 'up_' + k];
     text('這一輪的強化', RX + 22, RY + 284, { px: 32, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); { const st = Object.keys(R.SETS).map(t => [t, R.tagCount(run, t)]).filter(x => x[1] > 0).map(([t, n]) => `${t} ${Math.min(n, 3)}／3${n >= 3 ? '✓' : ''}`).join('　'); text(fit(st ? `套裝　${st}` : `${run.picks.length} 個`, RW - 330, 24, 700), RX + RW - 24, RY + 284, { px: 24, w: 700, align: 'right', col: BRASS }); }
     if (!ks.length) text('還沒有。打贏戰鬥或到福委會可以三選一', RX + 22, UY + 48, { px: 28, w: 700, col: 'rgba(239,230,207,.6)' });
-    else if (ks.length <= 6) ks.forEach((k, j) => { const u = R.UPGRADES[k], x = RX + 16, y = UY + j * 84, w = RW - 32, im = A.icons['up_' + k]; skin.paper(x, y, w, 78); if (im) pix(im, x + 10, y + 7, 64, 64);
+    else if (ks.length <= (run.job ? 5 : 6)) ks.forEach((k, j) => { const u = upOf(k), x = RX + 16, y = UY + j * 84 + (j ? jo : 0), w = RW - 32, im = upIc(k); skin.paper(x, y, w, u.bad ? 110 : 78); if (u.bad) { text('職位', x + w - 16, y + 36, { px: 24, w: 900, align: 'right', col: '#1f6a5c' }); text(fit(u.bad, w - 104, 26, 700), x + 88, y + 100, { px: 26, w: 700, col: RED }); } if (im) pix(im, x + 10, y + 7, 64, 64);
       text(u.name, x + 88, y + 36, { px: 30, w: 900, fam: SERIF, col: INK }); if (cnt[k] > 1) text(`×${cnt[k]}`, x + 100 + mw(u.name, 30, 900, SERIF), y + 36, { px: 30, w: 900, col: RED }); text(fit(u.desc, w - 104, 26, 700), x + 88, y + 68, { px: 26, w: 700, col: INK2 }); });
-    else ks.forEach((k, j) => { const u = R.UPGRADES[k], w = 364, x = RX + 16 + (j % 2) * 372, y = UY + (j >> 1) * 63, im = A.icons['up_' + k]; skin.paper(x, y, w, 58); if (im) pix(im, x + 8, y + 5, 48, 48); text(u.name, x + 66, y + 40, { px: 28, w: 900, fam: SERIF, col: INK }); if (cnt[k] > 1) text(`×${cnt[k]}`, x + w - 14, y + 40, { px: 28, w: 900, align: 'right', col: RED }); });
+    else ks.forEach((k, j) => { const u = upOf(k), w = 364, x = RX + 16 + (j % 2) * 372, y = UY + (j >> 1) * 63, im = upIc(k); skin.paper(x, y, w, 58); if (im) pix(im, x + 8, y + 5, 48, 48); text(u.name, x + 66, y + 40, { px: 28, w: 900, fam: SERIF, col: INK }); if (cnt[k] > 1) text(`×${cnt[k]}`, x + w - 14, y + 40, { px: 28, w: 900, align: 'right', col: RED }); });
   } else if (panelTab === 2) {
     // 敵人圖鑑：這張地圖會遇到的敵人。打過的才有名字；弱點打中過才揭曉（PREF.weak），之後永遠記得
     const ks = [], bs = []; for (const nd of R.MAPS[run.map].flat()) for (const sk of nd.pool || (nd.stage ? [nd.stage] : [])) { const st = R.STAGES[sk]; for (const m of st.minions) { const k = (st.kinds || {})[m] || st.base || 'drone'; if (k !== 'random' && !ks.includes(k)) ks.push(k); } if (st.boss && !bs.some(b => b.id === st.boss.id)) bs.push(st.boss); }
@@ -891,7 +904,7 @@ function drawHub() {
   { const at0 = run.floor === 0 ? L.start : L.stn[run.floor - 1][run.path[run.floor - 1]], [x, y0] = sp(at0), k = tiny ? .8 : NK, y = y0 - 78 * k + Math.sin(tp * 3) * 4, h = 27 * k; c.fillStyle = '#1c120c'; c.fillRect(x - h, y - h, h * 2, h * 2); c.fillStyle = BRASS; c.fillRect(x - h + 3, y - h + 3, h * 2 - 6, h * 2 - 6); skin.face(A.face[run.roster[0]], x - h + 6, y - h + 6, h * 2 - 12); c.fillStyle = '#1c120c'; c.beginPath(); c.moveTo(x - 9, y + h); c.lineTo(x + 9, y + h); c.lineTo(x, y + h + 11); c.fill(); }
   // 上面壓一條暗邊，標題與開關才看得清楚
   { const g = c.createLinearGradient(0, 0, 0, 130); g.addColorStop(0, 'rgba(8,5,4,.7)'); g.addColorStop(1, 'rgba(8,5,4,0)'); c.fillStyle = g; c.fillRect(0, 0, W, 130); }
-  text('上班旅人', 22, 64, { px: 46, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.9)', sw: 8 }); text(`第 ${run.floor + 1}／${nF} 站` + (MAPNAME[run.map] ? '　' + MAPNAME[run.map] : '') + (run.ot ? `　加班 ${run.ot}` : ''), 26, 102, { px: 24, w: 700, col: run.map === 'mirror' ? '#c9b8ff' : BRASS, ls: 3, stroke: 'rgba(20,10,4,.8)', sw: 5 });
+  text('上班旅人', 22, 64, { px: 46, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.9)', sw: 8 }); text(`第 ${run.floor + 1}／${nF} 站` + (MAPNAME[run.map] ? '　' + MAPNAME[run.map] : '') + (run.ot ? `　加班 ${run.ot}` : '') + (run.job ? `　${R.JOBS[run.job][0]}` : ''), 26, 102, { px: 24, w: 700, col: run.map === 'mirror' ? '#c9b8ff' : BRASS, ls: 3, stroke: 'rgba(20,10,4,.8)', sw: 5 });
   toggle(PREF.mute ? '聲音　關' : '聲音　開', 1670, 14, 'mute', 236); toggle(PREF.low ? '畫質　省電' : '畫質　一般', 1670, 74, 'low', 236); toggle(PREF.mapFit ? '地圖　全覽' : '地圖　放大', 1670, 134, 'mapFit', 236);
   if (big && !PREF.dragged) { const tx = VIEW.x1 - 330, ty = VIEW.y1 - 62; skin.paper(tx, ty, 318, 48); text('按住地圖可以拖著看', tx + 159, ty + 33, { px: 26, w: 900, align: 'center', col: INK }); }
   // 下方：選到的那一站的說明＋出發
@@ -971,7 +984,7 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
 // 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
 const EYE = { kui: .40, jie: .45, kevin: .31, mi: .39, vivi: .33, yan: .37, heilun: .35, cha: .35, qiang: .30, senpai: .39, wu: .42, you: .30, fairy: .43, zong: .44, hui: .43, xu: .39 };
 function drawPick() {
-  drawTable(.62); const n = menu.items.length, CWd = n <= 2 ? 520 : 450, CH = 640, gap = 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
+  drawTable(.62); const n = menu.items.length, CWd = menu.wide ? 1000 : n <= 2 ? 520 : 450, CH = 640, gap = 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
   skin.wood(x0 - 46, 64, CWd * n + gap * (n - 1) + 92, 930); text(menu.title, W / 2, 158, { px: 62, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 }); wrap(menu.sub || '', CWd * n + gap * (n - 1) - 40, 25).slice(0, 2).forEach((s, i) => text(s, W / 2, 212 + i * 34, { px: 25, w: 700, align: 'center', col: 'rgba(239,230,207,.9)' }));
   menu.items.forEach((it, i) => { const x = x0 + i * (CWd + gap), off = !!it.off, on = i === focus && !off, pe = pressK(i), dn = pe >= 0 && !off; zones.push({ x, y, w: CWd, h: CH, i, off });
     c.save(); c.translate(pe >= 0 && off ? Math.sin(pe * 22) * 7 * (1 - Math.min(1, pe)) : 0, (on && !dn ? -12 : 0) + (dn ? 6 : 0)); skin.paper(x, y, CWd, CH, { clips: [x + CWd / 2], old: off });
@@ -985,7 +998,7 @@ function drawPick() {
     let px = 48; while (px > 30 && mw(it.label, px, 900, SERIF) + it.label.length * 4 > CWd - 50) px -= 2; text(it.label, x + CWd / 2, y + AH + 84, { px, w: 900, fam: SERIF, align: 'center', col: INK, ls: 4 }); let ty = y + AH + 104;
     if (it.tag) { text(fit(it.tag, CWd - 50, 20, 900), x + CWd / 2, ty + 16, { px: 20, w: 900, align: 'center', col: RED, ls: 2 }); ty += 30; } c.fillStyle = RED; c.fillRect(x + CWd / 2 - 60, ty + 2, 120, 4); ty += 16;
     const lp = it.big ? 28 : 21, lh = it.big ? 40 : 30, rows = it.lines.filter(Boolean).flatMap(s => wrap(s, CWd - 64, lp)).slice(0, Math.floor((y + CH - 30 - ty) / lh)); rows.forEach((s, k) => text(s, it.big ? x + CWd / 2 : x + 32, ty + 30 + k * lh, { px: lp, w: 700, align: it.big ? 'center' : 'left', col: s.startsWith('奧義') ? INK : INK2 }));
-    if (on) skin.stamp('選這個', x + CWd - 78, y + AH + 2, -.12, 20); if (off) skin.stamp('現在不行', x + CWd / 2, y + AH / 2 + 22, -.1, 30); c.restore(); });
+    if (on && !menu.wide) skin.stamp('選這個', x + CWd - 78, y + AH + 2, -.12, 20); if (off) skin.stamp('現在不行', x + CWd / 2, y + AH / 2 + 22, -.1, 30); c.restore(); });
   if (menu.foot) text(menu.foot, W / 2, 956, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.8)' });
 }
 // 關卡牌：開場與過關時畫面下方的一塊木牌
@@ -1005,6 +1018,8 @@ function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), c
 function drawReport() { const k = report; if (!k || now < k.t0) return; zones = [];
   const el = now - k.t0, u = easeOut(sat(el / .4)), PW = 940, PH = 1008, X = (k.win ? 46 : W / 2 - PW / 2) - (1 - u) * 60, Y = 36, L = X + 64, IW = PW - 128, nF = R.MAP.length, show = i => easeOut(sat((el - .45 - i * .3) / .3));
   const head = (s, y, i) => { c.globalAlpha = show(i); c.fillStyle = RED; c.fillRect(L, y - 18, 6, 22); text(s, L + 16, y, { px: 21, w: 900, col: INK, ls: 6 }); c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(L + 22 + mw(s, 21, 900) + s.length * 6, y - 8, IW - 22 - mw(s, 21, 900) - s.length * 6, 2); };
+  if (k.win && STORY[run.map] && el > 2.4) { const a = easeOut(sat((el - 2.4) / .6)), ls = STORY[run.map].end, ex = 1020, ew = 872, ey = 792 + (1 - a) * 24, eh = 74 + ls.length * 52; c.save(); c.globalAlpha = a; skin.paper(ex, ey, ew, eh, { clips: [ex + ew - 90] }); c.fillStyle = RED; c.fillRect(ex + 36, ey + 30, 6, 24); text('後記', ex + 54, ey + 52, { px: 24, w: 900, col: INK, ls: 6 });
+    ls.forEach((t, i) => { c.globalAlpha = a * easeOut(sat((el - 2.8 - i * .7) / .6)); text(fit(t, ew - 72, 30, 700), ex + 36, ey + 102 + i * 52, { px: 30, w: 700, col: INK }); }); c.restore(); }
   c.save(); c.globalAlpha = sat(el / .25); skin.wood(X, Y, PW, PH); skin.paper(X + 20, Y + 20, PW - 40, PH - 40, { clips: [X + 130, X + PW - 130] });
   text('結案報告', L, Y + 130, { px: 78, w: 900, fam: SERIF, col: INK, ls: 10 }); text(k.win ? `討伐${DEFS.boss.name}　${nF} 站全部走完` : `倒在第 ${k.floor + 1} 站「${k.stage}」` + (k.bossHp != null ? `　對方還剩 ${k.bossHp}% 的血` : ''), L + 4, Y + 174, { px: 24, w: 700, col: INK2, ls: 2 }); c.fillStyle = INK; c.fillRect(L, Y + 192, IW, 3); text('打法：' + (k.style.length ? k.style.join('・') : '還看不出來'), L + IW, Y + 174, { px: 22, w: 900, align: 'right', col: RED });
   // 路線：走過的站連成紅線；倒下的那一站打叉；沒走到的是虛線圈
@@ -1035,7 +1050,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'], ['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'], ['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'] ];
+const CHANGES = [['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'], ['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

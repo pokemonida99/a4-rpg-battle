@@ -11,7 +11,7 @@ const page = await browser.newPage(); await page.setViewport({ width: 1920, heig
 page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push('[console] ' + m.text()); });
 // PLAY_URL=https://…/ 可以改測線上版；MAP=mirror 直接玩鏡像內戰（不經過選路線）
 const BASE = process.env.PLAY_URL || 'http://localhost:4630/game.html'; page.on('response', r => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
-await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}${process.env.STAGE ? '&stage=' + process.env.STAGE : ''}${process.env.TEAM ? '&team=' + process.env.TEAM : ''}${process.env.MAP ? '&map=' + process.env.MAP : ''}`);
+await page.goto(`${BASE}?mute&fast=${fast}&seed=${seed}${process.env.STAGE ? '&stage=' + process.env.STAGE : ''}${process.env.TEAM ? '&team=' + process.env.TEAM : ''}${process.env.MAP ? '&map=' + process.env.MAP : ''}${process.env.JOB ? '&job=' + process.env.JOB : ''}`);
 await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 60000 });
 const shot = async name => { const url = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const x = c.getContext('2d'); x.drawImage(document.getElementById('gl'), 0, 0); x.drawImage(document.getElementById('hud'), 0, 0); return c.toDataURL('image/jpeg', .85); }); fs.writeFileSync(path.join(OUT, name + '.jpg'), Buffer.from(url.split(',')[1], 'base64')); };
 await shot('00_title');
