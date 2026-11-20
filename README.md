@@ -349,3 +349,4 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - **音效**：音效 session 做的 16 個（`weak ward lock_break lock_all unite poison stun coin train wok_back sign_off layer_down foe_auntie foe_smoker rage affix`）接好了；`sndIf()`／`sfxOr()` 檔案不在就退回原本共用的聲音。
 - **模擬器**：`MIX=1` 會多印每種指令的比例與行動後平均剩多少 SP（GPT 要的「是不是被迫普攻」指標）；`JOB=fire` 指定職位。九種職位的通關率都在沒職位的 ±10 個百分點內。
 - 測試網址：`&job=pick` 看選職位畫面、`&job=fire` 直接指定、`&intro=1` 看開場。截圖腳本 `tools/tests/jobshot.mjs`、`storyshot.mjs`、`swapshot.mjs`；規則測試多一支 `jobtest.mjs`。
+- 另外兩支檢查：`node tools/tests/skillsweep.mjs`（開無頭瀏覽器，六組隊伍把 16 個夥伴的招式、奧義、合體技全部按過一次，看有沒有錯誤或卡住；11/21 凌晨跑過全部沒有錯誤）、`node tools/tests/textfit.mjs`（估算事件、強化、職位、招式卡的文字會不會放不下）。
