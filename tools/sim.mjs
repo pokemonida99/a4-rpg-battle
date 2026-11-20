@@ -81,7 +81,7 @@ function battle(policy, run) {
   return s;
 }
 function playRun(policy, seed, starter, map = 'office') {
-  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map); prepare(run);
+  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map, +(E.OT || 0)); prepare(run);      // OT=3 試加班等級
   if (E.ALT && map === 'office') for (const kv of E.ALT.split(',')) { const [k, v] = kv.split(':'); if (STAGES[v]) run.alt[k] = v; }
   const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
   const MAP = MAPS[map]; while (run.floor < MAP.length) { const opts = MAP[run.floor], ok = reachable(run), off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
