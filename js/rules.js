@@ -443,6 +443,12 @@ Object.assign(EVENTS, {
 });
 export const eventOk = (run, key, i) => { const o = EVENTS[key] && EVENTS[key].opts[i]; return !!o && (!o.ok || o.ok(run)); };
 export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[key].opts[i].go(run) : null; }
+export function redo(s, e) { if (!Array.isArray(e)) return null; const [k, id, a, b] = e; if (!HEROES.includes(id) || !alive(s, id)) return null; const foe = t => typeof t === 'string' && SLOTS_ALL().includes(t) && alive(s, t);
+  if (k === 'a') return foe(a) ? doAttack(s, id, a) : null; if (k === 'd') return doDefend(s, id); if (k === 'c') return id === 'vivi' ? doCheer(s) : null; if (k === 'u') return canUlt(s, id) ? doUlt(s, id) : null; if (k === 'w') return doSwap(s, id, a);
+  if (k === 'i') return ITEMS[a] && s.items[a] > 0 && itemsLeft(s) > 0 ? doItem(s, id, a, b) : null;
+  if (k === 's') { const sk = (SKILLS[id] || []).find(x => x.key === a); return sk && knows(s, id, a) && skillOk(s, id, sk) ? doSkill(s, id, a, b ?? undefined) : null; }
+  if (k === 'n') { const U = UNITES.find(x => x.key === a); return U && uniteOk(s, id, U) ? doUnite(s, id, a, b ?? undefined) : null; } return null; }
+const SLOTS_ALL = () => ['boss', ...MINIONS];
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
 // 報帳處（採買站）：打贏戰鬥會拿到「報帳額度」（run.coin：一般 40、菁英 70、頭目 90），在採買站花掉。一站賣三樣：一個小物、一份補給包（奶茶、咖啡、便當各一）、一次特訓
@@ -556,7 +562,7 @@ export function loadRun(data, rand = Math.random) {
     ok(Array.isArray(d.roster) && d.roster.length >= 1 && d.roster.length <= 6 && new Set(d.roster).size === d.roster.length && d.roster.every(id => ALL.includes(id)));
     ok(d.starter == null || d.roster.includes(d.starter)); ok(Array.isArray(d.picks) && d.picks.every(k => UPGRADES[k]));
     ok(Array.isArray(d.path) && d.path.length <= MAP.length); for (let k = 0; k < d.floor; k++) ok(Number.isInteger(d.path[k]) && MAP[k][d.path[k]]);
-    ok(d.pend == null || (d.pend === 'upgrade' && Number.isInteger(d.path[d.floor]) && MAP[d.floor][d.path[d.floor]] && d.floor < MAP.length - 1));
+    ok(d.pend == null || (d.pend === 'upgrade' && Number.isInteger(d.path[d.floor]) && MAP[d.floor][d.path[d.floor]] && d.floor < MAP.length - 1) || (d.pend === 'battle' && Number.isInteger(d.path[d.floor]) && MAP[d.floor][d.path[d.floor]] && MAP[d.floor][d.path[d.floor]].type === 'battle' && Number.isFinite(d.bseed)));
     ok(d.rescued == null || d.roster.includes(d.rescued));
     ok([d.atk, d.def, d.moStart, d.rounds, d.summons].every(num) && d.atk > 0 && d.def > 0);
     ok(d.items && Object.keys(ITEMS).every(k => num(d.items[k]) && d.items[k] >= 0));
@@ -570,7 +576,7 @@ export function loadRun(data, rand = Math.random) {
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
     Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
-    return { run, pend: d.pend || null, rescued: d.rescued || null };
+    return { run, pend: d.pend || null, rescued: d.rescued || null, bseed: d.pend === 'battle' ? d.bseed >>> 0 : null, blog: d.pend === 'battle' && Array.isArray(d.blog) ? d.blog.filter(Array.isArray).slice(0, 400) : [] };
   } catch (e) { return null; }
 }
 
@@ -585,7 +591,7 @@ export function newState(run = newRun()) {
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp * TUNE.bhp, hk), atk: sc(st.boss.atk * TUNE.batk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * TUNE.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
   const s = { run, kind, hk, L: st.boss, hasBoss: !!st.boss, potUsed: false, rand, hp: {}, sp: {}, mo: run.moStart, defend: {}, items: { ...run.items }, round: 0, queue: [], events: [], shield: st.boss ? st.boss.shield : 0, broken: false, charging: false, bossTurns: 0,
     aegis: false, taunt: false, carry: false, duty: 0, bulwark: false, cover: null, dodge: false, counter: {}, meeting: false, friends: false, evidence: run.picks.includes('dossier') ? 2 : 0, aidUsed: false, plan: {}, tally: { brk: 0, ult: 0, ko: 0 }, burn: {}, mark: {}, atkDown: {}, atkUp: 0, evade: {}, bless: {}, endure: 0, overtime: run.picks.includes('crunch') ? 2 : 0, fairyBuff: act.includes('fairy'), summons: 0, over: null,
-    smoke: {}, echo: null, proj: null, bragLow: 0, inSkill: false, inUlt: false, plusK: 1, fward: {}, acts: {}, hmark: {}, hpoison: {}, noticeT: null, bregen: st.boss && st.boss.backlog ? 2 : 0, backlogAtk: !!(st.boss && st.boss.backlog), reassign: false, reDone: 0, ward: {}, regen: {}, poison: {}, stun: {}, up: {}, downK: {}, guardian: null, late: {}, fup: {}, warmed: false, dodged: false, locks: null, lockN: 0, cmd: { mo: false, chip: false, lock: false }, curType: null, extra: 0, bonus: {}, onBonus: null, wok: null, sign: st.boss && st.boss.fee ? 3 : 0, layers: st.boss && st.boss.layers ? 1 : 0, layerHit: false };      // smoke[我方]＝被哪個敵人的煙嗆到；echo＝鸚鵡這次要附議誰；proj＝猴子的臨時專案是誰；bragLow＝豬腦蓄力以來底氣最低剩多少
+    smoke: {}, echo: null, proj: null, bragLow: 0, inSkill: false, inUlt: false, plusK: 1, fward: {}, acts: {}, hmark: {}, hpoison: {}, noticeT: null, bregen: st.boss && st.boss.backlog ? 2 : 0, backlogAtk: !!(st.boss && st.boss.backlog), reassign: false, reDone: 0, ward: {}, regen: {}, poison: {}, stun: {}, up: {}, downK: {}, guardian: null, late: {}, fup: {}, cmdLog: [], warmed: false, dodged: false, locks: null, lockN: 0, cmd: { mo: false, chip: false, lock: false }, curType: null, extra: 0, bonus: {}, onBonus: null, wok: null, sign: st.boss && st.boss.fee ? 3 : 0, layers: st.boss && st.boss.layers ? 1 : 0, layerHit: false };      // smoke[我方]＝被哪個敵人的煙嗆到；echo＝鸚鵡這次要附議誰；proj＝猴子的臨時專案是誰；bragLow＝豬腦蓄力以來底氣最低剩多少
   for (const id of HEROES) { s.hp[id] = run.picks.includes('snackdrawer') && id !== 'vivi' && run.hp[id] > 0 ? Math.min(STAT[id].hp, run.hp[id] + Math.round(STAT[id].hp * .1)) : run.hp[id]; s.sp[id] = run.sp[id]; }
   if (st.boss && run.picks.includes('notebook')) s.shield = Math.max(1, s.shield - 2);
   if (setOn(run, '補給')) for (const id of HEROES) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .12)); if (setOn(run, '氣勢')) s.mo = Math.min(MO.max, s.mo + 15);
@@ -751,13 +757,13 @@ function hitHeroes(s, src, list) {
 
 // ---------- 我方指令。都回傳 { kind, id, ... , hits:[…] } ----------
 // 普通攻擊：回復自己 6% 最大 SP（至少 8）。防禦：受傷減半，另外回 10 SP
-export function doAttack(s, id, target) { newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
+export function doAttack(s, id, target) { s.cmdLog.push(['a', id, target]); newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
   const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
-export function doDefend(s, id) { newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(s.run.job === 'risk' ? 30 : 10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
-export function doCheer(s) { return { kind: 'cheer', id: 'vivi', mo: gain(s, MO.cheer) }; }
+export function doDefend(s, id) { s.cmdLog.push(['d', id]); newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(s.run.job === 'risk' ? 30 : 10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
+export function doCheer(s) { s.cmdLog.push(['c', 'vivi']); return { kind: 'cheer', id: 'vivi', mo: gain(s, MO.cheer) }; }
 export const itemsLeft = s => s.run.ot >= 1 ? Math.max(0, 2 - s.itemUses) : 99;
 export function itemTargets(s, key) { const it = ITEMS[key]; if (itemsLeft(s) <= 0) return []; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
-export function doItem(s, id, key, target) {
+export function doItem(s, id, key, target) { s.cmdLog.push(['i', id, key, target]);
   const it = ITEMS[key]; s.items[key]--; s.itemUses++; s.smoke[id] = null; const r = { kind: 'item', id, key, target };
   if (it.hp) { r.heal = Math.min(Math.round(it.hp * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += r.heal; }
   if (it.sp) { r.spGain = Math.min(it.sp, STAT[target].sp - s.sp[target]); s.sp[target] += r.spGain; }
@@ -766,7 +772,7 @@ export function doItem(s, id, key, target) {
 }
 // 換人（FFX 式）：輪到前排某個人時，可以把他換下去、換一位候補上來，用掉這次行動；換上來的人下一回合開始行動。名冊順序跟著換，打完也維持
 export const bench = s => s.run.roster.filter(id => id !== 'vivi' && !HEROES.includes(id) && s.run.hp[id] > 0);
-export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.indexOf(id), run = s.run; if (i < 0 || j < 0 || !bench(s).includes(sub)) return null; newCmd(s);
+export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.indexOf(id), run = s.run; if (i < 0 || j < 0 || !bench(s).includes(sub)) return null; s.cmdLog.push(['w', id, sub]); newCmd(s);
   run.hp[id] = Math.max(0, s.hp[id]); run.sp[id] = s.sp[id]; HEROES[i] = sub; FRONT[j] = sub; s.hp[sub] = run.hp[sub]; s.sp[sub] = run.sp[sub];
   { const a = run.roster.indexOf(id), b = run.roster.indexOf(sub); [run.roster[a], run.roster[b]] = [run.roster[b], run.roster[a]]; }
   BOSS_ULT[sub] = Math.round(s.ultK * (.82 + .18 * STAT[sub].hp / 2680));
@@ -781,7 +787,7 @@ const allyPool = (s, id, sk) => { const a = sk.ally || 'hurt', f = FRONT.filter(
 export const EXTRA_MAX = 3;
 export const skillOk = (s, id, sk) => s.sp[id] >= skCost(s.run, id, sk) && (sk.target !== 'ally' || allyPool(s, id, sk).length > 0) && !(sk.key === 'encore' && (s.onBonus === id || s.extra >= EXTRA_MAX));
 export const allyTargets = allyPool;
-export function doSkill(s, id, key, target) {
+export function doSkill(s, id, key, target) { s.cmdLog.push(['s', id, key, target ?? null]);
   const sk = SKILLS[id].find(x => x.key === key), atk = STAT[id].atk, K = isPlus(s.run, id, key) ? 1.25 : 1, kv = v => Math.round(v * K); s.sp[id] -= skCost(s.run, id, sk); s.plusK = K; newCmd(s); s.smoke[id] = null; s.inSkill = true; s.curType = sk.type || null; s.layerHit = false; const fee = s.L && s.L.fee && s.sign > 0 ? Math.min(s.L.fee, s.sp[id]) : 0; s.sp[id] -= fee; const r = { kind: 'skill', id, key, name: sk.name, target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
   if (key === 'sweep') { const fs = all(); if (fs.length === 1) push(hitFoe(s, id, fs[0], atk * 1.5)); else for (const f of fs) push(hitFoe(s, id, f, atk * .75)); }
   else if (key === 'draft') { push(hitFoe(s, id, target, atk * .8)); if (alive(s, target)) push(hitFoe(s, id, target, atk * .9)); }
@@ -819,7 +825,7 @@ export function doSkill(s, id, key, target) {
   else if (sk.fx) runFx(s, id, sk, target, r, push, all);
   s.inSkill = false; s.plusK = 1; s.curType = null; if (K > 1) r.plus = true; if (fee) r.fee = fee; gain(s, MO.skill); after(s, id, r); r.sp = s.sp[id]; return r;
 }
-export function doUlt(s, id) {
+export function doUlt(s, id) { s.cmdLog.push(['u', id]);
   newCmd(s); s.curType = ULT_TYPE[id] || null; s.inUlt = true; s.sp[id] -= STAT[id].cost; gain(s, -ultMo(s.run)); s.tally.ult++; s.smoke[id] = null; const r = { kind: 'ult', id, sp: s.sp[id], mo: s.mo, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
   const prime = () => alive(s, 'boss') && !guarded(s) ? 'boss' : MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[b] - s.hp[a])[0] || (alive(s, 'boss') ? 'boss' : null);      // 單體奧義自動挑的對象：打得到頭目就打頭目
   if (id === 'kui') {      // 吐槽一閃：每隻小兵兩刀；最後一刀劈頭目
@@ -878,7 +884,7 @@ function runFx(s, id, sk, target, r, push, all, team = [id]) { const atk = STAT[
 // 合體技：現在能不能放（成員都上場、都活著、SP 都夠、其他成員這回合還沒動；被送的那一次行動不能放）
 export const unitesOf = id => UNITES.filter(U => U.who.includes(id) && U.who.every(h => HEROES.includes(h)));
 export const uniteOk = (s, id, U) => U.who.includes(id) && s.onBonus !== id && U.who.every((h, i) => HEROES.includes(h) && alive(s, h) && s.sp[h] >= uniteCost(s.run, U, i) && (h === id || s.queue.includes(h)));
-export function doUnite(s, id, key, target) { const U = UNITES.find(x => x.key === key); newCmd(s); s.inSkill = true; s.curType = U.type || null; s.layerHit = false;
+export function doUnite(s, id, key, target) { s.cmdLog.push(['n', id, key, target ?? null]); const U = UNITES.find(x => x.key === key); newCmd(s); s.inSkill = true; s.curType = U.type || null; s.layerHit = false;
   U.who.forEach((h, i) => { s.sp[h] -= uniteCost(s.run, U, i); s.smoke[h] = null; if (h !== id) { const q = s.queue.indexOf(h); if (q >= 0) s.queue.splice(q, 1); } });
   const r = { kind: 'unite', id, key, name: U.name, who: U.who.slice(), target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
   runFx(s, id, U, target, r, push, all, U.who); s.inSkill = false; s.curType = null; gain(s, MO.skill * 2); after(s, id, r); r.sps = U.who.map(h => ({ dst: h, sp: s.sp[h] })); r.sp = s.sp[id]; return r; }
