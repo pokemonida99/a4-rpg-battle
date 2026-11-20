@@ -107,7 +107,12 @@ const snd = (t, id, v = 1) => { const b = buf[id]; if (!b) return; const s = AC.
 // 配樂的切換：行程表（地圖）播地圖曲；進戰鬥換戰鬥曲、魔王站換魔王曲；戰鬥一結束戰鬥曲就停，回到行程表再換回地圖曲。
 // 地圖曲暫時借用之前沒用到的那首程式合成的結算曲（audio/bgm/map.mp3），之後使用者有自己的再換。
 const MUSIC_VOL = { 'bgm/map': .75 }; let musicId = null;
-function playMusic(id) { if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(MUSIC_VOL[id] ?? 1, AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
+// 各地圖自己的配樂（選配）：把檔案放進 audio/bgm/，檔名寫進 BGM_EXTRA 就會用；沒有的就用原本那四首。
+// 檔名規則：<地圖>_<map｜battle｜boss>，地圖代號 tw（台灣篇）、hell（地獄分公司）、mirror（鏡像內戰）。例：['tw_map', 'tw_battle', 'hell_boss']
+const BGM_EXTRA = [], BGM_PRE = { taiwan: 'tw', hell: 'hell', mirror: 'mirror' };
+for (const id of BGM_EXTRA) loadSound('bgm/' + id, `audio/bgm/${id}.mp3`);      // 不擋開機：載好之前先播原本的
+const mus = kind => { const pre = run && BGM_PRE[run.map], id = pre && `bgm/${pre}_${kind}`; return id && buf[id] ? id : 'bgm/' + kind; };
+function playMusic(id) { if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(MUSIC_VOL[id] ?? (id.endsWith('_map') ? .75 : 1), AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
 musicGain.gain.value = .42;
 // 介面按鍵聲：程式合成的短促木頭聲（使用者嫌原本的音效難聽）。move 游標移動、ok 按下、no 不能按
 function uiSound(kind) { if (AC.state !== 'running') return; const t = AC.currentTime;
@@ -597,7 +602,7 @@ function enterStage() { stageBackdrop(); btReset();
 }
 // 關卡開場：轉場、關卡牌、鏡頭帶一下敵人，再回到全景
 function startStage() {
-  playMusic(R.isFinal(run) && buf['bgm/boss'] ? 'bgm/boss' : 'bgm/battle');      // 魔王那一站換魔王曲（使用者的歌：一般戰鬥〈月底吃土〉、魔王〈幽靈舞步〉）
+  playMusic(R.isFinal(run) && buf['bgm/boss'] ? mus('boss') : mus('battle'));      // 魔王那一站換魔王曲（使用者的歌：一般戰鬥〈月底吃土〉、魔王〈幽靈舞步〉）
   phase = 'anim'; const st = R.STAGES[R.stageOf(run, run.node)], L = st.boss, t0 = now + .1, seenIt = (PREF.seen || (PREF.seen = [])).includes(R.stageOf(run, run.node)); if (seenIt) introBoost = t0 + 4.3; else { PREF.seen.push(R.stageOf(run, run.node)); savePref(); } SFX.add('encounter', t0, 1.3); snd(t0 + .05, 'encounter'); if (state.affix) sndIf(t0 + 1.1, 'affix', .7); S.stageCard = { t0: t0 + 1.0, t1: t0 + 3.5, n: run.floor + 1, name: st.name, sub: state.affix ? `詞綴「${R.AFFIX[state.affix][0]}」：${R.AFFIX[state.affix][1]}` : st.sub };
   if (L && L.id === 'boss') { cam.to(t0 - .01, 0, { x: -3.0, y: 1.9, z: -.5, d: 7.2, pitch: 3, blur: 10 }).to(t0 + .7, 2.6, { d: 8.4, y: 1.75 }, easeOut); snd(t0 + 1.15, 'boss_appear'); cam.shake(t0 + 1.2, .16, .6);
     units.boss.anim(t0 + 1.9, 'swing', [0, .1, .22, .38, 9, 9, 9, 9]).pose(t0 + 3.2, 'idle'); if (!seenIt) say(t0 + 1.95, 'boss_intro', 'boss'); cam.shake(t0 + 2.25, .2, .9); SFX.add('lines', t0 + 2.25, .9, { cx: 190, cy: 120, c: [255, 120, 100], a: .55, r0: 150 }); }
@@ -718,7 +723,7 @@ function flipSheet(to = !sheetReal) { if (to === sheetReal) return; sheetReal = 
 function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; }
 function closeSheet() { sheet = null; sheetRect = null; if (panel) { menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; } else { menu = { kind: 'hub', items: hubItems() }; focus = 0; } }
 const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItems() }; focus = Math.min(f, menu.items.length - 1); };
-function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
+function openHub(msg) { playMusic(mus('map')); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
   else if (nd.type === 'rest') openRest(nd);
@@ -738,7 +743,7 @@ function finish() {
     at(t0 + .1, () => playMusic(null)); hud.t1 = t0 + 1.6; const tv = t0 + (L ? 2.6 : 1.3); snd(tv, 'fanfare', .8);      // 戰鬥一結束戰鬥曲就停，號角響完到選強化時換地圖曲
     S.stageCard = { t0: tv, t1: tv + 2.3, n: run.floor + 1, name: '過關', sub: R.STAGES[R.stageOf(run, run.node)].name + '　擺平了', clear: true };
     R.HEROES.forEach((id, i) => { if (!ko[id]) units[id].pose(tv + i * .1, 'win').hop(tv + i * .1, .24, .34); }); fx('ui/confetti', tv + .2, [3.4, 1.0], { scale: 2.0, y: .6 });
-    at(tv + 2.4, () => { rescued = R.endStage(state, run); for (const id of R.HEROES) ko[id] = false; if (rescued) met(rescued); saveGame({ pend: 'upgrade', rescued }); openUpgrade(false); playMusic('bgm/map'); });
+    at(tv + 2.4, () => { rescued = R.endStage(state, run); for (const id of R.HEROES) ko[id] = false; if (rescued) met(rescued); saveGame({ pend: 'upgrade', rescued }); openUpgrade(false); playMusic(mus('map')); });
   } else if (state.over === 'win') { clearSave(); { const rc = PREF.rec || (PREF.rec = {}), r0 = rc[run.map] || (rc[run.map] = { n: 0, best: null }), rounds = run.rounds + state.round; r0.n++; r0.best = r0.best == null ? rounds : Math.min(r0.best, rounds); savePref(); } { const o = PREF.ot || (PREF.ot = {}); if ((run.ot || 0) >= (o[run.map] || 0) && (o[run.map] || 0) < R.OT_MAX) { o[run.map] = (run.ot || 0) + 1; savePref(); } } const u = units.boss; for (let i = 0; i < 6; i++) u.hit(t0 + i * .25, .7 - i * .08); say(t0 + .4, 'boss_down', 'boss'); cam.to(t0, 1.4, { x: -2.6, d: 9.6, y: 1.7 }); hud.t1 = t0 + .3;
     u.die(t0 + 1.8, 2.4); snd(t0 + 1.8, 'boss_down', 1); for (let i = 0; i < 5; i++) fx('spawn/poof', t0 + 2.1 + i * .35, 'boss', { scale: 1.8, dx: -1 + i * .5, y: .3 + (i % 2) * 1.2, seed: i + 2 }); for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + 1.2, m);
     at(t0 + .1, () => playMusic(null)); const tv = t0 + 4.6; snd(tv, 'fanfare', 1); cam.to(tv - .4, 1.2, { x: .8, y: 1.2, z: -.1, d: 12.6, pitch: 7 });      // 鏡頭偏左，隊伍落在結案報告右邊
