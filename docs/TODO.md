@@ -19,6 +19,7 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [x] 第三包：合體技 11 組（UNITES、doUnite；放在技能選單，金色）；資料卡重排（特性、兩欄招式、合體技）
 - [x] v0.19.1：47 個專屬圖示接好（rules.js 的 ic 都拿掉了）；戰鬥背景機制 arena.setBackdrop()（scene.js）＋ game.js 的 BGSRC：台灣篇先用地圖紙中間那一條；美術排了四張專用背景 art/bg/{tw_1,tw_2,tw_3,hell}.jpg，到了把 BGSRC 的路徑換掉、cy 改 .5，並幫 hell 加一筆
 - [x] v0.20.0：GPT 第二輪（gpt_d.md）→ 14 個新事件、菁英詞綴、套裝、防禦加速、拖回合懲罰、減傷與開場氣勢上限
+- [x] v0.23.0（11/21 02:50）：連攜 COMBO、最終頭目第二階段 PHASE2、小開關與隊伍欄放大；請音效 session 做 16 個音效（到了要把檔名加進 game.js 的 SFX_IDS 並在對應的地方用 sfxOr 播）
 - [x] 11/21 00:29 四輪「中途重新整理」的整輪試玩（四張地圖各一輪）都沒有錯誤，讀取進度一致
 - [ ] 接力時先做（第 1 項已完成，從第 2 項開始）：(1) 看背景那四輪「中途重新整理」的整輪試玩結果（scratchpad 的 pt_r1～4.log，沒了就重跑：`MAP=taiwan RELOAD=hub:5 node tools/playtest.mjs 71 smart 6`），確認存檔讀回正常；(2) `zsh tools/tests/run.sh` 與 `node tools/sim.mjs 100`；(3) 還能加的：新東西的音效（要用 ElevenLabs 點數，等使用者點頭）、夥伴小劇場、戰鬥打到一半存檔；(4) 早上回報並問要不要推上線
 - [x] v0.22.0：報帳額度 run.coin 與採買站 shop（PRICE、shopStock、buy；game.js 的 openShop）
