@@ -19,7 +19,8 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [x] 第三包：合體技 11 組（UNITES、doUnite；放在技能選單，金色）；資料卡重排（特性、兩欄招式、合體技）
 - [x] v0.19.1：47 個專屬圖示接好（rules.js 的 ic 都拿掉了）；戰鬥背景機制 arena.setBackdrop()（scene.js）＋ game.js 的 BGSRC：台灣篇先用地圖紙中間那一條；美術排了四張專用背景 art/bg/{tw_1,tw_2,tw_3,hell}.jpg，到了把 BGSRC 的路徑換掉、cy 改 .5，並幫 hell 加一筆
 - [x] v0.20.0：GPT 第二輪（gpt_d.md）→ 14 個新事件、菁英詞綴、套裝、防禦加速、拖回合懲罰、減傷與開場氣勢上限
-- [ ] 接力時先做：(1) 看背景那四輪「中途重新整理」的整輪試玩結果（scratchpad 的 pt_r1～4.log，沒了就重跑：`MAP=taiwan RELOAD=hub:5 node tools/playtest.mjs 71 smart 6`），確認存檔讀回正常；(2) `zsh tools/tests/run.sh` 與 `node tools/sim.mjs 100`；(3) 還能加的：新東西的音效（要用 ElevenLabs 點數，等使用者點頭）、夥伴小劇場、戰鬥打到一半存檔；(4) 早上回報並問要不要推上線
+- [x] 11/21 00:29 四輪「中途重新整理」的整輪試玩（四張地圖各一輪）都沒有錯誤，讀取進度一致
+- [ ] 接力時先做（第 1 項已完成，從第 2 項開始）：(1) 看背景那四輪「中途重新整理」的整輪試玩結果（scratchpad 的 pt_r1～4.log，沒了就重跑：`MAP=taiwan RELOAD=hub:5 node tools/playtest.mjs 71 smart 6`），確認存檔讀回正常；(2) `zsh tools/tests/run.sh` 與 `node tools/sim.mjs 100`；(3) 還能加的：新東西的音效（要用 ElevenLabs 點數，等使用者點頭）、夥伴小劇場、戰鬥打到一半存檔；(4) 早上回報並問要不要推上線
 - [x] v0.22.0：報帳額度 run.coin 與採買站 shop（PRICE、shopStock、buy；game.js 的 openShop）
 - [x] v0.21.0：地獄分公司的美術到了並接好（art/map/hell_1～2.jpg、art/enemy/hell_*、站點照 design/hell/README.md）；四張專用戰鬥背景 art/bg/ 接好；GPT 校對文字（gpt_e.md）挑了十條改；平衡再調成小兵血薄一點：TUNE hp 1.2／atk 1.4／bhp 1.5／batk 1.35／ult 1.65
 - [x] v0.20.1：敵人圖鑑（隊伍頁第三個頁籤）、通關紀錄（PREF.rec，路線卡上顯示）、合體技雙人眼神特寫；平衡改成「敵人沒那麼痛、血比較厚」：TUNE hp 1.45／atk 1.3／bhp 1.6／batk 1.3／ult 1.65（一般玩家：一般行程 53～66%、台灣篇約 40%、地獄 26～46%、鏡像約 10%）
