@@ -3,8 +3,9 @@
 // 三種打法 × 兩個起始角色，看通關率、倒在哪一站、通關時隊伍幾個人。
 // 目標：會想的打法大多能通關、一般玩家五到七成、只按攻擊過不了頭目。
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
+// 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
 import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
-  STAT, STAGES, MAP, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS } from '../js/rules.js';
+  STAT, STAGES, MAP, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked } from '../js/rules.js';
 
 const E = process.env;
 if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
@@ -13,8 +14,10 @@ for (const n of [1, 2, 3]) { if (E['S' + n]) SCALE[n][0] = +E['S' + n]; if (E['A
 const lowest = s => FRONT.filter(h => alive(s, h)).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0];
 const weakMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[a] - s.hp[b])[0];
 // 會想的打法：先打會補血的實習生，重甲兵留到最後
-const PRIO = { intern: 0, courier: 1, drone: 1, knight: 2 }, smartMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => PRIO[s.kind[a]] - PRIO[s.kind[b]] || s.hp[a] - s.hp[b])[0];
-const target = (s, wm = weakMinion) => (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
+const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 }, smartMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => (PRIO[s.kind[a]] ?? 1) - (PRIO[s.kind[b]] ?? 1) || s.hp[a] - s.hp[b])[0];
+// 猴子的臨時專案（畫面上寫明「打倒他，大招就落空」）一般玩家也會去打；鸚鵡附議的那隻只有會想的打法會優先處理
+const projT = s => s.charging && s.proj && alive(s, s.proj) ? s.proj : null, echoT = s => !s.charging && !s.broken && s.echo && alive(s, s.echo) ? s.echo : null;
+const target = (s, wm = weakMinion) => (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
 const can = (s, id, key, keep = 0) => knows(s, id, key) && s.sp[id] - SKILLS[id].find(k => k.key === key).sp >= keep;
 const POLICY = {
   // 會想的打法：看到蓄力會擋、血少補血、每個人的招式都會用、留 SP 放奧義
@@ -29,6 +32,7 @@ const POLICY = {
     if (s.charging && !covered && me < .7) return doDefend(s, id);
     if (canUlt(s, id) && ['kui', 'jie', 'heilun'].includes(id) && (boss || nMin >= 2)) return doUlt(s, id);
     if (canUlt(s, id) && id === 'senpai' && (s.evidence >= 2 || s.broken)) return doUlt(s, id);
+    if (t !== 'boss' && KINDS[s.kind[t]].dull && nMin < 2 && !smoked(s, id) && !['mi', 'xu', 'kevin', 'qiang', 'cha'].includes(id)) return doAttack(s, id, t);      // 大媽：招式只有一半，用普攻打
     if (id === 'kui') { if (nMin >= 2 && can(s, id, 'sweep', keep)) return doSkill(s, id, 'sweep'); if (can(s, id, 'draft', keep)) return doSkill(s, id, 'draft', t); if (me < .5 && can(s, id, 'counter', keep)) return doSkill(s, id, 'counter'); }
     if (id === 'jie') { if (nMin >= 2 && can(s, id, 'barrage', keep)) return doSkill(s, id, 'barrage'); if (boss && !guarded(s) && !(s.atkDown.boss > 0) && can(s, id, 'freeze', keep)) return doSkill(s, id, 'freeze', 'boss'); if (!(s.burn[t] > 0) && can(s, id, 'burn', keep)) return doSkill(s, id, 'burn', t); }
     if (id === 'kevin') { if (!s.taunt && can(s, id, 'taunt', keep)) return doSkill(s, id, 'taunt'); }
@@ -68,6 +72,7 @@ function battle(policy, run) {
 }
 function playRun(policy, seed, starter, map = 'office') {
   const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map); prepare(run);
+  if (E.ALT && map === 'office') for (const kv of E.ALT.split(',')) { const [k, v] = kv.split(':'); if (STAGES[v]) run.alt[k] = v; }
   const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
   while (run.floor < MAP.length) { const opts = MAP[run.floor], off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
     if (opts.length > 1) { const rec = opts.findIndex((nd, k) => (nd.type === 'recruit' || nd.rescue) && off[k]), rst = opts.findIndex(nd => nd.type === 'rest'); i = policy === 'mash' ? 0 : rst >= 0 && hpK < .55 ? rst : rec >= 0 && run.roster.length < 4 ? rec : opts.length - 1; }
