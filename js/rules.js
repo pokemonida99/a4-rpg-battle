@@ -26,7 +26,7 @@ export const ROLE = { kui: '輸出', jie: '輸出', kevin: '坦', mi: '補', viv
 // 敵人照上場人數縮放：[血量倍率, 攻擊倍率]
 export const SCALE = { 1: [.3, .52], 2: [.52, .7], 3: [.76, .86], 4: [1, 1] };
 // 整體難度旋鈕（戰鬥 2.0 之後我方變強，敵人整體往上調）：小兵血、小兵攻擊、頭目血、頭目攻擊、頭目大招
-export const TUNE = { hp: 1.45, atk: 1.3, bhp: 1.6, batk: 1.3, ult: 1.65 };
+export const TUNE = { hp: 1.2, atk: 1.4, bhp: 1.5, batk: 1.35, ult: 1.65 };
 export let BOSS_ULT = {};      // 頭目大招對每個人的傷害（進場時算好）
 export const ITEMS = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000 }, coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150 }, bento: { name: '雞排便當', n: 1, note: '倒下的同伴復活', revive: .5 } };
 // 招式：只花 SP。target：foe 選一個敵人、all 敵方全體、ally 選一個同伴、party 我方全體、self 自己
@@ -86,7 +86,7 @@ const NEW_SKILLS = {
   wu: [{ key: 'spotlight', name: '主管請看這邊', sp: 24, type: 'holy', target: 'foe', note: '單體攻擊　吸引並閃過一擊', desc: '光屬性攻擊，並把敵人的單體攻擊引到自己身上、閃過下一擊。', fx: [['dmg', 1.0], ['taunt'], ['evade', 'self']] },
     { key: 'cooldown', name: '中場喝口水', sp: 30, target: 'party', note: '全員回復 400　再生兩回合', desc: '前排全員各回 400 HP，接下來兩回合每回合再回 180。', fx: [['heal', 'party', 400], ['regen', 'party', 180, 2]] }],
   you: [{ key: 'spiked', name: '這杯誰放的', sp: 24, type: 'dark', target: 'foe', note: '單體攻擊　中毒三回合', desc: '暗屬性攻擊，目標中毒三回合，每回合開始扣血。', fx: [['dmg', .8], ['poison', 3, .3]] },
-    { key: 'outofoffice', name: '系統顯示不在線', sp: 30, target: 'ally', ally: 'other', note: '同伴解除異常　閃過下一擊', desc: '幫一位同伴掛上「不在線」：解除異常，並閃過下一次攻擊。', fx: [['cleanse', 'ally'], ['evade', 'ally']] }],
+    { key: 'outofoffice', name: '系統顯示已離線', sp: 30, target: 'ally', ally: 'other', note: '同伴解除異常　閃過下一擊', desc: '讓一位同伴顯示「已離線」：解除異常，並閃過下一次攻擊。', fx: [['cleanse', 'ally'], ['evade', 'ally']] }],
   fairy: [{ key: 'nightshift', name: '冷氣借開一下', sp: 38, type: 'ice', target: 'foe', note: '單體攻擊　延到最後', desc: '冰屬性重擊，並把目標這回合還沒做的行動排到最後面。', fx: [['dmg', 1.4], ['delay']] },
     { key: 'snacks', name: '茶水間有餅乾', sp: 44, target: 'party', note: '全員護盾 500　SP +15', desc: '前排全員各得 500 護盾，並回復 15 SP。', fx: [['ward', 'party', 500], ['sp', 'party', 15]] }],
   zong: [{ key: 'doorstop', name: '門先幫你頂著', sp: 22, type: 'blunt', target: 'foe', note: '單體攻擊　吸引攻擊　護盾 700', desc: '頂住門打一下：敵人的單體攻擊改打棕鼠，自己得到 700 護盾。', fx: [['dmg', .9], ['taunt'], ['ward', 'self', 700]] },
@@ -99,12 +99,12 @@ const NEW_SKILLS = {
 for (const id in NEW_SKILLS) SKILLS[id].push(...NEW_SKILLS[id]);
 export const START2 = { kui: 'deadline', jie: 'sanitize' };      // 主角一開始除了自己挑的那一招，另外會這一招（先有第二種屬性可以用）
 // 普攻附帶效果（每次普通攻擊都有）與被動特質（整場常駐）的說明文字；實際效果在 rider()、passive hooks
-export const RIDER = { kui: '自己得到 180 護盾', jie: '目標下一次行動的傷害減一成', kevin: '自己回復 180 HP', mi: 'HP 最低的同伴回復 180', yan: 'SP 最少的另一位同伴 +6 SP', heilun: '氣勢多 +3', cha: 'HP 最低的另一位同伴得到 220 護盾', qiang: '下回合開始時自己回 220 HP',
-  senpai: '打頭目多削 1 點底氣', wu: '目標這回合受到的傷害多三成', you: '回復的 SP 加倍', fairy: '另一位同伴 +8 SP（老鼠優先）', zong: '自己得到 200 護盾', hui: '自己回復 120 HP', xu: '另一位同伴 +10 SP' };
+export const RIDER = { kui: '自己得到 180 護盾', jie: '目標下一次行動的傷害減一成', kevin: '自己回復 180 HP', mi: 'HP 最低的同伴回復 180 HP', yan: 'SP 最少的另一位同伴 +6 SP', heilun: '氣勢 +3', cha: 'HP 最低的另一位同伴得到 220 護盾', qiang: '下回合開始時自己回 220 HP',
+  senpai: '打頭目多削 1 點底氣', wu: '目標這回合受到的傷害多三成', you: '普攻回復的 SP 加倍', fairy: '另一位同伴 +8 SP（老鼠優先）', zong: '自己得到 200 護盾', hui: '自己回復 120 HP', xu: '另一位同伴 +10 SP' };
 export const PASSIVE = { kui: ['交件前再看一眼', '自己的行動打中弱點時，回復 6 SP。'], jie: ['燒完記得存檔', '自己的行動打中灼燒中的敵人時，氣勢 +3。'], kevin: ['站著就是進度', '每次行動結束，自己得到 180 護盾。'], mi: ['值班補貼', '行動結束時，如果有同伴 HP 低於一半，自己回 8 SP。'],
   vivi: ['公主有交代', '每回合開始，氣勢 +3。'], yan: ['行程留白', '成功延後敵人的行動時，自己回 8 SP。'], heilun: ['成交有回饋', '被標記的敵人倒下時，自己回 10 SP。'], cha: ['氣氛不能冷', '行動結束時，前排有三人以上站著，氣勢 +2。'],
-  qiang: ['扛久就習慣', '每回合開始，每一層扛責回 100 HP。'], senpai: ['查核有補助', '自己的行動打中被標記的敵人時，回復 5 SP。'], wu: ['暖場有成', '每回合第一次有同伴用招式時，自己回 5 SP。'], you: ['看破不說破', '每回合第一次閃過攻擊時，氣勢 +5。'],
-  fairy: ['鼠輩互助會', '每回合開始，前排每有一隻老鼠，自己回 4 SP。'], zong: ['老班底撐場', '每回合開始，HP 不到一半時得到 350 護盾。'], hui: ['加班餐費', '行動結束時，每一層加班回 2 SP。'], xu: ['轉接有回音', '用招式或奧義幫同伴回 SP 之後，自己回 6 SP。'] };
+  qiang: ['扛久就習慣', '每回合開始，自己每有一層「扛責」就回 100 HP。'], senpai: ['查核有補助', '自己的行動打中被標記的敵人時，回復 5 SP。'], wu: ['暖場有成', '每回合第一次有同伴用招式時，自己回 5 SP。'], you: ['看破不說破', '每回合第一次閃過攻擊時，氣勢 +5。'],
+  fairy: ['鼠輩互助會', '每回合開始，前排每有一隻老鼠，自己回 4 SP。'], zong: ['老班底撐場', '每回合開始，HP 不到一半時得到 350 護盾。'], hui: ['加班餐費', '自己行動結束時，每有一層「加班」就回 2 SP。'], xu: ['轉接有回音', '用招式或奧義幫同伴回 SP 之後，自己回 6 SP。'] };
 // ---------- 合體技（幻想水滸傳式）：指定的兩三個人都在場才有 ----------
 // 輪到其中一人、其他成員這回合都還沒動時可以放：所有成員的行動都用掉、各扣自己的 SP。算招式傷害。
 // fx 多幾個動作：dmgBy 第幾個成員 倍率（用那個人的攻擊力）、wardTo 第幾個成員 數值、tauntBy 第幾個成員、mark0（先標記再打）、healPct 第幾個成員 比例、reviveOrHeal 比例、mo 數值；對象多一個 others（成員以外的前排）
@@ -211,11 +211,11 @@ export const STAGES = {
   // notice＝補件通知：普通攻擊的回合兩次一組，第一次點名 HP 比例最高的人（列管），第二次打那個人 1.6 倍，打完自己上護盾
   // backlog＝舊案回流：開場和每次理虧恢復後，接下來兩次行動開始各回血，而且下一次普通攻擊改成打全體＋中毒
   // reassign＝責任重新分配：血量第一次掉到 70%、35% 時，下一次普通攻擊改成特殊攻擊：前排有兩個人以上身上有護盾 → 只打護盾最多的那個（2.2 倍）；不然打全體（1 倍）
-  hell_intro: { name: '地下十九樓，歡迎報到', sub: '門禁顯示：離職流程尚未完成', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3400, atk: 330 }, boss: null },
+  hell_intro: { name: '地下十九樓', sub: '歡迎報到。門禁顯示：離職流程尚未完成', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3400, atk: 330 }, boss: null },
   hell_belt: { name: '急件焚化輸送帶', sub: '每一件都是急件', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_runner' }, minion: { hp: 4200, atk: 350 }, boss: null },
   hell_water: { name: '續命飲水機', sub: '喝完再撐一下', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { ma: 'hell_intern' }, minion: { hp: 4000, atk: 340 }, boss: null },
   hell_file: { name: '附件缺一份', sub: '少一份就是沒有交', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { mc: 'hell_auntie' }, minion: { hp: 4200, atk: 350 }, boss: null },
-  hell_gate: { name: '門禁人資長', sub: '離職可以，請先證明你有入職', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3200, atk: 370 },
+  hell_gate: { name: '門禁人資長', sub: '離職可以，先證明你有到職', base: 'hell_clock', minions: ['ma', 'mb'], kinds: { mb: 'hell_runner' }, minion: { hp: 3200, atk: 370 },
     boss: { id: 'hell_gate', like: 'audit', name: '門禁人資長', hp: 44000, spd: 220, spd2: 0, atk: 950, shield: 6, cycle: 4, guard: false, pot: false, notice: true, ult: 950, text: { charge: '蓄力　資格複審', atk: '退件', ult: '奧義　門禁全面管制', summon: '召喚　叫警衛上來', down: '門……怎麼自己開了。' } } },
   hell_loop: { name: '紅單無限迴圈', sub: '簽完這張還有下一張', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_guard', mb: 'hell_runner', mc: 'hell_intern' }, minion: { hp: 5600, atk: 450 }, boss: null },
   hell_fridge: { name: '冷藏便當認領處', sub: '上面寫的不是你的名字', base: 'hell_clock', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'hell_intern', mc: 'hell_auntie' }, minion: { hp: 5000, atk: 420 }, boss: null },
@@ -442,7 +442,7 @@ export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
 export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '小兵的攻擊會讓人中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
 export const affixOf = (run, floor = run.floor, nd = run.node) => nd && nd.tag === '菁英' ? (run.affix || {})[floor] || null : null;
 // 加班等級（通關後解鎖的難度，0～5，往上累加）：每一級多一條對我方不利的規則
-export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'], ['先過行政關', '一般敵人開場各有 600 護盾'], ['急件插隊', '每場戰鬥第一回合，最快的小兵最先動'], ['特休打對折', '休息站只回復兩成五 HP'], ['主管已讀不理', '頭目理虧只有第一次會取消行動']];
+export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'], ['先過行政關', '一般敵人開場各有 600 護盾'], ['急件插隊', '每場戰鬥第一回合，最快的小兵最先動'], ['特休打對折', '休息站只回復兩成五 HP'], ['主管已讀不理', '頭目只有第一次理虧會取消行動']];
 export const OT_MAX = OVERTIME.length;
 // ---------- 一輪遊戲的進度 ----------
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
