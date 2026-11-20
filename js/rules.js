@@ -196,7 +196,7 @@ export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office') {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0 };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0 };
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key]; } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
   return run;
@@ -218,7 +218,10 @@ export function prepare(run) { const fl = MAP[run.floor]; if (!fl || run.offers[
     else if (nd.rescue) { const p = pool(); if (p.length) o[k] = [p[0]]; } }); }
 export const advance = run => { run.floor++; prepare(run); return run; };
 // 打贏一場：把血和道具帶走，血補兩成五（倒下的人從兩成五站起來）、SP 補三成；救援戰救出的人加入（回傳他的名字代號）
+// 把這一場的統計（理虧幾次、放了幾次奧義）加進這一輪；輸掉的那一場由畫面在結案時呼叫
+export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.tally.brk += s.tally.brk; run.tally.ult += s.tally.ult; }
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
+  addTally(s, run); run.tally.fights++;
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
@@ -262,7 +265,7 @@ export function loadRun(data, rand = Math.random) {
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
-    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons });
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons });
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
     return { run, pend: d.pend || null, rescued: d.rescued || null };
   } catch (e) { return null; }
@@ -277,7 +280,7 @@ export function newState(run = newRun()) {
   for (const m of SLOTS) { const want = (st.kinds || {})[m]; kind[m] = want === 'random' ? spare.splice(Math.floor(rand() * spare.length), 1)[0] : want || 'drone'; const K = KINDS[kind[m]]; Object.assign(STAT[m], { hp: sc(st.minion.hp * K.hp, hk), atk: sc(st.minion.atk * K.atk, ak), spd: K.spd || BASE[m].spd }); }
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp, hk), atk: sc(st.boss.atk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
   const s = { run, kind, hk, L: st.boss, hasBoss: !!st.boss, potUsed: false, rand, hp: {}, sp: {}, mo: run.moStart, defend: {}, items: { ...run.items }, round: 0, queue: [], events: [], shield: st.boss ? st.boss.shield : 0, broken: false, charging: false, bossTurns: 0,
-    aegis: false, taunt: false, carry: false, duty: 0, bulwark: false, cover: null, dodge: false, counter: {}, meeting: false, friends: false, evidence: run.picks.includes('dossier') ? 2 : 0, aidUsed: false, burn: {}, mark: {}, atkDown: {}, atkUp: 0, evade: {}, bless: {}, endure: 0, overtime: run.picks.includes('crunch') ? 2 : 0, fairyBuff: act.includes('fairy'), summons: 0, over: null };
+    aegis: false, taunt: false, carry: false, duty: 0, bulwark: false, cover: null, dodge: false, counter: {}, meeting: false, friends: false, evidence: run.picks.includes('dossier') ? 2 : 0, aidUsed: false, plan: {}, tally: { brk: 0, ult: 0, ko: 0 }, burn: {}, mark: {}, atkDown: {}, atkUp: 0, evade: {}, bless: {}, endure: 0, overtime: run.picks.includes('crunch') ? 2 : 0, fairyBuff: act.includes('fairy'), summons: 0, over: null };
   for (const id of HEROES) { s.hp[id] = run.hp[id]; s.sp[id] = run.sp[id]; }
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
@@ -297,6 +300,7 @@ export function startRound(s) { s.round++; s.potUsed = false; s.meeting = false;
   for (const f in s.burn) if (s.burn[f] > 0 && alive(s, f)) { s.burn[f]--; const v = Math.round(520 * s.run.atk * (has(s, 'ember') ? 1.6 : 1)); s.hp[f] = Math.max(0, s.hp[f] - v); s.events.push({ kind: 'burn', dst: f, v, hp: s.hp[f], kill: s.hp[f] <= 0 }); check(s); }
   for (const f in s.mark) if (s.mark[f] > 0) s.mark[f]--;
   const list = [...HEROES, 'boss', ...MINIONS].filter(id => alive(s, id)).map(id => [id, STAT[id].spd]); if (alive(s, 'boss') && STAT.boss.spd2) list.push(['boss', STAT.boss.spd2]);
+  for (const f of ['boss', ...MINIONS]) if (alive(s, f) && !s.plan[f]) planFoe(s, f);      // 剛上場或剛被叫回來的敵人，補上下一步要打誰
   s.queue = list.sort((a, b) => b[1] - a[1]).map(x => x[0]); return s.queue; }
 // 輪到某個人（回傳 false＝這個人已經倒了，跳過）。自己身上「到下次行動前」的效果在這裡結束
 export function beginTurn(s, id) {
@@ -304,6 +308,20 @@ export function beginTurn(s, id) {
   if (HEROES.includes(id)) { s.defend[id] = false; s.counter[id] = false; if (id === 'kevin') { s.aegis = false; s.taunt = false; } if (id === 'qiang') { s.carry = false; s.bulwark = false; } if (id === 'cha') s.friends = false; s.evade[id] = false; }
   return true;
 }
+// 敵人的意圖：每個敵人事先決定「下一次單體攻擊打誰」（s.plan），畫面才能照實預告。真正出手時如果那個人倒了才重抽
+function planFoe(s, id) { const t = FRONT.filter(h => alive(s, h)); s.plan[id] = t.length ? t[Math.floor(s.rand() * t.length)] : null; }
+// 給畫面用：這個敵人下一步要做什麼。kind：atk 單體攻擊、drain 攻擊並扣 SP、aoe 打全體、heal 幫同伴回血、charge 蓄力、ult 大招（全體）、stun 理虧中
+// target 已經把「幫忙擋」算進去（Kevin 的吸引、阿強的搬、茶茶的代擋與聊天），所以玩家開了嘲諷會馬上看到箭頭改指向坦克
+export function intent(s, id) { if (!alive(s, id)) return null; const raw = s.plan[id] && alive(s, s.plan[id]) ? s.plan[id] : null;
+  const target = !raw ? null : s.dodge && alive(s, 'cha') ? 'cha' : s.cover && alive(s, s.cover) ? s.cover : s.carry && alive(s, 'qiang') ? 'qiang' : s.taunt && alive(s, 'kevin') ? 'kevin' : raw, weak = s.atkDown[id] > 0;
+  if (id === 'boss') { if (s.broken) return { kind: 'stun' }; if (s.charging) return { kind: 'ult', weak }; if ((s.bossTurns + 1) % STAT.boss.cycle === STAT.boss.cycle - 1) return { kind: 'charge' }; return { kind: 'atk', target, weak }; }
+  const K = KINDS[s.kind[id]]; if (K.heal) { const hurt = ['boss', ...MINIONS].filter(f => alive(s, f) && s.hp[f] < STAT[f].hp).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0]; if (hurt) return { kind: 'heal', target: hurt }; }
+  return K.aoe ? { kind: 'aoe', weak } : { kind: K.drain ? 'drain' : 'atk', target, weak, drain: K.drain }; }
+// 傷害預估（不含浮動與爆擊）：普通攻擊或某一招打某個敵人大約多少。打不到（護衛中）回傳 0；這一招不是攻擊回傳 null
+const SKPOW = { draft: 1.7, sweep: s => foes(s).length === 1 ? 1.5 : .75, bash: 1.4, barrage: .8, burn: 1.1, freeze: 1, delay: .7, deal: 1.2, box: s => 1.5 * (1 + .3 * s.duty), probe: .9, expose: (s, t) => t === 'boss' && s.broken ? 2 : 1.3, backdoor: 1.1, mice: .45, news: 1.2, overtime: 1, allnight: 2 };
+export function preview(s, id, target, key) { const sk = key && SKILLS[id].find(x => x.key === key), pw = key ? SKPOW[key] : 1; if (pw == null) return null; if (!alive(s, target)) return 0;
+  if (target === 'boss' && guarded(s) && !(sk && sk.pierce)) return 0; const m = typeof pw === 'function' ? pw(s, target) : pw, armor = !key && target !== 'boss' && KINDS[s.kind[target]].armor;
+  return Math.round(STAT[id].atk * m * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (s.bless[id] ? 2 : 1) * (id === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (id === 'zong' || id === 'hui') ? 1.2 : 1) * (target === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[target] > 0 ? 1.3 : 1) * (armor || 1)); }
 export const canUlt = (s, id) => s.mo >= MO.ult && s.sp[id] >= STAT[id].cost;
 
 // 打敵人：回傳一筆結果 { dst, v, guard, crit, kill, brk, hp, shield, pot }
@@ -314,7 +332,7 @@ function hitFoe(s, src, dst, base, o = {}) {
   const bl = !!s.bless[src]; if (bl) s.bless[src] = false; const crit = bl || (!o.noCrit && s.rand() < .12); let v = vary(s, base) * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (crit ? (bl ? 2 : 1.5) : 1) * (src === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (src === 'zong' || src === 'hui') ? 1.2 : 1) * (dst === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[dst] > 0 ? 1.3 : 1); const armor = o.basic && dst !== 'boss' && KINDS[s.kind[dst]].armor; if (armor) v *= armor; v = Math.round(v);
   s.hp[dst] = Math.max(0, s.hp[dst] - v); const r = { src, dst, v, crit, weak: true, kill: s.hp[dst] <= 0, hp: s.hp[dst] }; if (armor) { r.armor = true; r.weak = false; }
   if (r.kill && s.mark[dst] > 0) { s.mark[dst] = 0; gain(s, 20); r.bounty = true; if (has(s, 'bounty')) { r.bountySp = 25; for (const h of FRONT) if (alive(s, h)) s.sp[h] = Math.min(STAT[h].sp, s.sp[h] + 25); } }
-  if (dst === 'boss' && !s.broken && !r.kill) { s.shield = Math.max(0, s.shield - (o.sh ?? 1)); if (s.shield === 0) { s.broken = true; r.brk = true; } }
+  if (dst === 'boss' && !s.broken && !r.kill) { s.shield = Math.max(0, s.shield - (o.sh ?? 1)); if (s.shield === 0) { s.broken = true; r.brk = true; s.tally.brk++; } }
   if (dst === 'boss') r.shield = s.shield; check(s); return r;
 }
 // 打我方。list：[[id, 傷害]]。各種「幫忙擋」的效果在這裡處理；回傳 [{ dst, v, guard, miss, kill, hp }]，另外 out.counters 是反擊打回去的結果
@@ -389,7 +407,7 @@ export function doSkill(s, id, key, target) {
   r.sp = s.sp[id]; r.mo = gain(s, MO.skill); return r;
 }
 export function doUlt(s, id) {
-  s.sp[id] -= STAT[id].cost; gain(s, -MO.ult); const r = { kind: 'ult', id, sp: s.sp[id], mo: s.mo, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
+  s.sp[id] -= STAT[id].cost; gain(s, -MO.ult); s.tally.ult++; const r = { kind: 'ult', id, sp: s.sp[id], mo: s.mo, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
   const prime = () => alive(s, 'boss') && !guarded(s) ? 'boss' : MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[b] - s.hp[a])[0] || (alive(s, 'boss') ? 'boss' : null);      // 單體奧義自動挑的對象：打得到頭目就打頭目
   if (id === 'kui') {      // 吐槽一閃：每隻小兵兩刀；最後一刀劈頭目
     for (const m of MINIONS) if (alive(s, m)) { push({ ...hitFoe(s, id, m, 1900, { noCrit: true }), stage: m }); if (alive(s, m)) push({ ...hitFoe(s, id, m, 2100, { noCrit: true }), stage: m }); }
@@ -422,7 +440,10 @@ export function doUlt(s, id) {
 
 // ---------- 敵人行動 ----------
 export function enemyTurn(s, id) {
-  const targets = FRONT.filter(h => alive(s, h)), pick = () => targets[Math.floor(s.rand() * targets.length)], weak = s.atkDown[id] > 0, k = weak ? .7 : 1; if (weak && !(id === 'boss' && s.broken)) s.atkDown[id]--;
+  const targets = FRONT.filter(h => alive(s, h)), pick = () => { const t = s.plan[id]; s.plan[id] = null; return t && alive(s, t) ? t : targets[Math.floor(s.rand() * targets.length)]; }, weak = s.atkDown[id] > 0, k = weak ? .7 : 1; if (weak && !(id === 'boss' && s.broken)) s.atkDown[id]--;
+  const r = foeAct(s, id, targets, pick, weak, k); if (!s.over) planFoe(s, id); return r;
+}
+function foeAct(s, id, targets, pick, weak, k) {
   if (id !== 'boss') { const K = KINDS[s.kind[id]];
     if (K.heal) { const hurt = ['boss', ...MINIONS].filter(f => alive(s, f) && s.hp[f] < STAT[f].hp).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0]; if (hurt) { const v = Math.min(Math.round(K.heal * s.hk), STAT[hurt].hp - s.hp[hurt]); s.hp[hurt] += v; return { kind: 'foeHeal', id, dst: hurt, v, hp: s.hp[hurt] }; } }
     const r = { kind: 'foeAtk', id, weak, hits: hitHeroes(s, id, K.aoe ? targets.map(h => [h, STAT[id].atk * k * K.aoe]) : [[pick(), STAT[id].atk * k]]) };

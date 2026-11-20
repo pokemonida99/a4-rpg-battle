@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.12.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.13.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -92,8 +92,11 @@ async function loadSound(id, url) { try { const r = await fetch(url); if (!r.ok)
 const pick = await fetch('audio/pick.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
 const audioReady = Promise.all([...SFX_IDS.map(id => loadSound(id, `audio/sfx/${id}.mp3`)), loadSound('whoosh', 'audio/sfx/whoosh.wav'),
   ...Object.keys(LINES).map(k => loadSound('vo/' + k, `audio/vo/${pick['vo/' + k] || k + '_1'}.mp3`)), loadSound('bgm/battle', 'audio/bgm/battle.mp3'), loadSound('bgm/boss', 'audio/bgm/boss.mp3'), loadSound('bgm/map', 'audio/bgm/map.mp3'), loadSound('bgm/victory', 'audio/bgm/victory.mp3')]);
+// 戰鬥播放速度：1、1.5、2 倍（左上角的小紙條切換，記在 PREF.spd）。只加快演出，選指令的時候不倒數。看過的頭目開場自動用兩倍帶過（introBoost）
+const SPEEDS = [1, 1.5, 2]; let introBoost = -1;
+const speedNow = () => Q.has('fast') ? +Q.get('fast') || 3 : (phase === 'anim' || phase === 'end' || phase === 'command' ? SPEEDS[PREF.spd || 0] * (now < introBoost ? 2 : 1) : 1);
 const snd = (t, id, v = 1) => { const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(), vo = id.startsWith('vo/'); s.buffer = b; g.gain.value = v * (vo ? 1 : .6); s.connect(g).connect(master);
-  const when = AC.currentTime + Math.max(0, t - now); s.start(when); if (vo) { musicGain.gain.setTargetAtTime(.16, when, .08); musicGain.gain.setTargetAtTime(.42, when + b.duration + .2, .3); } };
+  const when = AC.currentTime + Math.max(0, t - now) / speedNow(); s.start(when); if (vo) { musicGain.gain.setTargetAtTime(.16, when, .08); musicGain.gain.setTargetAtTime(.42, when + b.duration + .2, .3); } };
 // 配樂的切換：行程表（地圖）播地圖曲；進戰鬥換戰鬥曲、魔王站換魔王曲；戰鬥一結束戰鬥曲就停，回到行程表再換回地圖曲。
 // 地圖曲暫時借用之前沒用到的那首程式合成的結算曲（audio/bgm/map.mp3），之後使用者有自己的再換。
 const MUSIC_VOL = { 'bgm/map': .75 }; let musicId = null;
@@ -392,7 +395,7 @@ function nextTurn() {
     if (id === 'kevin' && aegisFx.length) { endFx(aegisFx); goHome(now, 'kevin', .3); num(now + .1, 'kevin', '掩護結束', 'text', { col: '#9af0ff', px: 24, y: 1.2 }); }
     if (id === 'qiang' && bulwarkFx.length) { endFx(bulwarkFx); num(now + .1, 'qiang', '掩護結束', 'text', { col: '#ffc890', px: 24, y: 1.2 }); }
     phase = 'command'; pickTip(id); openMenu('root'); uiSound('move'); }
-  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
+  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); { const v = sumV(r.hits), dn = (r.hits || []).filter(h => h && h.kill).map(h => DEFS[h.dst].name); logStep(`${NAME[id]} ${r.kind === 'bossUlt' ? state.L.text.ult.replace('奧義　', '大招「') + '」' : r.kind === 'charge' ? '蓄力' : r.kind === 'stunned' ? '理虧，沒有行動' : r.kind === 'foeHeal' ? `幫${NAME[r.dst]}回了 ${r.v}` : '攻擊'}` + (v ? `　我方 −${v}` : '') + (dn.length ? `　${dn.join('、')}倒下` : '')); } at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
 }
 // 教學便條：第一次遇到某個狀況，輪到玩家下指令時在左上角貼一張（不擋中間），下完這一步就收起來。看過的記在 PREF.tips，之後不再出現
 const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方的「氣勢」，全隊共用。', '招式只花 SP。氣勢到 40、SP 也夠，「奧義」就會亮。'], ult: ['奧義可以放了', '放奧義會用掉 40 氣勢和自己的 SP。', '氣勢全隊共用，想清楚給誰放。'],
@@ -406,7 +409,19 @@ function pickTip(id) { const seen = PREF.tips || (PREF.tips = []), kinds = R.MIN
 function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), X = 14 - (1 - k) * 40, Y = 250, Wd = 590, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
   c.save(); c.globalAlpha = k; skin.paper(X, Y, Wd, Hh, { clips: [X + 60] }); c.fillStyle = RED; c.fillRect(X + 22, Y + 22, 7, 30); text(tipNow.title, X + 42, Y + 47, { px: 28, w: 900, fam: SERIF, col: INK, ls: 4 }); text('第一次遇到', X + Wd - 24, Y + 44, { px: 17, w: 700, align: 'right', col: INK2 });
   rows.forEach((l, i) => text(l, X + 28, Y + 86 + i * 32, { px: 22, w: 700, col: INK })); c.restore(); }
+// 敵方意圖：輪到玩家下指令時，每個敵人頭上貼一張小紙條寫下一步（攻擊誰、補誰、蓄力、大招），底下一行是身上的狀態與還剩幾回合。內容來自 rules.js 的 intent()，跟實際行動一致
+function drawIntents() { for (const f of R.foes(state)) { const it = R.intent(state, f); if (!it) continue; const [px, py] = S.proj(f, 1), who = t => t ? (DEFS[t].enemy ? NAME[t] : DEFS[t].name) : '隨機';
+    const main = { atk: `攻擊 → ${who(it.target)}`, drain: `攻擊＋扣 SP → ${who(it.target)}`, aoe: '攻擊全體', heal: `補血 → ${who(it.target)}`, charge: '下一步：蓄力', ult: '大招：打全體', stun: '理虧　這次動不了' }[it.kind] + (it.weak ? '（攻↓）' : '');
+    const col = it.kind === 'heal' ? '#1f6a5c' : it.kind === 'stun' ? INK2 : RED, hot = it.kind === 'ult' || it.kind === 'charge', w = mw(main, 18, 900) + 26, x = Math.max(8, Math.min(W - w - 8, px - w / 2)), y = Math.max(96, py - 74);
+    skin.paper(x, y, w, 32, { old: it.kind === 'stun' }); if (hot) { c.fillStyle = '#6e1c16'; c.fillRect(x + 3, y + 3, w - 6, 26); } text(main, x + 13, y + 23, { px: 18, w: 900, col: hot ? '#fff0e0' : col });
+    const tags = []; if (state.burn[f] > 0) tags.push(`灼燒 ${state.burn[f]}`); if (state.mark[f] > 0) tags.push(`標記 ${state.mark[f]}`); if (state.atkDown[f] > 0) tags.push(`攻↓ ${state.atkDown[f]}`); if (f !== 'boss' && R.KINDS[state.kind[f]].armor) tags.push('裝甲');
+    if (f === 'boss' && !state.broken && state.shield > 0) tags.push(`再削 ${state.shield} 點底氣就理虧`); if (f === 'boss' && state.broken) tags.push('理虧中：受傷加倍');
+    if (tags.length) text(tags.join('　'), x + w / 2, y + 52, { px: 15, w: 900, align: 'center', col: '#ffe9c0', stroke: 'rgba(20,10,4,.85)', sw: 4 }); } }
+// 這一場最後幾步的紀錄（輸的時候放進結案報告）
+let lastLog = [];
+const logStep = s => { lastLog.push(`回合 ${state.round}｜${s}`); if (lastLog.length > 6) lastLog.shift(); }, sumV = hs => (hs || []).reduce((a, h) => a + (h && h.v > 0 ? h.v : 0), 0);
 function act(r) {      // 玩家選完，演出然後換下一個
+  { const nm = DEFS[r.id].name, what = r.kind === 'attack' ? '攻擊' : r.kind === 'skill' ? `「${r.name}」` : r.kind === 'ult' ? `奧義「${DEFS[r.id].skill}」` : r.kind === 'defend' ? '防禦' : r.kind === 'item' ? `用了${R.ITEMS[r.key].name}` : '應援', v = sumV(r.hits); logStep(`${nm} ${what}` + (v ? `　打 ${v}` : '')); }
   phase = 'anim'; menu = null; tipNow = null; const t0 = now + .12;
   const te = r.kind === 'attack' ? playAttack(r, t0) : r.kind === 'defend' ? playDefend(r, t0) : r.kind === 'cheer' ? playCheer(r, t0) : r.kind === 'item' ? playItem(r, t0) : r.kind === 'skill' ? playSkill(r, t0) : playUlt(r, t0);
   at(te, () => { syncBars(now); syncGuard(now); for (const id of [...R.HEROES, 'boss', ...R.MINIONS]) if (S.hp[id].at(-1).v !== state.hp[id]) S.hp[id].push({ t: now, v: state.hp[id] }); S.active.push({ t: now, v: null }); nextTurn(); });
@@ -422,8 +437,8 @@ function openMenu(kind, arg) {
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
       { label: '防禦', sub: '受傷減半', go: () => act(R.doDefend(state, id)), hint: `到自己下一次行動前受到的傷害減半，氣勢 ＋${R.MO.defend}。` }];
   } else if (kind === 'target') { const sk = arg, bk = sk ? { ...back, go: () => openMenu('skills') } : back, blocked = R.guarded(state) && !(sk && sk.pierce), pot = S.pot() && !(sk && sk.pierce);      // arg＝招式（沒有就是普通攻擊）
-    items = R.foes(state).filter(f => f !== 'boss').concat(R.alive(state, 'boss') ? ['boss'] : []).map(f => ({ label: NAME[f], sub: f === 'boss' ? (blocked ? '護衛中　傷害無效' : pot ? '甩鍋中　第一下小兵背' : `HP ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}%`) : `HP ${state.hp[f]}`, warn: f === 'boss' && blocked, target: f, go: () => act(sk ? R.doSkill(state, id, sk.key, f) : R.doAttack(state, id, f)) })); items.push(bk);
-  } else if (kind === 'skills') { items = skills.map(k => ({ label: k.name, sub: `SP ${k.sp}　${k.note}`, off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) })); items.push(back);
+    items = R.foes(state).filter(f => f !== 'boss').concat(R.alive(state, 'boss') ? ['boss'] : []).map(f => ({ label: NAME[f], sub: (f === 'boss' ? (blocked ? '護衛中　傷害無效' : pot ? '甩鍋中　第一下小兵背' : `HP ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}%`) : `HP ${state.hp[f]}`) + (() => { const pv = R.preview(state, id, f, sk && sk.key); return pv ? `　約 −${pv}` : ''; })(), warn: f === 'boss' && blocked, target: f, go: () => act(sk ? R.doSkill(state, id, sk.key, f) : R.doAttack(state, id, f)) })); items.push(bk);
+  } else if (kind === 'skills') { items = skills.map(k => { const pv = k.target === 'all' && R.foes(state).length ? R.preview(state, id, R.foes(state).find(f => f !== 'boss') || 'boss', k.key) : null; return ({ label: k.name, sub: `SP ${k.sp}　${k.note}` + (pv ? `　每個約 ${pv}` : ''), off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) }); }); items.push(back);
   } else if (kind === 'allySkill') { items = R.allyTargets(state, id, arg).map(h => ({ label: DEFS[h].name, sub: arg.ally === 'sp' ? `SP ${state.sp[h]}／${R.STAT[h].sp}` : `HP ${state.hp[h]}／${R.STAT[h].hp}`, target: h, go: () => act(R.doSkill(state, id, arg.key, h)) })); items.push({ ...back, go: () => openMenu('skills') });
   } else if (kind === 'items') { items = Object.keys(R.ITEMS).map(k => { const it = R.ITEMS[k], ok = state.items[k] > 0 && R.itemTargets(state, k).length; return { label: it.name, sub: `${it.note}　×${state.items[k]}`, off: !ok, go: () => openMenu('ally', k) }; }); items.push(back);
   } else if (kind === 'ally') { items = R.itemTargets(state, arg).map(h => ({ label: DEFS[h].name, sub: R.ITEMS[arg].sp ? `SP ${state.sp[h]}／${R.STAT[h].sp}` : `HP ${state.hp[h]}／${R.STAT[h].hp}`, target: h, go: () => act(R.doItem(state, id, arg, h)) })); items.push({ ...back, go: () => openMenu('items') }); }
@@ -434,7 +449,7 @@ const resetUnit = (u, vis, pose) => { u.dead = null; u.poseK.length = 0; u.moveK
 // 前排站位（依人數）；Vivi 固定在後排
 const FORM = { 1: [[2.3, -.2]], 2: [[1.7, -1.0], [3.0, .5]], 3: [[1.4, -1.5], [2.4, -.3], [3.5, .9]], 4: [[1.4, -1.6], [2.25, -.5], [3.35, .5], [4.25, 1.5]] }, BACK = [5.55, -.55];
 function enterStage() {
-  const st = R.STAGES[run.node.stage], L = st.boss; todo.length = 0; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
+  const st = R.STAGES[run.node.stage], L = st.boss; todo.length = 0; lastLog = []; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
   if (L && L.hero) mirrorBoss(L.hero); for (const m of R.SLOTS) { const K = R.KINDS[state.kind[m]]; if (K.hero) mirrorMinions(K.hero); }
   for (const u of [bossU, chiefU, auditU, ...Object.values(mirrorBossU)]) if (u) resetUnit(u, false, 'idle');
   units.boss = (L && (L.hero ? mirrorBossU[L.hero] : { chief: chiefU, audit: auditU }[L.id])) || bossU; if (L) { resetUnit(units.boss, true, 'idle'); DEFS.boss.name = L.name; DEFS.boss.hp = L.hp; DEFS.boss.pos = units.boss.home.slice(); A.face.boss = L.hero && A.face[L.hero] ? A.face[L.hero] : units.boss === chiefU ? A.faceChief : units.boss === auditU ? A.faceAudit : A.faceBoss; }
@@ -453,9 +468,9 @@ function enterStage() {
 // 關卡開場：轉場、關卡牌、鏡頭帶一下敵人，再回到全景
 function startStage() {
   playMusic(R.isFinal(run) && buf['bgm/boss'] ? 'bgm/boss' : 'bgm/battle');      // 魔王那一站換魔王曲（使用者的歌：一般戰鬥〈月底吃土〉、魔王〈幽靈舞步〉）
-  phase = 'anim'; const st = R.STAGES[run.node.stage], L = st.boss, t0 = now + .1; SFX.add('encounter', t0, 1.3); snd(t0 + .05, 'encounter'); S.stageCard = { t0: t0 + 1.0, t1: t0 + 3.5, n: run.floor + 1, name: st.name, sub: st.sub };
+  phase = 'anim'; const st = R.STAGES[run.node.stage], L = st.boss, t0 = now + .1, seenIt = (PREF.seen || (PREF.seen = [])).includes(run.node.stage); if (seenIt) introBoost = t0 + 4.3; else { PREF.seen.push(run.node.stage); savePref(); } SFX.add('encounter', t0, 1.3); snd(t0 + .05, 'encounter'); S.stageCard = { t0: t0 + 1.0, t1: t0 + 3.5, n: run.floor + 1, name: st.name, sub: st.sub };
   if (L && L.id === 'boss') { cam.to(t0 - .01, 0, { x: -3.0, y: 1.9, z: -.5, d: 7.2, pitch: 3, blur: 10 }).to(t0 + .7, 2.6, { d: 8.4, y: 1.75 }, easeOut); snd(t0 + 1.15, 'boss_appear'); cam.shake(t0 + 1.2, .16, .6);
-    units.boss.anim(t0 + 1.9, 'swing', [0, .1, .22, .38, 9, 9, 9, 9]).pose(t0 + 3.2, 'idle'); say(t0 + 1.95, 'boss_intro', 'boss'); cam.shake(t0 + 2.25, .2, .9); SFX.add('lines', t0 + 2.25, .9, { cx: 190, cy: 120, c: [255, 120, 100], a: .55, r0: 150 }); }
+    units.boss.anim(t0 + 1.9, 'swing', [0, .1, .22, .38, 9, 9, 9, 9]).pose(t0 + 3.2, 'idle'); if (!seenIt) say(t0 + 1.95, 'boss_intro', 'boss'); cam.shake(t0 + 2.25, .2, .9); SFX.add('lines', t0 + 2.25, .9, { cx: 190, cy: 120, c: [255, 120, 100], a: .55, r0: 150 }); }
   else if (L) { cam.to(t0 - .01, 0, { x: -2.3, y: 1.35, z: -.5, d: 6.2, pitch: 3, blur: 10 }).to(t0 + .7, 2.6, { d: 7.4, y: 1.3 }, easeOut); snd(t0 + 1.15, 'boss_appear', .7); units.boss.anim(t0 + 1.8, 'swing', [0, .15, .3, .5, 9, 9, 9, 9]).pose(t0 + 3.0, 'idle'); cam.shake(t0 + 2.3, .12, .5); }
   else { cam.to(t0 - .01, 0, { x: -1.7, y: 1.0, z: -.3, d: 6.6, pitch: 5, blur: 9 }).to(t0 + .7, 2.6, { d: 8.0, x: -1.4 }, easeOut); R.MINIONS.forEach((m, i) => units[m].pose(t0 + 1.6 + i * .25, 'atk').hop(t0 + 1.6 + i * .25, .2, .3).pose(t0 + 2.6, 'idle')); snd(t0 + 1.6, 'whoosh', .5); }
   cam.to(t0 + 3.5, 1.1, WIDE); snd(t0 + 3.5, 'whoosh', .7); R.HEROES.forEach((id, i) => { units[id].pose(t0, 'wind').pose(t0 + 4.0 + i * .1, 'ready').hop(t0 + 4.0 + i * .1, .14, .26); });
@@ -572,7 +587,7 @@ function button(x, y, w, h, it, on, i) {
 function toggle(label, x, y, key, w = 150) { const pe = pressed && pressed.opt === key ? (performance.now() - pressed.t) / PRESS_MS : -1; zones.push({ x, y, w, h: 38, opt: key }); c.save(); c.translate(0, pe >= 0 ? 3 : 0); skin.paper(x, y, w, 38, { old: !!PREF[key] === (key === 'mute') }); text(label, x + w / 2, y + 27, { px: 20, w: 700, align: 'center', col: INK }); c.restore(); }
 const toggles = (x, y) => { toggle(PREF.mute ? '聲音　關' : '聲音　開', x, y, 'mute'); toggle(PREF.low ? '畫質　省電' : '畫質　一般', x + 162, y, 'low', 170); };
 function drawMenu() {
-  zones = []; if (sheet && menu) return drawSheet(); if (panel && menu) return drawPanel(); if (phase === 'hub' && menu) return drawHub(); if (phase === 'pick' && menu) return drawPick(); if (phase !== 'command' || !menu) return; drawTip();
+  zones = []; if (sheet && menu) return drawSheet(); if (panel && menu) return drawPanel(); if (phase === 'hub' && menu) return drawHub(); if (phase === 'pick' && menu) return drawPick(); if (phase !== 'command' || !menu) return; drawIntents(); drawTip();
   const n = menu.items.length, X0 = 770, X1 = 1880, gap = 12, w = Math.min(290, (X1 - X0 - gap * (n - 1)) / n), h = 116, y = 944, x0 = X1 - (w * n + gap * (n - 1)), d = DEFS[actor];
   // 木頭資料夾：上面夾一張說明紙（輪到誰＋目前選項的說明），下面一排索引標籤
   const it = menu.items[focus] || {}, tip = it.hint || (menu.kind === 'target' ? '選攻擊對象（也可以直接點敵人）' : menu.kind === 'ally' || menu.kind === 'allySkill' ? '選要給誰' : menu.kind === 'items' ? '選道具' : menu.kind === 'skills' ? '選招式' : '');
@@ -580,7 +595,7 @@ function drawMenu() {
   text(d.name, X0 + 26, y - 39, { px: 28, w: 900, fam: SERIF, col: INK }); const nw = mw(d.name, 28, 900, SERIF); text(d.job, X0 + 36 + nw, y - 40, { px: 18, w: 700, col: INK2 }); const jw = mw(d.job, 18);
   text(fit(tip, X1 - X0 - nw - jw - 90, 20, 700), X0 + 62 + nw + jw, y - 40, { px: 20, w: 700, col: INK });
   menu.items.forEach((m, i) => button(x0 + i * (w + gap), y, w, h, m, i === focus, i));
-  toggles(28, 148); toggle('隊伍・道具', 28, 194, 'panel', 170); skin.paper(364, 148, 150, 38); text(`第 ${run.floor + 1}／${R.MAP.length} 站`, 439, 175, { px: 20, w: 700, align: 'center', col: INK });
+  toggles(28, 148); toggle('隊伍・道具', 28, 194, 'panel', 170); toggle(`速度　×${SPEEDS[PREF.spd || 0]}`, 210, 194, 'spd', 150); skin.paper(364, 148, 150, 38); text(`第 ${run.floor + 1}／${R.MAP.length} 站`, 439, 175, { px: 20, w: 700, align: 'center', col: INK });
   // 目標頭上的箭頭
   if (it.target) { const [tx, ty] = S.proj(it.target, 1), foe = DEFS[it.target].enemy, col = foe ? '#ff6a5a' : '#8cf09a', by = ty - 40 + Math.sin(now * 9) * 6; c.fillStyle = col; c.strokeStyle = 'rgba(10,8,18,.9)'; c.lineWidth = 3; c.beginPath(); c.moveTo(tx - 19, by - 26); c.lineTo(tx + 19, by - 26); c.lineTo(tx, by); c.closePath(); c.stroke(); c.fill(); text('目標', tx, by - 34, { px: 22, w: 900, align: 'center', col, stroke: 'rgba(10,8,18,.9)', sw: 5, ls: 3 }); }
   // 現在是誰：頭上的箭頭
@@ -622,6 +637,10 @@ function drawPanel() { if (inBattle()) { c.fillStyle = 'rgba(8,5,4,.74)'; c.fill
     else { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x + 5, y + 5, 54, 54); text('？', x + 32, y + 46, { px: 36, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.38)' }); } });
   sheetBtn(inBattle() ? '回戰鬥' : '回行程表', PX + PW + 36, H - 14 - 100, 300, 100, menu.items.length - 1, true);
 }
+// 每一種站「得到什麼／代價是什麼」，給行程表下方的說明用
+const nodeTrade = nd => nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? '，並救出一位夥伴' : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
+  : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? ['多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
+const nextStops = () => R.MAP.slice(run.floor + 1, run.floor + 4).map(fl => [...new Set(fl.map(nd => nd.tag))].join('或')).join(' → ');
 function drawHub() {
   if (sheet) return drawSheet();
   drawTable(.3); const nF = R.MAP.length, fl = R.MAP[run.floor], tp = performance.now() / 1000, bw = 1536 * MK, bh = 1024 * MK;
@@ -655,9 +674,12 @@ function drawHub() {
   { const at0 = run.floor === 0 ? START : STN[run.floor - 1][run.path[run.floor - 1]], [x, y0] = bp(at0), y = y0 - 78 + Math.sin(tp * 3) * 4; c.fillStyle = '#1c120c'; c.fillRect(x - 27, y - 27, 54, 54); c.fillStyle = BRASS; c.fillRect(x - 24, y - 24, 48, 48); skin.face(A.face[run.roster[0]], x - 21, y - 21, 42); c.fillStyle = '#1c120c'; c.beginPath(); c.moveTo(x - 9, y + 27); c.lineTo(x + 9, y + 27); c.lineTo(x, y + 38); c.fill(); }
   // 下方：選到的那一站的說明＋出發
   { const IX = BPX, IY = 940, IW = bw, IH = 126, nd = hubSel >= 0 ? fl[hubSel] : null, di = fl.length, BW2 = 236; skin.wood(IX, IY, IW, IH, { studs: false }); skin.paper(IX + 10, IY + 10, IW - 30 - BW2, IH - 20);
-    if (!nd) text('前面有岔路：點地圖上亮著的站看內容，再點一次（或按「出發」）前進。', IX + 40, IY + 74, { px: 24, w: 700, col: INK });
-    else { pix(A.icons[nd.icon], IX + 26, IY + 21, 84, 84); text(nd.tag, IX + 128, IY + 46, { px: 18, w: 900, col: TAGCOL[nd.tag] || INK2, ls: 4 }); const nm = R.nodeName(nd); text(nm, IX + 128, IY + 92, { px: 40, w: 900, fam: SERIF, col: INK, ls: 2 }); const nx = IX + 128 + mw(nm, 40, 900, SERIF) + 40, ds = nodeDesc(nd), who = (run.offers[run.floor] || {})[hubSel] || [];
-      const room = IX + IW - 30 - BW2 - nx - who.length * 100 - 10; text(fit(ds[0], room, 22), nx, IY + 54, { px: 22, w: 900, col: INK }); text(fit(ds[1], room, 19), nx, IY + 90, { px: 19, w: 700, col: INK2 });
+    const nxt = nextStops();
+    if (!nd) { const cw = (IW - 40 - BW2) / fl.length; fl.forEach((o, q) => { const x = IX + 26 + q * cw, tr = nodeTrade(o); pix(A.icons[o.icon], x, IY + 14, 60, 60); text(R.nodeName(o), x + 72, IY + 38, { px: 26, w: 900, fam: SERIF, col: INK }); text(o.tag, x + 84 + mw(R.nodeName(o), 26, 900, SERIF), IY + 36, { px: 15, w: 900, col: TAGCOL[o.tag] || INK2, ls: 2 });
+        text(fit('得到：' + tr[0], cw - 90, 18, 900), x + 72, IY + 63, { px: 18, w: 900, col: '#1f6a5c' }); text(fit('代價：' + tr[1], cw - 90, 17), x + 72, IY + 85, { px: 17, w: 700, col: RED }); if (q) { c.fillStyle = 'rgba(43,31,24,.2)'; c.fillRect(x - 14, IY + 18, 2, 72); } });
+      if (nxt) text(fit('之後：' + nxt, IW - 80 - BW2, 16), IX + 98, IY + 108, { px: 16, w: 700, col: INK2 }); }
+    else { const tr = nodeTrade(nd), nm = R.nodeName(nd); pix(A.icons[nd.icon], IX + 26, IY + 21, 84, 84); text(nd.tag, IX + 128, IY + 44, { px: 18, w: 900, col: TAGCOL[nd.tag] || INK2, ls: 4 }); text(nm, IX + 128, IY + 90, { px: 40, w: 900, fam: SERIF, col: INK, ls: 2 }); const nx = IX + 128 + mw(nm, 40, 900, SERIF) + 40, ds = nodeDesc(nd), who = (run.offers[run.floor] || {})[hubSel] || [];
+      const room = IX + IW - 30 - BW2 - nx - who.length * 100 - 10; text(fit('得到：' + tr[0], room, 21, 900), nx, IY + 42, { px: 21, w: 900, col: '#1f6a5c' }); text(fit('代價：' + tr[1] + (nd.type === 'battle' ? '　' + ds[1].split('　')[0] : ''), room, 18), nx, IY + 72, { px: 18, w: 700, col: RED }); if (nxt) text(fit('之後：' + nxt, room, 16), nx, IY + 100, { px: 16, w: 700, col: INK2 });
       who.forEach((id, j) => { const fx0 = IX + IW - 30 - BW2 - (who.length - j) * 100 + 6; skin.face(A.face[id], fx0 + 12, IY + 18, 62); text(DEFS[id].name, fx0 + 43, IY + 104, { px: 16, w: 900, fam: SERIF, align: 'center', col: INK }); }); }
     const it = menu.items[di], bx = IX + IW - BW2 - 8, by = IY + 12, bh2 = IH - 24, off = it.off, pe = pressK(di), dn = pe >= 0 && !off, on = focus === di && !off; zones.push({ x: bx, y: by, w: BW2, h: bh2, i: di, off });
     c.save(); c.translate(pe >= 0 && off ? Math.sin(pe * 22) * 6 * (1 - Math.min(1, pe)) : 0, dn ? 5 : 0); skin.paper(bx, by, BW2, bh2, { old: off }); if (!off) { c.fillStyle = '#1e3b36'; c.fillRect(bx + 6, by + 6, BW2 - 12, bh2 - 12); c.fillStyle = on ? '#3f9c88' : TEAL; c.fillRect(bx + 8, by + 8, BW2 - 16, bh2 - 16); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(bx + 8, by + 8, BW2 - 16, 5); }
@@ -743,15 +765,17 @@ function bigButton(label, cx, cy, w = 440, h = 116, act = 'go') { const on = poi
   text(label, cx, y + h / 2 + 17, { px: 48, w: 900, fam: SERIF, align: 'center', ls: 8, col: on && !dn ? '#fff8e6' : INK }); }
 // ---------- 結案報告（結算）：通關或全員倒下之後，把這一輪的路線、夥伴、強化攤在一張公文上 ----------
 let report = null;
-function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1;
-  report = { t0, win, rounds, bonus: win ? Math.max(1000, 16000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
+const STYLE_TAG = { ember: '灼燒', bounty: '標記', riposte: '反擊', dossier: '證據', crunch: '加班', tempo: '氣勢', morale: '氣勢', weakpoint: '抓理虧', raise: '火力', chair: '耐久', leave: '耐久', firstaid: '耐久', learn: '多招', drinks: '補給', coffee: '補給', bento: '補給' };
+function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; if (!win) R.addTally(state, run);
+  const tg = {}; for (const k of run.picks) if (STYLE_TAG[k]) tg[STYLE_TAG[k]] = (tg[STYLE_TAG[k]] || 0) + (R.UPGRADES[k].once ? 2 : 1);
+  report = { t0, win, rounds, style: Object.entries(tg).sort((a, b) => b[1] - a[1]).slice(0, 2).map(e => e[0]), brk: run.tally.brk, ult: run.tally.ult, log: win ? [] : lastLog.slice(-4), bonus: win ? Math.max(1000, 16000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
     route: R.MAP.map((fl, k) => k <= run.floor && run.path[k] != null && fl[run.path[k]] ? fl[run.path[k]] : null), party: run.roster.map(id => { const on = R.HEROES.includes(id); return { id, on, down: id !== 'vivi' && !((on ? state.hp[id] : run.hp[id]) > 0) }; }) };
   for (let i = 0; i < 4; i++) snd(t0 + .5 + i * .3, 'stat', .7); snd(t0 + 1.9, 'card', .9); }
 function drawReport() { const k = report; if (!k || now < k.t0) return; zones = [];
   const el = now - k.t0, u = easeOut(sat(el / .4)), PW = 940, PH = 1008, X = (k.win ? 46 : W / 2 - PW / 2) - (1 - u) * 60, Y = 36, L = X + 64, IW = PW - 128, nF = R.MAP.length, show = i => easeOut(sat((el - .45 - i * .3) / .3));
   const head = (s, y, i) => { c.globalAlpha = show(i); c.fillStyle = RED; c.fillRect(L, y - 18, 6, 22); text(s, L + 16, y, { px: 21, w: 900, col: INK, ls: 6 }); c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(L + 22 + mw(s, 21, 900) + s.length * 6, y - 8, IW - 22 - mw(s, 21, 900) - s.length * 6, 2); };
   c.save(); c.globalAlpha = sat(el / .25); skin.wood(X, Y, PW, PH); skin.paper(X + 20, Y + 20, PW - 40, PH - 40, { clips: [X + 130, X + PW - 130] });
-  text('結案報告', L, Y + 130, { px: 78, w: 900, fam: SERIF, col: INK, ls: 10 }); text(k.win ? `討伐${DEFS.boss.name}　${nF} 站全部走完` : `倒在第 ${k.floor + 1} 站「${k.stage}」` + (k.bossHp != null ? `　對方還剩 ${k.bossHp}% 的血` : ''), L + 4, Y + 174, { px: 24, w: 700, col: INK2, ls: 2 }); c.fillStyle = INK; c.fillRect(L, Y + 192, IW, 3);
+  text('結案報告', L, Y + 130, { px: 78, w: 900, fam: SERIF, col: INK, ls: 10 }); text(k.win ? `討伐${DEFS.boss.name}　${nF} 站全部走完` : `倒在第 ${k.floor + 1} 站「${k.stage}」` + (k.bossHp != null ? `　對方還剩 ${k.bossHp}% 的血` : ''), L + 4, Y + 174, { px: 24, w: 700, col: INK2, ls: 2 }); c.fillStyle = INK; c.fillRect(L, Y + 192, IW, 3); text('打法：' + (k.style.length ? k.style.join('・') : '還看不出來'), L + IW, Y + 174, { px: 22, w: 900, align: 'right', col: RED });
   // 路線：走過的站連成紅線；倒下的那一站打叉；沒走到的是虛線圈
   { const y0 = Y + 244, gap = (IW - 68) / (nF - 1), cy = y0 + 62, cx = i => L + 34 + i * gap, last = k.win ? nF - 1 : k.floor; head('路線', y0, 0);
     c.strokeStyle = 'rgba(43,31,24,.3)'; c.lineWidth = 4; c.setLineDash([3, 9]); c.beginPath(); c.moveTo(cx(0), cy); c.lineTo(cx(nF - 1), cy); c.stroke(); c.setLineDash([]); if (last > 0) { c.strokeStyle = '#c23b2e'; c.lineWidth = 6; c.beginPath(); c.moveTo(cx(0), cy); c.lineTo(cx(last), cy); c.stroke(); }
@@ -769,17 +793,18 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
     k.ups.forEach(([key, n], i) => { const x = L + 6 + i * 104, y = y0 + 18, im = A.icons['up_' + key]; c.fillStyle = '#1c120c'; c.fillRect(x + 12, y - 2, 68, 68); c.fillStyle = '#3a2a1e'; c.fillRect(x + 15, y + 1, 62, 62); if (im) pix(im, x + 18, y + 4, 56, 56);
       if (n > 1) { c.fillStyle = RED; c.fillRect(x + 60, y + 46, 32, 24); text(`×${n}`, x + 76, y + 64, { px: 17, w: 900, align: 'center', col: '#fff8e6' }); } text(fit(R.UPGRADES[key].name, 100, 15, 900), x + 46, y + 88, { px: 15, w: 900, align: 'center', col: INK }); }); }
   // 數字
-  { const y0 = Y + 748, cu = easeOut(sat((el - 1.35) / .6)), cells = k.win ? [['總回合數', Math.round(k.rounds * cu), INK], ['同行人數', k.party.length, INK], ['獎金', Math.round(k.bonus * cu).toLocaleString('en-US'), '#a8741a']] : [['總回合數', Math.round(k.rounds * cu), INK], ['走到', `第 ${k.floor + 1} 站`, INK], ['同行人數', k.party.length, INK]]; head('統計', y0, 3);
-    cells.forEach(([lab, v, col], i) => { const x = L + i * (IW / 3); text(lab, x + 16, y0 + 44, { px: 18, w: 700, col: INK2, ls: 3 }); text(String(v), x + 16, y0 + 100, { px: 54, w: 900, col }); if (i) { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x - 4, y0 + 24, 2, 84); } }); }
+  { const y0 = Y + 748, cu = easeOut(sat((el - 1.35) / .6)), cells = k.win ? [['總回合數', Math.round(k.rounds * cu), INK], ['打到理虧', `${k.brk} 次`, INK], ['放奧義', `${k.ult} 次`, INK], ['獎金', Math.round(k.bonus * cu).toLocaleString('en-US'), '#a8741a']] : [['總回合數', Math.round(k.rounds * cu), INK], ['走到', `第 ${k.floor + 1} 站`, INK], ['打到理虧', `${k.brk} 次`, INK], ['放奧義', `${k.ult} 次`, INK]]; head('統計', y0, 3);
+    cells.forEach(([lab, v, col], i) => { const x = L + i * (IW / 4); text(lab, x + 16, y0 + 44, { px: 18, w: 700, col: INK2, ls: 3 }); text(String(v), x + 16, y0 + 88, { px: 40, w: 900, col }); if (i) { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x - 4, y0 + 24, 2, 84); } }); }
   c.globalAlpha = sat(el / .25);
-  if (k.win) text('今天，準時下班。', L + 8, Y + PH - 74, { px: 38, w: 900, fam: SERIF, col: INK, ls: 6 }); else wrap('提示：看到「蓄力」就防禦或用坦克的奧義；血少先喝珍珠奶茶；岔路多去茶水間。', IW - 400, 20).forEach((ln, i) => text(ln, L + 8, Y + PH - 100 + i * 30, { px: 20, w: 700, col: INK2 }));
+  if (k.win) text('今天，準時下班。', L + 8, Y + PH - 74, { px: 38, w: 900, fam: SERIF, col: INK, ls: 6 }); else if (k.log.length) { text('最後幾步', L + 8, Y + PH - 136, { px: 16, w: 900, col: RED, ls: 4 }); k.log.forEach((ln, i) => text(fit(ln, IW - 384, 17), L + 8, Y + PH - 110 + i * 24, { px: 17, w: 700, col: INK2 })); }
+  else wrap('提示：看到「蓄力」就防禦或用坦克的奧義；血少先喝珍珠奶茶；岔路多去茶水間。', IW - 400, 20).forEach((ln, i) => text(ln, L + 8, Y + PH - 100 + i * 30, { px: 20, w: 700, col: INK2 }));
   { const se = el - 1.9; if (se > 0) skin.stamp(k.win ? '討伐完成' : '未結案', X + PW - 210, Y + 112, -.12, 46, se < .2 ? lerp(2.4, 1, easeOut(se / .2)) : 1); }
   c.restore(); if (phase === 'over') bigButton(k.win ? '再玩一次' : '再挑戰一次', X + PW - 64 - 180, Y + PH - 88, 360, 92);
 }
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'], ['v0.8.1', '新夥伴出招會喊聲，老鼠是吱吱聲', ''], ['v0.8.0', '事件站、三種新敵人、菁英考績魔導士', '八個流派強化、教學便條、全員招式圖示'], ['v0.7.2', '角色資料卡；在職進修可以自己挑招式', ''], ['v0.7.0', '11 位新夥伴的出招動畫', ''], ['v0.6.2', '進度自動存檔，標題可以「繼續上班」', '']];
+const CHANGES = [['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'], ['v0.8.1', '新夥伴出招會喊聲，老鼠是吱吱聲', ''], ['v0.8.0', '事件站、三種新敵人、菁英考績魔導士', '八個流派強化、教學便條、全員招式圖示'], ['v0.7.2', '角色資料卡；在職進修可以自己挑招式', ''], ['v0.7.0', '11 位新夥伴的出招動畫', ''], ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -811,6 +836,7 @@ function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
   if (z.opt === 'a2hs') { pressed = { opt: 'a2hs', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(r => { if (r && r.outcome === 'accepted') installed = true; }).catch(() => 0); } else { PREF.noA2hs = true; savePref(); } return; }
   if (z.opt === 'help' || z.opt === 'log' || z.opt === 'infoClose') { pressed = { opt: z.opt, t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; titleInfo = z.opt === 'infoClose' ? null : z.opt; }, PRESS_MS); return; }
+  if (z.opt === 'spd') { pressed = { opt: 'spd', t: performance.now() }; PREF.spd = ((PREF.spd || 0) + 1) % SPEEDS.length; savePref(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.opt === 'panel') { pressed = { opt: 'panel', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; if (phase === 'command' && menu && !panel) openPanel(); }, PRESS_MS); return; }
   if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.off) { pressed = { i: z.i, t: performance.now() }; uiSound('no'); buzz([8, 40, 8]); setTimeout(() => { pressed = null; }, 260); return; }
@@ -834,7 +860,7 @@ let last = performance.now(), pruneAt = 0, slowN = 0, slowSum = 0;
 function frame(ts) {
   const dt = Math.min(.1, (ts - last) / 1000); last = ts;
   if (!PREF.set && !PREF.low && (phase === 'title' || phase === 'load') && ++slowN > 20) { slowSum += dt; if (slowN === 70 && slowSum / 50 > .03) { PREF.low = true; applyQuality(); } }
-  now += dt * (Q.has('fast') ? +Q.get('fast') || 3 : 1);      // ↑ 開始畫面平均不到 33 格：自動切省電畫質
+  now += dt * speedNow();      // ↑ 開始畫面平均不到 33 格：自動切省電畫質
   while (todo.length && todo[0].t <= now) todo.shift().fn();
   arena.update(now); for (const id in units) units[id].update(now); for (const u of spareUnits()) u.update(now);
   for (const id of R.FRONT) if (ko[id]) { const m = units[id].mesh; if (units[id].frames.ko) m.material.color.multiplyScalar(.82); else { m.material.color.multiplyScalar(.3); m.scale.y *= .62; } }
