@@ -5,16 +5,16 @@
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
 import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
-  STAT, STAGES, MAP, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked } from '../js/rules.js';
+  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable } from '../js/rules.js';
 
-const E = process.env;
+const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
 if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
 for (const n of [1, 2, 3]) { if (E['S' + n]) SCALE[n][0] = +E['S' + n]; if (E['A' + n]) SCALE[n][1] = +E['A' + n]; }
 
 const lowest = s => FRONT.filter(h => alive(s, h)).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0];
 const weakMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[a] - s.hp[b])[0];
 // 會想的打法：先打會補血的實習生，重甲兵留到最後
-const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 }, smartMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => (PRIO[s.kind[a]] ?? 1) - (PRIO[s.kind[b]] ?? 1) || s.hp[a] - s.hp[b])[0];
+const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 }, prio = k => PRIO[KINDS[k].like || k] ?? 1, smartMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => prio(s.kind[a]) - prio(s.kind[b]) || s.hp[a] - s.hp[b])[0];
 // 猴子的臨時專案（畫面上寫明「打倒他，大招就落空」）一般玩家也會去打；鸚鵡附議的那隻只有會想的打法會優先處理
 const projT = s => s.charging && s.proj && alive(s, s.proj) ? s.proj : null, echoT = s => !s.charging && !s.broken && s.echo && alive(s, s.echo) ? s.echo : null;
 const target = (s, wm = weakMinion) => (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
@@ -25,11 +25,13 @@ const POLICY = {
     const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s, smartMinion);
     const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
     if (dead.length && s.items.bento) return doItem(s, id, 'bento', dead[0]);
-    if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
+    else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    if (s.sign > 0 && boss && !guarded(s) && !['mi', 'xu', 'vivi'].includes(id) && me > .4) return doAttack(s, id, 'boss');      // 不夜城：先用普攻把招牌打熄
     if (id === 'mi') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length >= 2 && can(s, id, 'soothe', keep)) return doSkill(s, id, 'soothe'); if (hurt.length && can(s, id, 'mend', keep)) return doSkill(s, id, 'mend', lowest(s)); }
     if (hurt.length && s.items.tea && (id === 'mi' || id === 'vivi' || me < .4 || FRONT.length === 1)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && boss ? doUlt(s, id) : doCheer(s);
-    if (s.charging && !covered && me < .7) return doDefend(s, id);
+    if (s.charging && !s.wok && !covered && me < .7) return doDefend(s, id);
     if (canUlt(s, id) && ['kui', 'jie', 'heilun'].includes(id) && (boss || nMin >= 2)) return doUlt(s, id);
     if (canUlt(s, id) && id === 'senpai' && (s.evidence >= 2 || s.broken)) return doUlt(s, id);
     if (t !== 'boss' && KINDS[s.kind[t]].dull && nMin < 2 && !smoked(s, id) && !['mi', 'xu', 'kevin', 'qiang', 'cha'].includes(id)) return doAttack(s, id, t);      // 大媽：招式只有一半，用普攻打
@@ -53,7 +55,8 @@ const POLICY = {
   // 一般玩家：奧義亮了就放，有人快倒才補血，看到蓄力坦會擋；偶爾用招式
   casual(s, id) {
     const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4), t = target(s);
-    if (s.charging && canUlt(s, id) && ['kevin', 'qiang'].includes(id)) return doUlt(s, id);
+    if (s.charging && s.wok === id && s.round % 4) return doDefend(s, id);      // 畫面上寫明「防禦就彈回去」，一般玩家大多會照做
+    if (s.charging && !s.wok && canUlt(s, id) && ['kevin', 'qiang'].includes(id)) return doUlt(s, id);
     if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (can(s, id, 'mend')) return doSkill(s, id, 'mend', lowest(s)); }
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
@@ -74,8 +77,8 @@ function playRun(policy, seed, starter, map = 'office') {
   const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map); prepare(run);
   if (E.ALT && map === 'office') for (const kv of E.ALT.split(',')) { const [k, v] = kv.split(':'); if (STAGES[v]) run.alt[k] = v; }
   const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
-  while (run.floor < MAP.length) { const opts = MAP[run.floor], off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
-    if (opts.length > 1) { const rec = opts.findIndex((nd, k) => (nd.type === 'recruit' || nd.rescue) && off[k]), rst = opts.findIndex(nd => nd.type === 'rest'); i = policy === 'mash' ? 0 : rst >= 0 && hpK < .55 ? rst : rec >= 0 && run.roster.length < 4 ? rec : opts.length - 1; }
+  const MAP = MAPS[map]; while (run.floor < MAP.length) { const opts = MAP[run.floor], ok = reachable(run), off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
+    i = ok[0]; if (ok.length > 1) { const rec = ok.find(k => (opts[k].type === 'recruit' || opts[k].rescue) && off[k]), rst = ok.find(k => opts[k].type === 'rest'), gift = ok.find(k => opts[k].type === 'gift'); i = policy === 'mash' ? ok[0] : rst != null && hpK < .55 ? rst : rec != null && run.roster.length < 4 ? rec : ok[ok.length === 3 ? (seed + run.floor) % 3 : ok.length - 1]; }      /* 三條支線的地圖：每一輪走的路不一樣 */
     const nd = enterNode(run, i);
     if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') pick();
     else if (nd.type === 'event') { const key = run.events[run.floor], os = EVENTS[key].opts.map((o, k) => k).filter(k => eventOk(run, key, k)), want = hpK < .6 ? 'heal' : 'buff'; applyEvent(run, key, policy === 'smart' ? os.find(k => EVENTS[key].opts[k].kind === want) ?? os[0] : policy === 'casual' ? os[Math.floor(rand() * os.length)] : os[0]); }
@@ -85,7 +88,7 @@ function playRun(policy, seed, starter, map = 'office') {
   return { win: true, floor: MAP.length, size: run.roster.length, rounds: run.rounds };
 }
 const N = +(process.argv[2] || 400);
-for (const map of (E.MAP || 'office,mirror').split(',')) for (const starter of ['kui', 'jie']) { console.log(`── ${map === 'mirror' ? '鏡像內戰' : '一般行程'}　起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
+for (const map of (E.MAP || 'office,taiwan,mirror').split(',')) for (const starter of ['kui', 'jie']) { const MAP = MAPS[map]; console.log(`── ${{ mirror: '鏡像內戰', taiwan: '台灣篇' }[map] || '一般行程'}　起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
   for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; const died = MAP.map(() => 0);
     for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter, map); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
     console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); } }
