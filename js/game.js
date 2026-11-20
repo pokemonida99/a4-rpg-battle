@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.16.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.17.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -29,7 +29,7 @@ for (const id of [...R.ALL]) if (!units[id]) R.ALL.splice(R.ALL.indexOf(id), 1);
 // 大地圖與卡片用的圖（桌面、藍圖、站點圖示、強化與招式的小圖示）。載不到就用程式畫的替代
 const loadImg = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
 A.map = { table: await loadImg('art/map/table.jpg'), blueprint: await loadImg('art/map/blueprint.jpg'), cover: await loadImg('art/map/cover.jpg') }; A.icons = {};
-await Promise.all(['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock', ...Object.keys(R.UPGRADES).map(k => 'up_' + k), 'sk_ult', ...new Set(Object.values(R.SKILLS).flat().map(k => 'sk_' + (k.ic || k.key)))].map(async n => { A.icons[n] = await loadImg(`art/map/icons/${n}.png`); })); for (const k of Object.values(R.SKILLS).flat()) if (k.ic) A.icons['sk_' + k.key] = A.icons['sk_' + k.ic];      // 新招式先借舊招式的圖示
+await Promise.all(['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock', ...new Set(Object.keys(R.UPGRADES).map(k => 'up_' + (R.UPGRADES[k].ic || k))), 'sk_ult', ...new Set(Object.values(R.SKILLS).flat().map(k => 'sk_' + (k.ic || k.key)))].map(async n => { A.icons[n] = await loadImg(`art/map/icons/${n}.png`); })); for (const k of Object.values(R.SKILLS).flat()) if (k.ic) A.icons['sk_' + k.key] = A.icons['sk_' + k.ic]; for (const k in R.UPGRADES) if (R.UPGRADES[k].ic) A.icons['up_' + k] = A.icons['up_' + R.UPGRADES[k].ic];      // 新招式先借舊招式的圖示
 // 一輪＝走完行程表（肉鴿路線，rules.js 的 MAP）。開局選人選招式之後才真正開新的一輪；這裡先放一個暫時的，讓開始畫面後面有東西可以看
 const RAND = Q.has('seed') ? R.mulberry(+Q.get('seed')) : Math.random;
 let run = R.newRun(RAND, 'kui', 'draft'); R.prepare(run);
@@ -42,7 +42,8 @@ try { const [i, w, a, h] = await Promise.all(['idle', 'wind', 'atk', 'hurt'].map
 DEFS.mc.pos = [-2.7, -.3]; units.mc.home = [-2.7, -.3]; DEFS.ma.name = DEFS.mb.name = DEFS.mc.name = DEFS.md.name = '社畜小兵';
 // 其他種類的一般敵人（rules.js 的 KINDS）與菁英「考績魔導士」：一般敵人共用 ma／mb／mc 三個位置，菁英共用 'boss' 的位置，進關時換上去。沒有圖的種類用社畜小兵頂著
 const cropFace = (im, [x, y, sz]) => { const fc = document.createElement('canvas'); fc.width = fc.height = 96; const k = fc.getContext('2d'); k.imageSmoothingEnabled = false; k.drawImage(im, x, y, sz, sz, 0, 0, 96, 96); return fc; };
-const minionU = { drone: { ma: units.ma, mb: units.mb, mc: units.mc, md: units.md } }, minionFace = { drone: A.face.ma }, KLOOK = { courier: { hgt: 1.44, face: [22, 2, 40] }, knight: { hgt: 1.34, face: [26, 0, 40] }, intern: { hgt: 1.4, face: [12, 0, 42] }, auntie: { hgt: 1.32, face: [14, 0, 42] }, smoker: { hgt: 1.3, face: [18, 0, 36] } };
+const minionU = { drone: { ma: units.ma, mb: units.mb, mc: units.mc, md: units.md } }, minionFace = { drone: A.face.ma }, KLOOK = { courier: { hgt: 1.44, face: [22, 2, 40] }, knight: { hgt: 1.34, face: [26, 0, 40] }, intern: { hgt: 1.4, face: [12, 0, 42] }, auntie: { hgt: 1.32, face: [14, 0, 42] }, smoker: { hgt: 1.3, face: [18, 0, 36] },
+  tw_drone: { hgt: 1.4, face: [18, 2, 32] }, tw_knight: { hgt: 1.34, face: [24, 8, 32] }, tw_auntie: { hgt: 1.32, face: [14, 0, 38] }, tw_courier: { hgt: 1.44, face: [28, 4, 30] }, tw_intern: { hgt: 1.4, face: [20, 2, 34] }, tw_smoker: { hgt: 1.3, face: [30, 0, 32] } };      // tw_＝台灣篇的換皮小兵
 for (const kind in KLOOK) try { const f = {}; for (const k of ['idle', 'atk', 'hit']) f[k] = await loadTex(`art/enemy/${kind}_${k}.png`); const us = {};
   for (const m of R.SLOTS) { const front = m !== 'mb' && m !== 'md'; us[m] = new Unit(stageGroup, f, { x: DEFS[m].pos[0], z: DEFS[m].pos[1], scale: KLOOK[kind].hgt * PPU / f.idle.image.height, tint: front ? 0xf0e8f4 : 0xd8d4ee, phase: front ? .2 : .7 }); us[m].show(-1e9, false); }
   minionU[kind] = us; minionFace[kind] = cropFace(f.idle.image, KLOOK[kind].face); } catch (e) { /* 沒有圖 */ }
@@ -50,7 +51,7 @@ let auditU = null;
 try { const [i, w, a, h] = await Promise.all(['idle', 'wind', 'atk', 'hurt'].map(k => loadTex(`art/enemy/audit_${k}.png`)));
   auditU = new Unit(stageGroup, { idle: i, atk: a, hurt: h, stun: h, swing: [i, w, w, a, a, a, i, i] }, { x: -2.5, z: -.5, scale: 1.95 * PPU / i.image.height, tint: 0xf0e8f4, shadowK: .7 }); auditU.show(-1e9, false); A.faceAudit = cropFace(i.image, [2, 0, 34]); } catch (e) { /* 沒有圖就用魔王頂著 */ }
 // 另外三位長官（鸚鵡、猴子、豬腦）：做法跟考績魔導士一樣，共用 'boss' 的位置。圖跟小兵差不多高，在這裡放大（hgt＝站姿在場上多高）
-const eliteU = {}, eliteFace = {}, ELOOK = { parrot: { hgt: 2.1, face: [10, 0, 40] }, monkey: { hgt: 1.8, face: [22, 12, 30] }, pig: { hgt: 1.95, face: [20, 6, 34] } };
+const eliteU = {}, eliteFace = {}, ELOOK = { parrot: { hgt: 2.1, face: [10, 0, 40] }, monkey: { hgt: 1.8, face: [22, 12, 30] }, pig: { hgt: 1.95, face: [20, 6, 34] }, tw_pot: { hgt: 2.25, face: [30, 24, 34] }, tw_night: { hgt: 2.15, face: [36, 6, 28] }, tw_roof: { hgt: 2.7, face: [84, 60, 24] } };
 for (const k in ELOOK) try { const [i, w, a, h] = await Promise.all(['idle', 'wind', 'atk', 'hurt'].map(n => loadTex(`art/enemy/${k}_${n}.png`)));
   eliteU[k] = new Unit(stageGroup, { idle: i, atk: a, hurt: h, stun: h, swing: [i, w, w, a, a, a, i, i] }, { x: -2.5, z: -.5, scale: ELOOK[k].hgt * PPU / i.image.height, tint: 0xf0e8f4, shadowK: .7 }); eliteU[k].show(-1e9, false); eliteFace[k] = cropFace(i.image, ELOOK[k].face); } catch (e) { /* 沒有圖就用魔王頂著 */ }
 // 鏡像內戰：敵人是我方夥伴的鏡像。圖直接拿那個夥伴的（站姿、出手、受擊），左右翻過來、染一點紫；用到才做，做過的留著
@@ -413,6 +414,7 @@ function playFoe(r, t0) {
   if (r.kind === 'charge') { cam.to(t0, .6, { x: -1.3, d: 11.4, y: 1.7 }).to(t0 + 2.3, .5, WIDE); box(t0 + .2, 2.4, state.L.text.charge, true); u.anim(t0 + .3, 'swing', [0, .2, .5, 9, 9, 9, 9, 9]); snd(t0 + .3, 'boss_charge', 1); if (state.L.id === 'boss') say(t0 + .65, 'boss_attack', 'boss');
     fx('lightning/charge-up', t0 + .4, 'boss', { palette: 'blood', scale: 2.0, y: 2.2, dx: .2 }); SFX.add('vignette', t0 + .4, 2.2, { c: [220, 30, 30], a: .8, pulse: 14 }); SFX.add('embers', t0 + .4, 2.2, { c: [255, 80, 50], x0: 0, w: 260 }); cam.shake(t0 + 1.0, .08, 1.4);
     num(t0 + 1.4, 'boss', r.proj ? '打倒臨時專案，大招就落空' : state.L.brag ? '大招威力看底氣：削越多越不痛' : r.wok ? `鍋掛在${DEFS[r.wok].name}身上：防禦就彈回去` : r.sign ? '招牌全亮：我方用招式多扣 SP' : r.layers ? `加蓋到 ${r.layers} 層：用招式打他可以拆` : r.locks ? `屬性鎖 ${r.locks.map(t => R.TYPES[t]).join('、')}：打中一個，大招弱 25%` : '下一次行動：全體大傷害', 'text', { col: '#ff8a70', y: .5, px: 32 });
+    if (r.moGain) { S.mo.push({ t: t0 + .9, v: r.mo }); num(t0 + .9, R.FRONT.find(h => R.alive(state, h)) || R.HEROES[0], `倒數桌曆　氣勢 ＋${r.moGain}`, 'text', { col: '#ffe27a', px: 28, y: 1.5 }); }
     if (r.wok) { num(t0 + 1.85, r.wok, '這鍋你背', 'text', { col: '#ffb060', px: 32, y: 1.45 }); at(t0 + 1.8, () => { if (R.alive(state, r.wok)) units[r.wok].hop(now, .2, .3); }); snd(t0 + 1.8, 'shield_block', .6); }
     if (r.called) popIn(r.called, t0 + 1.3); if (r.proj) { at(t0 + 1.75, () => { if (R.alive(state, r.proj)) units[r.proj].hop(now, .2, .3); }); num(t0 + 1.8, r.proj, '臨時專案', 'text', { col: '#ffb060', px: 32, y: 1.35 }); snd(t0 + 1.8, 'shield_up', .5); }
     return t0 + 2.8; }
@@ -516,17 +518,17 @@ function act(r) {      // 玩家選完，演出然後換下一個
 function openMenu(kind, arg) {
   const id = actor, d = DEFS[id], skills = R.SKILLS[id].filter(k => R.knows(state, id, k.key)), back = { label: '返回', sub: '', go: () => openMenu('root'), back: true }; let items = [];
   if (kind === 'root') {
-    const needBp = state.mo < R.MO.ult, needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length), anySk = skills.some(k => R.skillOk(state, id, k));
-    items = [id === 'vivi' ? { label: '應援', sub: `氣勢 ＋${R.MO.cheer}`, go: () => act(R.doCheer(state)), hint: `幫全隊加氣勢。氣勢到 ${R.MO.ult} 就能放奧義，全隊共用。` } : { label: '攻擊', sub: `${R.TYPES[R.ATK_TYPE[id]]}屬性・回 SP`, go: () => openMenu('target'), hint: `普攻附帶：${R.RIDER[id]}。` + (R.guarded(state) ? '小兵還在的時候打不到魔王。' : S.pot() ? '課長每回合被打的第一下會甩給小兵。' : '') },
+    const needBp = state.mo < R.ultMo(run), needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length), anySk = skills.some(k => R.skillOk(state, id, k));
+    items = [id === 'vivi' ? { label: '應援', sub: `氣勢 ＋${R.MO.cheer}`, go: () => act(R.doCheer(state)), hint: `幫全隊加氣勢。氣勢到 ${R.ultMo(run)} 就能放奧義，全隊共用。` } : { label: '攻擊', sub: `${R.TYPES[R.ATK_TYPE[id]]}屬性・回 SP`, go: () => openMenu('target'), hint: `普攻附帶：${R.RIDER[id]}。` + (R.guarded(state) ? '小兵還在的時候打不到魔王。' : S.pot() ? '課長每回合被打的第一下會甩給小兵。' : '') },
       { label: '技能', sub: anySk ? skills.map(k => k.name).join('、') : skills.length ? '現在用不了' : '還沒學會', off: !anySk, go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用氣勢。' },
-      { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.MO.ult}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
+      { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.ultMo(run)}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
       { label: '防禦', sub: '受傷減半', go: () => act(R.doDefend(state, id)), hint: `到自己下一次行動前受到的傷害減半，氣勢 ＋${R.MO.defend}。` }];
   } else if (kind === 'target') { const sk = arg, bk = sk ? { ...back, go: () => openMenu('skills') } : back, blocked = R.guarded(state) && !(sk && sk.pierce), pot = S.pot() && !(sk && sk.pierce);      // arg＝招式（沒有就是普通攻擊）
     items = R.foes(state).filter(f => f !== 'boss').concat(R.alive(state, 'boss') ? ['boss'] : []).map(f => ({ label: NAME[f], sub: (f === 'boss' ? (blocked ? '護衛中　傷害無效' : pot ? '甩鍋中　第一下小兵背' : `HP ${Math.ceil(state.hp.boss / R.STAT.boss.hp * 100)}%`) : `HP ${state.hp[f]}`) + (() => { const pv = R.preview(state, id, f, sk && sk.key), wk = isKnownWeak(f, sk ? sk.type : R.ATK_TYPE[id]); return pv ? ` 約−${wk ? Math.round(pv * 1.3) : pv}${wk ? '　弱點' : ''}` : ''; })(), wk: isKnownWeak(f, sk ? sk.type : R.ATK_TYPE[id]), warn: f === 'boss' && blocked, target: f, go: () => act(sk ? (sk.unite ? R.doUnite(state, id, sk.key, f) : R.doSkill(state, id, sk.key, f)) : R.doAttack(state, id, f)) })); items.push(bk);
-  } else if (kind === 'skills') { items = skills.map(k => { const pv = k.target === 'all' && R.foes(state).length ? R.preview(state, id, R.foes(state).find(f => f !== 'boss') || 'boss', k.key) : null; return ({ label: k.name, sub: `${k.type ? '〔' + R.TYPES[k.type] + '〕' : ''}SP ${k.sp}${state.L && state.L.fee && state.sign > 0 ? '＋' + state.L.fee : ''}　${k.note}` + (pv ? `　每個約 ${pv}` : ''), off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) }); });
-    for (const U of R.unitesOf(id)) { const ok = R.uniteOk(state, id, U), mates = U.who.filter(h => h !== id), acted = mates.find(h => R.alive(state, h) && !state.queue.includes(h)), poor = U.who.find((h, q) => state.sp[h] < U.sp[q]);
-      items.push({ label: U.name, unite: true, gold: ok, sub: `合體・${mates.map(h => DEFS[h].name).join('、')}　SP ${U.sp.join('／')}`, off: !ok, hint: `【合體技】${U.desc}（${U.who.map(h => DEFS[h].name).join('、')}的行動都用掉）` + (ok ? '' : mates.some(h => !R.alive(state, h)) ? '　夥伴倒下了。' : acted ? `　${DEFS[acted].name}這回合已經動過了。` : poor ? `　${DEFS[poor].name}的 SP 不夠。` : ''), go: () => U.target === 'foe' ? openMenu('target', { ...U, unite: true }) : act(R.doUnite(state, id, U.key)) }); }
+  } else if (kind === 'skills') { items = skills.map(k => { const pv = k.target === 'all' && R.foes(state).length ? R.preview(state, id, R.foes(state).find(f => f !== 'boss') || 'boss', k.key) : null; return ({ label: k.name + (R.isPlus(run, id, k.key) ? '＋' : ''), sub: `${k.type ? '〔' + R.TYPES[k.type] + '〕' : ''}SP ${R.skCost(run, id, k)}${state.L && state.L.fee && state.sign > 0 ? '＋' + state.L.fee : ''}　${k.note}` + (pv ? `　每個約 ${pv}` : ''), off: !R.skillOk(state, id, k), hint: k.desc, go: () => k.target === 'foe' ? openMenu('target', k) : k.target === 'ally' ? openMenu('allySkill', k) : act(R.doSkill(state, id, k.key)) }); });
+    for (const U of R.unitesOf(id)) { const ok = R.uniteOk(state, id, U), mates = U.who.filter(h => h !== id), acted = mates.find(h => R.alive(state, h) && !state.queue.includes(h)), poor = U.who.find((h, q) => state.sp[h] < R.uniteCost(run, U, q));
+      items.push({ label: U.name, unite: true, gold: ok, sub: `合體・${mates.map(h => DEFS[h].name).join('、')}　SP ${U.who.map((h, q) => R.uniteCost(run, U, q)).join('／')}`, off: !ok, hint: `【合體技】${U.desc}（${U.who.map(h => DEFS[h].name).join('、')}的行動都用掉）` + (ok ? '' : mates.some(h => !R.alive(state, h)) ? '　夥伴倒下了。' : acted ? `　${DEFS[acted].name}這回合已經動過了。` : poor ? `　${DEFS[poor].name}的 SP 不夠。` : ''), go: () => U.target === 'foe' ? openMenu('target', { ...U, unite: true }) : act(R.doUnite(state, id, U.key)) }); }
     items.push(back);
   } else if (kind === 'allySkill') { items = R.allyTargets(state, id, arg).map(h => ({ label: DEFS[h].name, sub: arg.ally === 'sp' ? `SP ${state.sp[h]}／${R.STAT[h].sp}` : `HP ${state.hp[h]}／${R.STAT[h].hp}`, target: h, go: () => act(R.doSkill(state, id, arg.key, h)) })); items.push({ ...back, go: () => openMenu('skills') });
   } else if (kind === 'items') { items = Object.keys(R.ITEMS).map(k => { const it = R.ITEMS[k], ok = state.items[k] > 0 && R.itemTargets(state, k).length; return { label: it.name, sub: `${it.note}　×${state.items[k]}`, off: !ok, go: () => openMenu('ally', k) }; }); items.push(back);
@@ -592,8 +594,15 @@ function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || 
 // 事件站：抽到的事件攤開成兩張選項卡，代價與好處都寫在卡上；選不了的（東西不夠）是舊紙
 function openEvent() { const key = run.events[run.floor], ev = R.EVENTS[key];
   openCards({ title: ev.name, sub: ev.text, foot: '選一個，選完回到行程表', items: ev.opts.map((o, j) => ({ label: o.label, icon: o.icon, lines: o.lines, big: true, off: !R.eventOk(run, key, j), go: () => { const msg = R.applyEvent(run, key, j); if (msg == null) return; snd(now, 'buff', .8); R.advance(run); openHub(`${ev.name}：${msg}`); } })) }); }
+// 休息站二選一：休息（回血、補 SP），或特訓（三個招式挑一個升級成「＋」：傷害與回復量 ＋25%、SP 消耗 －20%，每招一次）
+function openRest(nd) { const place = nd.name || '茶水間', tr = R.offerTrain(run), hurt = run.roster.filter(id => id !== 'vivi').reduce((a, id) => a + (R.STAT[id].hp - run.hp[id]), 0);
+  const rest = () => { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在${place}休息：全隊共回復 ${v} HP，SP 補滿` : `在${place}休息：SP 補滿（HP 本來就是滿的）`); };
+  if (!tr.length) return rest();
+  openCards({ title: place, sub: '休息一下，還是趁空檔練一招？只能選一個。', foot: '選一個', items: [
+    { label: '休息', tag: '回血、補 SP', icon: 'rest', big: true, lines: ['全員 HP 回復一半', '全員 SP 補滿', hurt > 0 ? `現在全隊少了 ${hurt} HP` : '現在大家都是滿血'], go: rest },
+    { label: '特訓', tag: '升級一個招式', icon: 'up_learn', big: true, lines: ['三個招式挑一個升級成「＋」', '傷害與回復量 ＋25%，SP 消耗 －20%', '這一站就不回血了'], go: () => openCards({ title: '特訓', sub: '挑一個招式升級成「＋」（每個招式只能升一次）：', foot: '選完回到行程表', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.applyTrain(run, id, key); snd(now, 'buff', .8); R.advance(run); openHub(`特訓完成：${DEFS[id].name}的「${k.name}」升級成「${k.name}＋」`); } }; }) }) }] }); }
 function openUpgrade(gift) { const offers = R.offerUpgrades(run);
-  openCards({ title: gift ? '福委會' : '過關獎勵', sub: gift ? '這個月的福利，選一個：' : (rescued ? `救出了${DEFS[rescued].name}！` : '') + '全員回復兩成五 HP、三成 SP，倒下的人也站起來了。再選一個強化：', foot: '選完回到行程表', items: offers.map(k => { const U = R.UPGRADES[k], who = (U.need || []).filter(id => run.roster.includes(id)).map(id => DEFS[id].name); return { label: U.name, tag: who.length ? `配合${who.join('、')}的招式` : '', icon: 'up_' + k, lines: U.desc.split('，'), big: true, go: () => pickUpgrade(k) }; }) }); }
+  openCards({ title: gift ? '福委會' : '過關獎勵', sub: gift ? '這個月的福利，選一個：' : (rescued ? `救出了${DEFS[rescued].name}！` : '') + '全員回復兩成五 HP、三成 SP，倒下的人也站起來了。再選一個強化：', foot: '選完回到行程表', items: offers.map(k => { const U = R.UPGRADES[k], who = (U.need || []).filter(id => run.roster.includes(id)).map(id => DEFS[id].name); return { label: U.name, tag: [R.UP_TAG[k], who.length ? `配合${who.join('、')}的招式` : ''].filter(Boolean).join('　'), icon: 'up_' + k, lines: U.desc.split('，'), big: true, go: () => pickUpgrade(k) }; }) }); }
 function pickUpgrade(k, opt) {
   if (k === 'learn' && !opt) { const u = R.unlearned(run), id = run.starter; if (u.length > 1) return openCards({ title: '在職進修', sub: `${DEFS[id].name}要學哪一招？`, foot: '選一個招式，選完回到行程表', items: R.SKILLS[id].filter(q => u.includes(q.key)).map(q => ({ label: q.name, tag: `SP ${q.sp}　${q.note}`, icon: 'sk_' + q.key, lines: [q.desc], go: () => pickUpgrade(k, q.key) })) }); }
   R.applyUpgrade(run, k, opt); snd(now, 'buff', .8); R.advance(run); const r = rescued; rescued = null; openHub((k === 'learn' ? `${DEFS[run.starter].name}學會「${R.SKILLS[run.starter].find(q => q.key === run.skills[run.starter].at(-1)).name}」` : `拿到強化「${R.UPGRADES[k].name}」`) + (r ? `　${DEFS[r].name}加入隊伍` : '')); }
@@ -627,7 +636,7 @@ const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItem
 function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
-  else if (nd.type === 'rest') { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在茶水間休息：全隊共回復 ${v} HP，SP 補滿` : '在茶水間休息：SP 補滿（HP 本來就是滿的）'); }
+  else if (nd.type === 'rest') openRest(nd);
   else if (nd.type === 'recruit') openRecruit(i);
   else if (nd.type === 'event') openEvent();
   else openUpgrade(true); }
@@ -703,10 +712,13 @@ const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612
 // 行程表地圖：畫面＝(世界座標 − 鏡頭) × 倍率。每張地圖有一到三張「地圖紙」並排，各站位置寫在世界座標；可以用手指或滑鼠拖著看，右上角切換「放大／全覽」
 // 台灣篇三張紙（廟埕燈會、不夜城夜市、頂樓加蓋）；三條支線由上到下是 a、b、c
 const ZBIG = 1.5, VIEW = { x0: 270, x1: 1906, y0: 8, y1: 908 }, MAPNAME = { mirror: '鏡像', taiwan: '台灣篇' };      // VIEW＝沒被隊伍欄、下方說明蓋住的範圍
-const TWX = [0, 1580, 3160], lane3 = (x, ys = [290, 540, 790]) => ys.map(y => [x, y]);
-const TW_STN = [[[300, 540]], lane3(590), lane3(880), lane3(1150), [[1400, 540]], lane3(TWX[1] + 230), lane3(TWX[1] + 590), lane3(TWX[1] + 950), [[TWX[1] + 1320, 540]], lane3(TWX[2] + 270), lane3(TWX[2] + 680), [[TWX[2] + 1180, 360]]];
+const TWX = [0, 1580, 3160];
+const sx = (k, pts) => pts.map(([x, y]) => [TWX[k] + x, y]);      // 各站位置照地圖紙上留的空位（design/taiwan/README.md 的座標）
+const TW_STN = [sx(0, [[363, 628]]), sx(0, [[641, 351], [643, 628], [644, 874]]), sx(0, [[927, 351], [918, 628], [938, 874]]), sx(0, [[1213, 351], [1211, 628], [1241, 874]]), sx(0, [[1400, 600]]),
+  sx(1, [[277, 315], [271, 586], [271, 846]]), sx(1, [[610, 315], [1000, 590], [611, 847]]), sx(1, [[935, 315], [1338, 587], [935, 847]]), sx(1, [[1297, 315]]),
+  sx(2, [[361, 388], [434, 601], [384, 803]]), sx(2, [[808, 350], [925, 549], [910, 751]]), sx(2, [[1300, 330]])];
 const LAY = { office: { sheets: [['blueprint', 0, 0]], stn: STN, via: VIA, start: START }, mirror: { sheets: [['blueprint', 0, 0]], stn: STN, via: VIA, start: START, flip: true },
-  taiwan: { sheets: TWX.map((x, i) => ['tw_' + (i + 1), x, 0]), stn: TW_STN, via: {}, start: [110, 540], titles: ['廟埕燈會', '不夜城夜市', '頂樓加蓋'] } };
+  taiwan: { sheets: TWX.map((x, i) => ['tw_' + (i + 1), x, 0]), stn: TW_STN, via: {}, start: [150, 640], titles: ['廟埕燈會', '不夜城夜市', '頂樓加蓋'] } };
 const lay = () => LAY[run.map] || LAY.office, laySize = () => [Math.max(...lay().sheets.map(s => s[1])) + 1536, 1024];
 let mapCam = [0, 0], mapCamT = null, mapZ = ZBIG, mapDrag = null, mapFitWas = null, mapOwner = null;
 const wpt = p => lay().flip ? [1536 - p[0], p[1]] : p, sp = p => { const [x, y] = wpt(p); return [(x - mapCam[0]) * mapZ, (y - mapCam[1]) * mapZ]; };
@@ -714,7 +726,9 @@ function clampCam(cm, z = mapZ) { const [ww, wh] = laySize(), ax = [-VIEW.x0 / z
 const mapZoomT = () => { if (!PREF.mapFit) return ZBIG; const [ww, wh] = laySize(); return Math.min((VIEW.x1 - VIEW.x0) / ww, (VIEW.y1 - VIEW.y0) / wh); };
 // 把鏡頭帶到地圖上的某一點（放在沒被蓋住的範圍正中間）；snap＝不要滑過去，直接到位
 function mapLook(p, snap) { const z = mapZoomT(), [x, y] = wpt(p); mapCamT = clampCam([x - (VIEW.x0 + VIEW.x1) / 2 / z, y - (VIEW.y0 + VIEW.y1) / 2 / z], z); if (snap) { mapZ = z; mapCam = mapCamT.slice(); mapCamT = null; } }
-function mapHome(snap) { const L = lay(), pts = R.reachable(run).map(k => L.stn[run.floor][k]), at0 = run.floor === 0 ? L.start : L.stn[run.floor - 1][run.path[run.floor - 1]], cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length; mapLook([(cx * 2 + at0[0]) / 3, (cy * 2 + at0[1]) / 3], snap); }
+// 地圖紙用到才下載（台灣篇三張各 0.8MB）
+function mapArt() { for (const [key] of lay().sheets) if (!(key in A.map)) { A.map[key] = null; loadImg(`art/map/${key}.jpg`).then(im => { A.map[key] = im; }).catch(() => {}); } }
+function mapHome(snap) { mapArt(); const L = lay(), pts = R.reachable(run).map(k => L.stn[run.floor][k]), at0 = run.floor === 0 ? L.start : L.stn[run.floor - 1][run.path[run.floor - 1]], cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length; mapLook([(cx * 2 + at0[0]) / 3, (cy * 2 + at0[1]) / 3], snap); }
 const TAGCOL = { 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
 const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[R.stageOf(run, nd)], cnt = {}; for (const m of st.minions) { const kd = (st.kinds || {})[m] || 'drone', n = kd === 'random' ? '隨機的鏡像同事' : R.KINDS[kd].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
@@ -858,8 +872,8 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   const rx = lx + lw + 30, rw = X + PW - 40 - rx, rh = lh - 124; skin.paper(rx, ly, rw, rh); const cx = rx + 40, cw = rw - 80; let y = ly + 58;
   const head = (s, note) => { c.fillStyle = RED; c.fillRect(cx, y - 24, 7, 28); text(s, cx + 20, y, { px: 26, w: 900, fam: SERIF, col: INK, ls: 8 }); const x1 = cx + 40 + mw(s, 26, 900, SERIF) + s.length * 8; c.fillStyle = 'rgba(43,31,24,.22)'; c.fillRect(x1, y - 10, cx + cw - x1 - (note ? mw(note, 18) + 18 : 0), 2); if (note) text(note, cx + cw, y - 3, { px: 18, w: 700, align: 'right', col: INK2 }); y += 20; };
   head('素質', inRun && run.picks.length ? `已拿 ${run.picks.length} 個強化` : '');
-  { const up = run.atk > 1.001 ? `強化 ＋${Math.round((run.atk - 1) * 100)}%` : '', cut = run.def < .999 ? `強化 －${Math.round((1 - run.def) * 100)}%` : '', cells = viv ? [['位置', '後排', '不會被攻擊'], ['應援', `氣勢 ＋${R.MO.cheer}`, '每次行動替全隊加氣勢'], ['速度', st.spd, '數字大的先行動'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式用'], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]]
-      : [['HP', inRun ? `${curHp(id)}／${st.hp}` : st.hp, '', inRun ? curHp(id) / st.hp : null, '#4f9a4a'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式與奧義用', inRun ? curSp(id) / st.sp : null, '#3d6fa8'], ['攻擊', Math.round(st.atk * (inRun ? run.atk : 1)), inRun ? up : ''], ['速度', st.spd, '數字大的先行動'], ['受到的傷害', inRun && cut ? `×${run.def.toFixed(2)}` : '×1', inRun ? cut : ''], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]];
+  { const up = run.atk > 1.001 ? `強化 ＋${Math.round((run.atk - 1) * 100)}%` : '', cut = run.def < .999 ? `強化 －${Math.round((1 - run.def) * 100)}%` : '', cells = viv ? [['位置', '後排', '不會被攻擊'], ['應援', `氣勢 ＋${R.MO.cheer}`, '每次行動替全隊加氣勢'], ['速度', st.spd, '數字大的先行動'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式用'], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.ultMo(run)}`]]
+      : [['HP', inRun ? `${curHp(id)}／${st.hp}` : st.hp, '', inRun ? curHp(id) / st.hp : null, '#4f9a4a'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式與奧義用', inRun ? curSp(id) / st.sp : null, '#3d6fa8'], ['攻擊', Math.round(st.atk * (inRun ? run.atk : 1)), inRun ? up : ''], ['速度', st.spd, '數字大的先行動'], ['受到的傷害', inRun && cut ? `×${run.def.toFixed(2)}` : '×1', inRun ? cut : ''], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.ultMo(run)}`]];
     const colW = cw / 3; cells.forEach(([k, v, note, bar, bcol], i) => { const x = cx + (i % 3) * colW, yy = y + 4 + Math.floor(i / 3) * 66; text(k, x, yy + 18, { px: 20, w: 900, col: INK2, ls: 3 }); text(String(v), x + mw(k, 20, 900) + k.length * 3 + 14, yy + 22, { px: 32, w: 900, col: INK }); if (bar != null) skin.bar(x, yy + 34, colW - 60, 10, bar, bar < .3 && k === 'HP' ? '#c8443a' : bcol); else if (note) text(fit(note, colW - 20, 18), x, yy + 50, { px: 18, w: 700, col: note.startsWith('強化') ? '#1f6a5c' : INK2 }); }); y += 4 + Math.ceil(cells.length / 3) * 66 + 18; }
   // 特性：普攻的屬性與附帶效果、被動特質
   if (!viv) { head('特性'); const tp = R.ATK_TYPE[id]; typeChip(tp, cx, y + 6, 36); text(fit(`普攻：回 SP，${R.RIDER[id]}`, cw - 60, 24, 700), cx + 50, y + 33, { px: 24, w: 700, col: INK }); y += 44; }
@@ -868,13 +882,13 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   // 招式（兩欄）與合體技
   const sk = R.SKILLS[id] || [], known = k => !inRun || (run.skills[id] || []).includes(k.key), un = R.UNITES.filter(U => U.who.includes(id)), cells = [...sk.map(k => ({ k })), ...un.map(U => ({ U }))], colW2 = cw / 2, rowH = cells.length > 6 ? 56 : 62;
   head('招式', id === run.starter && sk.some(k => !known(k)) ? '蓋章的還沒學：強化「在職進修」可以學' : un.length ? '金框是合體技：指定的夥伴同場才能放' : '只花 SP，不用氣勢');
-  cells.forEach(({ k, U }, i) => { const x = cx + (i % 2) * colW2, yy = y + Math.floor(i / 2) * rowH, ok = k ? known(k) : U.who.every(h => !inRun || run.roster.includes(h)), im = k ? A.icons['sk_' + k.key] : A.icons.sk_ult, nm = k ? k.name : U.name, tp = (k || U).type;
+  cells.forEach(({ k, U }, i) => { const x = cx + (i % 2) * colW2, yy = y + Math.floor(i / 2) * rowH, ok = k ? known(k) : U.who.every(h => !inRun || run.roster.includes(h)), im = k ? A.icons['sk_' + k.key] : A.icons.sk_ult, nm = k ? k.name + (inRun && R.isPlus(run, id, k.key) ? '＋' : '') : U.name, tp = (k || U).type;
     c.save(); c.globalAlpha = ok ? 1 : .42; if (U) { c.fillStyle = '#6e5a1c'; c.fillRect(x, yy + 6, 50, 50); } if (im) pix(im, x + (U ? 5 : 0), yy + 6 + (U ? 5 : 0), U ? 40 : 50, U ? 40 : 50);
     text(fit(nm, colW2 - 76 - (tp ? 40 : 0), 26, 900, SERIF), x + 62, yy + 28, { px: 26, w: 900, fam: SERIF, col: INK }); if (tp) typeChip(tp, x + colW2 - 56, yy + 4, 30);
-    text(fit(k ? `SP ${k.sp}　${k.note}` : `合體・${U.who.filter(h => h !== id).map(h => DEFS[h].name).join('、')}　SP ${U.sp[U.who.indexOf(id)]}`, colW2 - 80, 20, 700), x + 62, yy + 52, { px: 20, w: 700, col: k ? INK2 : '#8a6a12' }); c.restore();
+    text(fit(k ? `SP ${inRun ? R.skCost(run, id, k) : k.sp}　${k.note}` : `合體・${U.who.filter(h => h !== id).map(h => DEFS[h].name).join('、')}　SP ${U.sp[U.who.indexOf(id)]}`, colW2 - 80, 20, 700), x + 62, yy + 52, { px: 20, w: 700, col: k ? INK2 : '#8a6a12' }); c.restore();
     if (k && !ok) skin.stamp('還沒學', x + colW2 - 110, yy + 30, -.1, 15); });
   y += Math.ceil(cells.length / 2) * rowH + 30;
-  head('奧義', `SP ${st.cost}　氣勢 ${R.MO.ult}`);
+  head('奧義', `SP ${st.cost}　氣勢 ${R.ultMo(run)}`);
   { const im = A.icons.sk_ult || A.icons.up_morale; c.fillStyle = '#6e1c16'; c.fillRect(cx, y + 4, 50, 50); c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(cx + 1.5, y + 5.5, 47, 47); if (im) pix(im, cx + 5, y + 9, 40, 40); text(`「${d.skill}」`, cx + 58, y + 30, { px: 28, w: 900, fam: SERIF, col: INK, ls: 2 }); if (R.ULT_TYPE[id]) typeChip(R.ULT_TYPE[id], cx + cw - 36, y + 6, 30);
     text(fit(d.desc || (R.ULTS[id] || [])[1] || '', cw - 70, 20, 700), cx + 62, y + 56, { px: 20, w: 700, col: INK2 }); }
   // 下方按鈕
@@ -912,7 +926,7 @@ function bigButton(label, cx, cy, w = 440, h = 116, act = 'go') { const on = poi
 let report = null;
 const STYLE_TAG = { ember: '灼燒', bounty: '標記', riposte: '反擊', dossier: '證據', crunch: '加班', tempo: '氣勢', morale: '氣勢', weakpoint: '抓理虧', raise: '火力', chair: '耐久', leave: '耐久', firstaid: '耐久', learn: '多招', drinks: '補給', coffee: '補給', bento: '補給' };
 function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; if (!win) R.addTally(state, run);
-  const tg = {}; for (const k of run.picks) if (STYLE_TAG[k]) tg[STYLE_TAG[k]] = (tg[STYLE_TAG[k]] || 0) + (R.UPGRADES[k].once ? 2 : 1);
+  const tg = {}; for (const k of run.picks) { const w = STYLE_TAG[k] || R.UP_TAG[k]; if (w) tg[w] = (tg[w] || 0) + (R.UPGRADES[k].once ? 2 : 1); }
   report = { t0, win, rounds, style: Object.entries(tg).sort((a, b) => b[1] - a[1]).slice(0, 2).map(e => e[0]), brk: run.tally.brk, ult: run.tally.ult, log: win ? [] : lastLog.slice(-4), bonus: win ? Math.max(1000, 16000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node, run), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
     route: R.MAP.map((fl, k) => k <= run.floor && run.path[k] != null && fl[run.path[k]] ? fl[run.path[k]] : null), party: run.roster.map(id => { const on = R.HEROES.includes(id); return { id, on, down: id !== 'vivi' && !((on ? state.hp[id] : run.hp[id]) > 0) }; }) };
   for (let i = 0; i < 4; i++) snd(t0 + .5 + i * .3, 'stat', .7); snd(t0 + 1.9, 'card', .9); }
@@ -949,7 +963,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'] ];
+const CHANGES = [['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'], ['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

@@ -5,7 +5,7 @@
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
 import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
-  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite } from '../js/rules.js';
+  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
 if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
@@ -74,7 +74,7 @@ const POLICY = {
   // 只按攻擊（Vivi 只應援）
   mash(s, id) { return id === 'vivi' ? doCheer(s) : doAttack(s, id, target(s)); },
 };
-const PICK = ['raise', 'weakpoint', 'leave', 'chair', 'firstaid', 'tempo', 'ember', 'riposte', 'dossier', 'crunch', 'bounty', 'learn', 'coffee', 'drinks', 'morale', 'bento'];
+const PICK = ['raise', 'weakpoint', 'tabs', 'leave', 'chair', 'cutter', 'redpen', 'thermos', 'firstaid', 'partition', 'bell', 'applause', 'notebook', 'tempo', 'blanket', 'snackdrawer', 'cheatsheet', 'countdown', 'mug', 'carbon', 'fridge', 'ember', 'riposte', 'dossier', 'crunch', 'bounty', 'learn', 'coffee', 'drinks', 'morale', 'bento'];
 function battle(policy, run) {
   const s = newState(run); let guard = 0;
   while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
@@ -87,7 +87,7 @@ function playRun(policy, seed, starter, map = 'office') {
   const MAP = MAPS[map]; while (run.floor < MAP.length) { const opts = MAP[run.floor], ok = reachable(run), off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
     i = ok[0]; if (ok.length > 1) { const rec = ok.find(k => (opts[k].type === 'recruit' || opts[k].rescue) && off[k]), rst = ok.find(k => opts[k].type === 'rest'), gift = ok.find(k => opts[k].type === 'gift'); i = policy === 'mash' ? ok[0] : rst != null && hpK < .55 ? rst : rec != null && run.roster.length < 4 ? rec : ok[ok.length === 3 ? (seed + run.floor) % 3 : ok.length - 1]; }      /* 三條支線的地圖：每一輪走的路不一樣 */
     const nd = enterNode(run, i);
-    if (nd.type === 'rest') rest(run); else if (nd.type === 'gift') pick();
+    if (nd.type === 'rest') { const tr = offerTrain(run); if (policy !== 'mash' && tr.length && hpK > (policy === 'smart' ? .8 : .9)) applyTrain(run, tr[0][0], tr[0][1]); else rest(run); } else if (nd.type === 'gift') pick();
     else if (nd.type === 'event') { const key = run.events[run.floor], os = EVENTS[key].opts.map((o, k) => k).filter(k => eventOk(run, key, k)), want = hpK < .6 ? 'heal' : 'buff'; applyEvent(run, key, policy === 'smart' ? os.find(k => EVENTS[key].opts[k].kind === want) ?? os[0] : policy === 'casual' ? os[Math.floor(rand() * os.length)] : os[0]); }
     else if (nd.type === 'recruit') { const c = off[i] || []; if (c.length) join(run, policy === 'smart' ? c.find(id => ROLE[id] === '補') || c.find(id => ROLE[id] === '坦') || c[0] : c[0]); }
     else { const s = battle(policy, run); if (s.over !== 'win') return { win: false, floor: run.floor, size: run.roster.length }; endStage(s, run); if (run.floor < MAP.length - 1) pick(); }
