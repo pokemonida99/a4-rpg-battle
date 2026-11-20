@@ -561,9 +561,9 @@ function act(r) {      // 玩家選完，演出然後換下一個
 function openMenu(kind, arg) {
   const id = actor, d = DEFS[id], skills = R.SKILLS[id].filter(k => R.knows(state, id, k.key)), back = { label: '返回', sub: '', go: () => openMenu('root'), back: true }; let items = [];
   if (kind === 'root') {
-    const needBp = state.mo < R.ultMo(run), needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length), anySk = skills.some(k => R.skillOk(state, id, k));
+    const needBp = state.mo < R.ultMo(run), needSp = state.sp[id] < R.STAT[id].cost, anyItem = Object.keys(R.ITEMS).some(k => state.items[k] > 0 && R.itemTargets(state, k).length), anySk = skills.some(k => R.skillOk(state, id, k)), uOk = R.unitesOf(id).find(U => R.uniteOk(state, id, U));
     items = [id === 'vivi' ? { label: '應援', sub: `氣勢 ＋${R.MO.cheer}`, go: () => act(R.doCheer(state)), hint: `幫全隊加氣勢。氣勢到 ${R.ultMo(run)} 就能放奧義，全隊共用。` } : { label: '攻擊', sub: `${R.TYPES[R.ATK_TYPE[id]]}屬性・回 SP` + (state.locks && state.locks.includes(R.ATK_TYPE[id]) ? '・拆鎖' : ''), go: () => openMenu('target'), hint: `普攻附帶：${R.RIDER[id]}。` + (R.guarded(state) ? '小兵還在的時候打不到魔王。' : S.pot() ? '課長每回合被打的第一下會甩給小兵。' : '') },
-      { label: '技能', sub: anySk ? skills.map(k => k.name).join('、') : skills.length ? '現在用不了' : '還沒學會', off: !anySk, go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用氣勢。' },
+      { label: '技能', sub: (uOk ? '★ 合體技可以放　' : '') + (anySk ? skills.map(k => k.name).join('、') : skills.length ? '現在用不了' : '還沒學會'), off: !anySk && !uOk, go: () => openMenu('skills'), hint: uOk ? `合體技「${uOk.name}」現在可以放（在技能裡）。各自的招式只花 SP，不用氣勢。` : '各自的招式：只花 SP，不用氣勢。' },
       { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.ultMo(run)}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
       ...(id !== 'vivi' && R.bench(state).length ? [{ label: '換人', sub: `候補：${R.bench(state).map(h => DEFS[h].name).join('、')}`, go: () => openMenu('swap'), hint: state.swapRound === state.round ? '這回合已經換過一次了：再換會用掉這次行動，換上來的人下一回合才行動。' : '把自己換下去、換一位候補上來。每回合第一次換人不用掉行動：換上來的人接著行動。' }] : []),
