@@ -12,7 +12,7 @@ export const ALL = ['kui', 'jie', 'kevin', 'mi', 'vivi', 'yan', 'heilun', 'cha',
 export const HEROES = [], FRONT = [], MINIONS = ['ma', 'mb'];      // 這一場上場的人（FRONT＝站前排、會被打的；Vivi 在後排只負責應援）
 export const STAT = {
   kui: { hp: 2680, sp: 142, atk: 1250, spd: 356, cost: 60 }, kevin: { hp: 4860, sp: 118, atk: 780, spd: 142, cost: 50 },
-  jie: { hp: 2140, sp: 388, atk: 1500, spd: 228, cost: 180 }, mi: { hp: 2320, sp: 356, atk: 950, spd: 264, cost: 160 },
+  jie: { hp: 2380, sp: 388, atk: 1500, spd: 228, cost: 180 }, mi: { hp: 2320, sp: 356, atk: 950, spd: 264, cost: 160 },
   vivi: { hp: 9999, sp: 999, atk: 0, spd: 12, cost: 99 },
   yan: { hp: 2200, sp: 320, atk: 900, spd: 300, cost: 140 }, heilun: { hp: 2500, sp: 200, atk: 1100, spd: 240, cost: 90 }, cha: { hp: 2000, sp: 300, atk: 800, spd: 280, cost: 120 },
   qiang: { hp: 4400, sp: 130, atk: 1000, spd: 150, cost: 60 }, senpai: { hp: 2300, sp: 220, atk: 1300, spd: 250, cost: 110 },
@@ -342,6 +342,12 @@ const BASE = JSON.parse(JSON.stringify(STAT));
 const crew = run => run.roster.filter(id => id !== 'vivi');
 const hpAll = (run, k) => { for (const id of crew(run)) run.hp[id] = Math.max(1, Math.min(STAT[id].hp, run.hp[id] + Math.round(STAT[id].hp * k))); };
 const spAll = (run, k) => { for (const id of run.roster) run.sp[id] = Math.max(0, Math.min(STAT[id].sp, run.sp[id] + Math.round(STAT[id].sp * k))); };
+// 事件用的積木：隨機拿一個小物、隨機丟一個小物（只丟「旗標型」的，丟了不用回算數值）、隨機升級一個招式、下一場戰鬥的加成（run.next）
+const LOSABLE = ['redpen', 'cutter', 'thermos', 'partition', 'cheatsheet', 'applause', 'countdown', 'bell', 'tabs', 'carbon', 'notebook', 'snackdrawer', 'tempo', 'weakpoint', 'firstaid', 'ember', 'bounty', 'riposte', 'dossier', 'crunch'];
+export function randomRelic(run) { const pool = Object.keys(UPGRADES).filter(k => UPGRADES[k].once && k !== 'learn' && !run.picks.includes(k) && !(UPGRADES[k].need && !UPGRADES[k].need.some(id => run.roster.includes(id)))); if (!pool.length) return null; const k = pool[Math.floor(run.rand() * pool.length)]; applyUpgrade(run, k); return k; }
+export function loseRelic(run) { const mine = run.picks.filter(k => LOSABLE.includes(k)); if (!mine.length) return null; const k = mine[Math.floor(run.rand() * mine.length)]; run.picks.splice(run.picks.indexOf(k), 1); return k; }
+export function randomTrain(run) { const tr = offerTrain(run); if (!tr.length) return null; applyTrain(run, tr[0][0], tr[0][1]); return tr[0]; }
+const nextUp = (run, o) => { run.next = { foeHp: 1, ward: 0, ...(run.next || {}), ...o }; };
 export const EVENTS = {
   lift: { name: '電梯故障', text: '電梯卡在兩層樓中間，門上貼著「維修中，預計完成時間：未定」。', opts: [
     { label: '爬樓梯', icon: 'up_raise', kind: 'buff', lines: ['全員 HP －15%', '全員攻擊力 ＋8%'], go: run => { hpAll(run, -.15); run.atk *= 1.08; return '爬了十二層樓，腿很痠，但是火氣上來了'; } },
@@ -382,10 +388,59 @@ Object.assign(EVENTS, {
     { label: '送去櫃檯', icon: 'up_raise', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
     { label: '自己留著', icon: 'gift', kind: 'item', lines: ['一半機會：黑咖啡 ＋2', '一半機會：珍珠奶茶 ＋2'], go: run => { if (run.rand() < .5) { run.items.coffee += 2; return '是兩杯黑咖啡'; } run.items.tea += 2; return '是兩杯珍珠奶茶'; } }] },
 });
+// 事件第二批（v0.20，GPT 寫的十四個；map＝只在那張地圖出現）。新效果：下一場戰鬥敵人少血／我方先上護盾（nextUp）、隨機特訓、隨機小物、丟小物、揭曉下一個頭目的弱點（run.reveal 交給畫面記進圖鑑）
+const nextBoss = run => { for (let f = run.floor + 1; f < MAP.length; f++) { const nd = MAP[f].find(n => n.tag === '頭目' || n.tag === '魔王'); if (nd) return STAGES[stageOf(run, nd)].boss.id; } return null; };
+Object.assign(EVENTS, {
+  tw_temple_plaza: { name: '廟口臨時窗口', map: 'taiwan', text: '燈會服務台少一個人，總務說你看起來很會處理民怨。桌上還壓著下一位頭目的場地申請書。', opts: [
+    { label: '接手窗口，順便讀附件', icon: 'up_dossier', kind: 'buff', lines: ['全員 SP －20%', '揭曉下個頭目弱點'], ok: run => !!nextBoss(run), go: run => { spAll(run, -0.2); run.reveal = nextBoss(run); return '接手窗口，順便讀附件：全員 SP －20%、揭曉下個頭目弱點'; } },
+    { label: '搬完護欄就下班', icon: 'up_partition', kind: 'buff', lines: ['全員 HP －10%', '下戰全員護盾300'], go: run => { hpAll(run, -0.1); nextUp(run, { ward: 300 }); return '搬完護欄就下班：全員 HP －10%、下戰全員護盾300'; } }] },
+  tw_night_market: { name: '夜市報帳挑戰', map: 'taiwan', text: '同事說這攤願意配合公司報帳，但品項必須寫成「團隊凝聚耗材」。你得決定誰負責排隊。', opts: [
+    { label: '自己排，順便搬整箱', icon: 'up_drinks', kind: 'item', lines: ['全員 HP －12%', '奶茶 ＋2'], go: run => { hpAll(run, -0.12); run.items.tea += 2; return '自己排，順便搬整箱：全員 HP －12%、奶茶 ＋2'; } },
+    { label: '請攤主逐項開明細', icon: 'up_bento', kind: 'item', lines: ['全員 SP －20%', '便當 ＋1'], go: run => { spAll(run, -0.2); run.items.bento += 1; return '請攤主逐項開明細：全員 SP －20%、便當 ＋1'; } }] },
+  tw_typhoon_leave: { name: '颱風假遠端待命', map: 'taiwan', text: '公司宣布停止進辦公室，隨即補上一句「請保持聯繫」。工作群組的未讀數比窗外雨勢長得還快。', opts: [
+    { label: '喝咖啡，把急件清完', icon: 'up_coffee', kind: 'rest', lines: ['咖啡 －1', '全員 SP ＋60%'], ok: run => run.items.coffee >= 1, go: run => { run.items.coffee -= 1; spAll(run, 0.6); return '喝咖啡，把急件清完：咖啡 －1、全員 SP ＋60%'; } },
+    { label: '整理交接，關掉通知', icon: 'up_leave', kind: 'heal', lines: ['全員 SP －15%', '全員 HP ＋35%'], go: run => { spAll(run, -0.15); hpAll(run, 0.35); return '整理交接，關掉通知：全員 SP －15%、全員 HP ＋35%'; } }] },
+  tw_scooter_commute: { name: '機車停車格攻防', map: 'taiwan', text: '整排車只剩一個很考驗幾何能力的位置。同事拿出捲尺，說停車也能累積專業能力。', opts: [
+    { label: '親自示範移車技術', icon: 'up_learn', kind: 'buff', lines: ['主角 HP －20%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.2)); } randomTrain(run); return '親自示範移車技術：主角 HP －20%、隨機一招升級 ＋'; } },
+    { label: '停遠一點，走路開會', icon: 'up_morale', kind: 'buff', lines: ['全員 HP －8%', '開場氣勢 ＋8'], go: run => { hpAll(run, -0.08); run.moStart += 8; return '停遠一點，走路開會：全員 HP －8%、開場氣勢 ＋8'; } }] },
+  hell_asset_inventory: { name: '離職用品清點', map: 'hell', text: '資產管理員堅持，員工離職後連精神損耗也要辦繳回。你可以交出一件用品，換取一張補給核准單。', opts: [
+    { label: '交用品，換補給', icon: 'up_leave', kind: 'heal', lines: ['失去隨機小物1個', '全員 HP ＋60%', '全員 SP ＋60%'], ok: run => run.picks.some(k => LOSABLE.includes(k)), go: run => { loseRelic(run); hpAll(run, 0.6); spAll(run, 0.6); return '交用品，換補給：失去隨機小物1個、全員 HP ＋60%、全員 SP ＋60%'; } },
+    { label: '逐項申覆，保住資產', icon: 'up_partition', kind: 'buff', lines: ['全員 SP －25%', '下戰全員護盾350'], go: run => { spAll(run, -0.25); nextUp(run, { ward: 350 }); return '逐項申覆，保住資產：全員 SP －25%、下戰全員護盾350'; } }] },
+  hell_furnace_training: { name: '爐邊在職訓練', map: 'hell', text: '培訓教室設在鍋爐旁，講師說這叫沉浸式壓力管理。結訓證書上只印著「尚可繼續工作」。', opts: [
+    { label: '坐第一排實作', icon: 'up_learn', kind: 'buff', lines: ['全員 HP －18%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { hpAll(run, -0.18); randomTrain(run); return '坐第一排實作：全員 HP －18%、隨機一招升級 ＋'; } },
+    { label: '留下來整理安全教材', icon: 'up_chair', kind: 'buff', lines: ['全員 SP －25%', '永久減傷 ＋3%'], go: run => { spAll(run, -0.25); run.def *= 0.97; return '留下來整理安全教材：全員 SP －25%、永久減傷 ＋3%'; } }] },
+  hell_performance_shredder: { name: '績效碎紙室', map: 'hell', text: '碎紙機正在吞掉你們的年度成果，卻把缺失紀錄完整吐回來。旁邊有一份尚未送出的敵方人力預算。', opts: [
+    { label: '先抽走敵方預算', icon: 'up_weakpoint', kind: 'buff', lines: ['全員 SP －20%', '下戰敵人HP －15%'], go: run => { spAll(run, -0.2); nextUp(run, { foeHp: 0.85 }); return '先抽走敵方預算：全員 SP －20%、下戰敵人HP －15%'; } },
+    { label: '伸手搶救自己的成果', icon: 'up_raise', kind: 'buff', lines: ['主角 HP －25%', '永久攻擊 ＋4%'], go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.25)); } run.atk *= 1.04; return '伸手搶救自己的成果：主角 HP －25%、永久攻擊 ＋4%'; } }] },
+  hell_exit_interview: { name: '永不結束的離職面談', map: 'hell', text: '人資問你為什麼想走，表格卻只有「個人因素」可以勾。你發現面談官的抽屜裡塞著頭目評鑑表。', opts: [
+    { label: '用奶茶換一句實話', icon: 'up_dossier', kind: 'buff', lines: ['奶茶 －1', '揭曉下個頭目弱點'], ok: run => run.items.tea >= 1 && !!nextBoss(run), go: run => { run.items.tea -= 1; run.reveal = nextBoss(run); return '用奶茶換一句實話：奶茶 －1、揭曉下個頭目弱點'; } },
+    { label: '把所有問題講完', icon: 'up_morale', kind: 'buff', lines: ['全員 SP －30%', '開場氣勢 ＋12'], go: run => { spAll(run, -0.3); run.moStart += 12; return '把所有問題講完：全員 SP －30%、開場氣勢 ＋12'; } }] },
+  general_shared_calendar: { name: '共用行事曆撞期', text: '三場會議同時邀請你，主辦人都寫著「務必出席」。你可以花時間重新協調，也可以趁混亂清掉眼前的工作。', opts: [
+    { label: '逐一協調，空出休息', icon: 'up_leave', kind: 'heal', lines: ['全員 SP －15%', '全員 HP ＋30%'], go: run => { spAll(run, -0.15); hpAll(run, 0.3); return '逐一協調，空出休息：全員 SP －15%、全員 HP ＋30%'; } },
+    { label: '邊啃便當邊清急件', icon: 'up_weakpoint', kind: 'buff', lines: ['便當 －1', '下戰敵人HP －18%'], ok: run => run.items.bento >= 1, go: run => { run.items.bento -= 1; nextUp(run, { foeHp: 0.82 }); return '邊啃便當邊清急件：便當 －1、下戰敵人HP －18%'; } }] },
+  general_storage_cleanup: { name: '倉庫神祕紙箱', text: '紙箱上寫著「有用，勿丟」，日期卻比你的年資還長。總務答應，願意整理的人可以挑一件帶走。', opts: [
+    { label: '搬開整排紙箱', icon: 'gift', kind: 'buff', lines: ['全員 HP －18%', '隨機小物 ＋1'], go: run => { hpAll(run, -0.18); randomRelic(run); return '搬開整排紙箱：全員 HP －18%、隨機小物 ＋1'; } },
+    { label: '先做分類清冊', icon: 'up_coffee', kind: 'item', lines: ['全員 SP －15%', '咖啡 ＋1'], go: run => { spAll(run, -0.15); run.items.coffee += 1; return '先做分類清冊：全員 SP －15%、咖啡 ＋1'; } }] },
+  general_version_conflict: { name: '最終版的最終版', text: '共用資料夾出現七份最終版，每一份的修改時間都在未來。你得決定要研究差異，還是把所有人找來當面確認。', opts: [
+    { label: '逐行比對修改內容', icon: 'up_learn', kind: 'buff', lines: ['全員 SP －25%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { spAll(run, -0.25); randomTrain(run); return '逐行比對修改內容：全員 SP －25%、隨機一招升級 ＋'; } },
+    { label: '買奶茶，當面定稿', icon: 'up_morale', kind: 'buff', lines: ['奶茶 －1', '開場氣勢 ＋10'], ok: run => run.items.tea >= 1, go: run => { run.items.tea -= 1; run.moStart += 10; return '買奶茶，當面定稿：奶茶 －1、開場氣勢 ＋10'; } }] },
+  general_chair_repair: { name: '會議椅維修日', text: '椅子每轉一圈就發出一聲求救，同事卻說這是使用正常的證明。工具箱裡還有一張看不懂的組裝圖。', opts: [
+    { label: '拆開研究承重結構', icon: 'up_chair', kind: 'buff', lines: ['主角 HP －20%', '永久減傷 ＋3%'], go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.2)); } run.def *= 0.97; return '拆開研究承重結構：主角 HP －20%、永久減傷 ＋3%'; } },
+    { label: '熬著把扶手鎖緊', icon: 'up_partition', kind: 'buff', lines: ['全員 SP －15%', '下戰全員護盾300'], go: run => { spAll(run, -0.15); nextUp(run, { ward: 300 }); return '熬著把扶手鎖緊：全員 SP －15%、下戰全員護盾300'; } }] },
+  general_lunch_rehearsal: { name: '午休簡報彩排', text: '同事說只借你五分鐘，投影片卻有八十頁。便當已經送到，投影機也已經亮了。', opts: [
+    { label: '陪他練到能講重點', icon: 'up_raise', kind: 'buff', lines: ['全員 SP －25%', '永久攻擊 ＋3%'], go: run => { spAll(run, -0.25); run.atk *= 1.03; return '陪他練到能講重點：全員 SP －25%、永久攻擊 ＋3%'; } },
+    { label: '分便當，請他先吃飯', icon: 'up_leave', kind: 'heal', lines: ['便當 －1', '全員 HP ＋50%'], ok: run => run.items.bento >= 1, go: run => { run.items.bento -= 1; hpAll(run, 0.5); return '分便當，請他先吃飯：便當 －1、全員 HP ＋50%'; } }] },
+  general_inbox_overflow: { name: '信箱容量已滿', text: '信箱跳出容量警告，最占空間的是主管每天轉寄的勵志圖片。清理附件時，你找到一批忘記領取的補給券。', opts: [
+    { label: '整理附件，領補給券', icon: 'up_drinks', kind: 'item', lines: ['全員 SP －20%', '奶茶 ＋1', '咖啡 ＋1'], go: run => { spAll(run, -0.2); run.items.tea += 1; run.items.coffee += 1; return '整理附件，領補給券：全員 SP －20%、奶茶 ＋1、咖啡 ＋1'; } },
+    { label: '喝咖啡，一次清空待辦', icon: 'up_weakpoint', kind: 'buff', lines: ['咖啡 －1', '下戰敵人HP －15%'], ok: run => run.items.coffee >= 1, go: run => { run.items.coffee -= 1; nextUp(run, { foeHp: 0.85 }); return '喝咖啡，一次清空待辦：咖啡 －1、下戰敵人HP －15%'; } }] },
+});
 export const eventOk = (run, key, i) => { const o = EVENTS[key] && EVENTS[key].opts[i]; return !!o && (!o.ok || o.ok(run)); };
 export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[key].opts[i].go(run) : null; }
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
+// 菁英詞綴：每一場菁英戰抽一條（記在 run.affix[樓層]，行程表上先看得到）：[名字, 規則, 打贏多拿什麼]
+export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '小兵的攻擊會讓人中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
+export const affixOf = (run, floor = run.floor, nd = run.node) => nd && nd.tag === '菁英' ? (run.affix || {})[floor] || null : null;
 // 加班等級（通關後解鎖的難度，0～5，往上累加）：每一級多一條對我方不利的規則
 export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'], ['先過行政關', '一般敵人開場各有 600 護盾'], ['急件插隊', '每場戰鬥第一回合，最快的小兵最先動'], ['特休打對折', '休息站只回復兩成五 HP'], ['主管已讀不理', '頭目理虧只有第一次會取消行動']];
 export const OT_MAX = OVERTIME.length;
@@ -393,7 +448,7 @@ export const OT_MAX = OVERTIME.length;
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], ot: Math.max(0, Math.min(OT_MAX, ot | 0)) };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)) };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
@@ -411,7 +466,8 @@ export const enterNode = (run, i) => { run.node = MAP[run.floor][i]; run.path[ru
 export const isFinal = run => run.floor >= MAP.length - 1;
 // 這一層的站有沒有要先決定的人選（招募的兩個候選、救援戰救誰）；到這一層時抽好，玩家選之前就看得到
 export function prepare(run) { const fl = MAP[run.floor]; if (!fl || run.offers[run.floor]) return; const o = run.offers[run.floor] = {};
-  if (fl.some(nd => nd.type === 'event') && !run.events[run.floor]) { const used = Object.values(run.events), pool = Object.keys(EVENTS).filter(k => !used.includes(k)); run.events[run.floor] = pool[Math.floor(run.rand() * pool.length)]; }
+  if (fl.some(nd => nd.tag === '菁英') && !(run.affix || (run.affix = {}))[run.floor]) { const ks = Object.keys(AFFIX); run.affix[run.floor] = ks[Math.floor(run.rand() * ks.length)]; }
+  if (fl.some(nd => nd.type === 'event') && !run.events[run.floor]) { const used = Object.values(run.events), pool = Object.keys(EVENTS).filter(k => !used.includes(k) && (!EVENTS[k].map || EVENTS[k].map === run.map)); run.events[run.floor] = pool[Math.floor(run.rand() * pool.length)]; }
   const pool = () => { const p = ALL.filter(id => !run.roster.includes(id) && !Object.values(o).flat().includes(id)); for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
   fl.forEach((nd, k) => { if (run.roster.length >= 6) return;
     if (nd.type === 'recruit') { const p = pool(), needs = !run.roster.some(id => ROLE[id] === '坦' || ROLE[id] === '補'), first = needs ? p.find(id => ROLE[id] === '坦' || ROLE[id] === '補') : p[0], second = p.find(id => id !== first && (!needs || ROLE[id] !== ROLE[first])); o[k] = [first, second, p.find(id => id !== first && id !== second)].filter(Boolean); }      // 招募盡量三選一（人不夠就少一點）
@@ -423,6 +479,7 @@ export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
   addTally(s, run); run.tally.fights++;
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
+  run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
 export function rest(run) { let sum = 0; for (const id of run.roster) { if (id !== 'vivi') { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * (run.ot >= 4 ? .25 : .5))); run.hp[id] += v; sum += v; } run.sp[id] = STAT[id].sp; } return sum; }
@@ -435,11 +492,14 @@ export function applyUpgrade(run, key, opt) { run.picks.push(key);
   else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u.includes(opt) ? opt : u[0]); }
   else if (key === 'leave' || key === 'blanket') { statPick(key); for (const id of run.roster) run.hp[id] = STAT[id].hp; }
   else if (key === 'mug') run.items.coffee = Math.max(0, run.items.coffee - 1); else if (key === 'fridge') { for (const k in run.items) run.items[k]++; run.def *= 1.05; } }
+// 套裝：同一個標籤的強化／小物拿到三個就生效
+export const SETS = { 火力: ['提案一次過', '打中弱點的傷害再 ＋15%'], 耐久: ['部門防災演練', '每回合開始，前排全員回復 3% HP'], 補給: ['茶水間自治會', '每場戰鬥開始，全員回復 12% SP'], 氣勢: ['全員拍手通過', '每場戰鬥開始，氣勢 ＋15'], 技巧: ['跨部門有交接', '招式的 SP 消耗 －10%'] };
+export const tagCount = (run, tag) => run.picks.filter(k => UP_TAG[k] === tag).length, setOn = (run, tag) => tagCount(run, tag) >= 3;
 // 會改到基本素質的強化（特休、重力毯）：newRun 會把 STAT 還原，讀檔時要照拿過的重算一次
 function statPick(key) { for (const id of ALL) { if (id !== 'vivi') STAT[id].hp = Math.round(STAT[id].hp * 1.2); if (key === 'blanket') STAT[id].spd = Math.round(STAT[id].spd * .9); } }
 // ---------- 特訓：休息站可以不休息，改挑一個招式升級成「＋」（每招一次）：傷害與回復量 ＋25%，SP 消耗 －20% ----------
 export const isPlus = (run, id, key) => (run.plus || []).includes(id + ':' + key);
-export const skCost = (run, id, sk) => Math.ceil(sk.sp * (isPlus(run, id, sk.key) ? .8 : 1) * (run.picks.includes('redpen') && (sk.type || sk.fx && sk.fx.some(x => x[0] === 'dmg')) ? 1.2 : 1));
+export const skCost = (run, id, sk) => Math.ceil(sk.sp * (isPlus(run, id, sk.key) ? .8 : 1) * (setOn(run, '技巧') ? .9 : 1) * (run.picks.includes('redpen') && (sk.type || sk.fx && sk.fx.some(x => x[0] === 'dmg')) ? 1.2 : 1));
 export const uniteCost = (run, U, i) => Math.ceil(U.sp[i] * (run.picks.includes('carbon') ? .7 : 1) * (run.picks.includes('redpen') && U.type ? 1.2 : 1));
 export const ultMo = run => run.picks.includes('bell') ? 35 : MO.ult;
 export function offerTrain(run) { const act = active(run), pool = run.roster.filter(id => id !== 'vivi' || true).flatMap(id => (run.skills[id] || []).filter(k => !isPlus(run, id, k)).map(k => [id, k])); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
@@ -477,7 +537,7 @@ export function loadRun(data, rand = Math.random) {
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
-    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
     return { run, pend: d.pend || null, rescued: d.rescued || null };
   } catch (e) { return null; }
@@ -487,7 +547,8 @@ export function loadRun(data, rand = Math.random) {
 export function newState(run = newRun()) {
   if (typeof run === 'function') { run = newRun(run); run.floor = MAP.length - 1; run.node = MAP[run.floor][0]; }      // 舊用法 newState(rand)：五人隊直接打魔王
   const st = STAGES[stageOf(run, run.node)], rand = run.rand, act = active(run); HEROES.length = 0; HEROES.push(...act); FRONT.length = 0; FRONT.push(...act.filter(id => id !== 'vivi'));
-  const [hk, ak] = SCALE[Math.min(4, HEROES.length)], sc = (v, k) => Math.round(v * k);
+  const nx = run.next || { foeHp: 1, ward: 0 }; run.next = null;      // 事件給的「下一場戰鬥」加成，進場就用掉
+  const af = affixOf(run), [hk0, ak0] = SCALE[Math.min(4, HEROES.length)], hk = hk0 * nx.foeHp, ak = ak0 * (af === 'late' ? 1.2 : 1) * (run.map === 'mirror' ? .9 : 1), sc = (v, k) => Math.round(v * k);      // 鏡像內戰本來就難，敵人攻擊打九折
   const kind = {}, spare = Object.keys(KINDS).filter(k => KINDS[k].hero && !Object.values(st.kinds || {}).includes(k)); MINIONS.length = 0; MINIONS.push(...st.minions);
   for (const m of SLOTS) { const want = (st.kinds || {})[m]; kind[m] = want === 'random' ? spare.splice(Math.floor(rand() * spare.length), 1)[0] : want || st.base || 'drone'; const K = KINDS[kind[m]]; Object.assign(STAT[m], { hp: sc(st.minion.hp * K.hp * TUNE.hp, hk), atk: sc(st.minion.atk * K.atk * TUNE.atk, ak), spd: K.spd || BASE[m].spd }); }
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp * TUNE.bhp, hk), atk: sc(st.boss.atk * TUNE.batk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * TUNE.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
@@ -496,7 +557,10 @@ export function newState(run = newRun()) {
     smoke: {}, echo: null, proj: null, bragLow: 0, inSkill: false, inUlt: false, plusK: 1, fward: {}, acts: {}, hmark: {}, hpoison: {}, noticeT: null, bregen: st.boss && st.boss.backlog ? 2 : 0, backlogAtk: !!(st.boss && st.boss.backlog), reassign: false, reDone: 0, ward: {}, regen: {}, poison: {}, stun: {}, up: {}, downK: {}, guardian: null, warmed: false, dodged: false, locks: null, lockN: 0, cmd: { mo: false, chip: false, lock: false }, curType: null, extra: 0, bonus: {}, onBonus: null, wok: null, sign: st.boss && st.boss.fee ? 3 : 0, layers: st.boss && st.boss.layers ? 1 : 0, layerHit: false };      // smoke[我方]＝被哪個敵人的煙嗆到；echo＝鸚鵡這次要附議誰；proj＝猴子的臨時專案是誰；bragLow＝豬腦蓄力以來底氣最低剩多少
   for (const id of HEROES) { s.hp[id] = run.picks.includes('snackdrawer') && id !== 'vivi' && run.hp[id] > 0 ? Math.min(STAT[id].hp, run.hp[id] + Math.round(STAT[id].hp * .1)) : run.hp[id]; s.sp[id] = run.sp[id]; }
   if (st.boss && run.picks.includes('notebook')) s.shield = Math.max(1, s.shield - 2);
-  s.itemUses = 0; s.stunned1 = false; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
+  if (setOn(run, '補給')) for (const id of HEROES) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .12)); if (setOn(run, '氣勢')) s.mo = Math.min(MO.max, s.mo + 15);
+  s.affix = af; if (af === 'armor') for (const f of ['boss', ...MINIONS]) if (s.hp[f] > 0) s.fward[f] = Math.max(s.fward[f] || 0, Math.round(600 * hk));
+  s.mo = Math.min(60, s.mo); s.quick = {};      // 開場氣勢最多 60
+  s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = nx.ward; s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
 }
@@ -505,6 +569,8 @@ export const weakOf = (s, f) => (f === 'boss' ? s.L && s.L.weak : KINDS[s.kind[f
 const newCmd = s => { s.cmd = { mo: false, chip: false, lock: false }; };      // 每下一個指令（或敵人每行動一次）重算「只給一次」的加成
 // 這個人現在打得出哪些屬性（普攻＋學會的攻擊招式）
 export const typesOf = (s, id) => [...new Set([ATK_TYPE[id], ...SKILLS[id].filter(k => k.type && (s.run.skills[id] || []).includes(k.key)).map(k => k.type)].filter(Boolean))];
+// 拖太久的懲罰：第 13 回合起，敵人的傷害每回合多 10%（最多兩倍）；「連夜趕件」第三回合起再 ＋25%
+export const rage = s => Math.min(2, 1 + .1 * Math.max(0, s.round - 12)) * (s.affix === 'crunch' && s.round >= 3 ? 1.25 : 1);
 export const smoked = (s, id) => !!(s.smoke[id] && alive(s, s.smoke[id]));      // 這個人現在是不是被煙嗆到（下一次普通攻擊減半）
 // 豬腦長官的大招現在幾成威力（1＝100%）。蓄力中看蓄力以來最低的底氣，還沒蓄力就看現在的底氣
 export const roofPow = s => .7 + .4 * s.layers;      // 鐵皮增建處長的大招威力（看加蓋幾層）
@@ -559,16 +625,18 @@ export function startRound(s) { s.round++; s.potUsed = false; s.meeting = false;
   for (const h of FRONT) { const p = s.hpoison[h]; if (p && p.n > 0 && alive(s, h)) { p.n--; const v = Math.min(s.hp[h] - 1, Math.round(STAT[h].hp * p.k)); if (v > 0) { s.hp[h] -= v; s.events.push({ kind: 'hpoison', dst: h, v, hp: s.hp[h] }); } } }      // 我方中毒：不會毒死
   s.warmed = false; s.dodged = false;
   for (const h of FRONT) { const g = s.regen[h]; if (g && g.n > 0 && alive(s, h)) { g.n--; const x = FX.heal(s, h, g.v); if (x) s.events.push({ kind: 'regen', dst: h, v: x.v, hp: x.hp }); } }
+  if (setOn(s.run, '耐久')) for (const h of FRONT) if (alive(s, h)) { const x = FX.heal(s, h, Math.round(STAT[h].hp * .03)); if (x) s.events.push({ kind: 'regen', dst: h, v: x.v, hp: x.hp }); }
   if (has(s, 'partition')) { for (const h of FRONT) if (alive(s, h)) s.ward[h] = Math.max(s.ward[h] || 0, 150); s.events.push({ kind: 'passive', who: FRONT.find(h => alive(s, h)), name: '桌上隔板　全員護盾 150' }); }
   // 每回合開始的被動
   if (HEROES.includes('vivi')) s.events.push({ kind: 'passive', who: 'vivi', name: '公主有交代', mo: gain(s, 3) });
   if (FRONT.includes('qiang') && alive(s, 'qiang') && s.duty > 0) { const x = FX.heal(s, 'qiang', 100 * s.duty); if (x) s.events.push({ kind: 'regen', dst: 'qiang', v: x.v, hp: x.hp, name: '扛久就習慣' }); }
   if (FRONT.includes('fairy') && alive(s, 'fairy')) { const n = FRONT.filter(h => (h === 'zong' || h === 'hui') && alive(s, h)).length, x = n && FX.sp(s, 'fairy', 4 * n); if (x) s.events.push({ kind: 'passive', who: 'fairy', name: '鼠輩互助會', sp: x.sp, v: x.v }); }
   if (FRONT.includes('zong') && alive(s, 'zong') && s.hp.zong <= STAT.zong.hp * .5) { FX.ward(s, 'zong', 350); s.events.push({ kind: 'passive', who: 'zong', name: '老班底撐場', ward: 350 }); }
-  const list = [...HEROES, 'boss', ...MINIONS].filter(id => alive(s, id)).map(id => [id, STAT[id].spd]); if (alive(s, 'boss') && STAT.boss.spd2) list.push(['boss', STAT.boss.spd2]);
+  const list = [...HEROES, 'boss', ...MINIONS].filter(id => alive(s, id)).map(id => [id, STAT[id].spd * (s.quick[id] ? 1.2 : 1)]); s.quick = {};      // 上一回合防禦的人，這回合速度 ＋20%
+  if (rage(s) > 1) s.events.push({ kind: 'rage', k: rage(s) }); if (alive(s, 'boss') && STAT.boss.spd2) list.push(['boss', STAT.boss.spd2]);
   for (const f of ['boss', ...MINIONS]) if (alive(s, f) && !s.plan[f]) planFoe(s, f);      // 剛上場或剛被叫回來的敵人，補上下一步要打誰
   s.queue = list.sort((a, b) => b[1] - a[1]).map(x => x[0]);
-  if (s.round === 1 && s.run.ot >= 3) { const m = MINIONS.filter(x => alive(s, x)).sort((a, b) => STAT[b].spd - STAT[a].spd)[0]; if (m) { s.queue = [m, ...s.queue.filter(q => q !== m)]; s.events.push({ kind: 'rush', who: m }); } }
+  if (s.round === 1 && (s.run.ot >= 3 || s.affix === 'rush')) { const m = MINIONS.filter(x => alive(s, x)).sort((a, b) => STAT[b].spd - STAT[a].spd)[0]; if (m) { s.queue = [m, ...s.queue.filter(q => q !== m)]; s.events.push({ kind: 'rush', who: m }); } }
   return s.queue; }
 // 輪到某個人（回傳 false＝這個人已經倒了，跳過）。自己身上「到下次行動前」的效果在這裡結束
 export function beginTurn(s, id) {
@@ -611,7 +679,7 @@ function hitFoe(s, src, dst, base, o = {}) {
   if (dst === 'boss' && s.locks && s.locks.length && type && !s.cmd.lock) { const i = s.locks.indexOf(type); if (i >= 0) { s.locks.splice(i, 1); s.cmd.lock = true; lk.lock = s.locks.length; lk.lockType = type; if (!s.locks.length) { s.locks = null; s.charging = false; s.broken = true; s.shield = 0; s.tally.brk++; lk.lockAll = true; lk.brk = true; } } }
   if (dst === 'boss' && guarded(s) && !o.pierce) return { src, dst, v: 0, guard: true, hp: s.hp.boss, shield: s.shield, ...lk };
   if (dst === 'boss' && s.L.pot && !s.potUsed && !o.pierce) { const m = MINIONS.find(x => alive(s, x)); if (m) { s.potUsed = true; return { ...hitFoe(s, src, m, base, { ...o, type }), pot: true, ...lk }; } }      // 甩鍋：這回合第一下由小兵背
-  const bl = !!s.bless[src]; if (bl) s.bless[src] = false; const crit = bl || (!o.noCrit && s.rand() < .12); let v = vary(s, base) * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (s.up[src] > 0 ? 1.25 : 1) * (crit ? (bl ? 2 : 1.5) : 1) * (src === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (src === 'zong' || src === 'hui') ? 1.2 : 1) * (dst === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[dst] > 0 ? 1.3 : 1); const armor = o.basic && dst !== 'boss' && KINDS[s.kind[dst]].armor; if (armor) v *= armor; const dull = s.inSkill && dst !== 'boss' && KINDS[s.kind[dst]].dull; if (dull) v *= dull; const wk = !!type && weakOf(s, dst).includes(type); if (wk) v *= has(s, 'tabs') ? 1.5 : 1.3;
+  const bl = !!s.bless[src]; if (bl) s.bless[src] = false; const crit = bl || (!o.noCrit && s.rand() < .12); let v = vary(s, base) * s.run.atk * (s.atkUp > 0 ? 1.5 : 1) * (s.up[src] > 0 ? 1.25 : 1) * (crit ? (bl ? 2 : 1.5) : 1) * (src === 'hui' ? 1 + .2 * s.overtime : 1) * (s.fairyBuff && (src === 'zong' || src === 'hui') ? 1.2 : 1) * (dst === 'boss' && s.broken ? (has(s, 'weakpoint') ? 2 : 1.5) : 1) * (s.mark[dst] > 0 ? 1.3 : 1); const armor = o.basic && dst !== 'boss' && KINDS[s.kind[dst]].armor; if (armor) v *= armor; const dull = s.inSkill && dst !== 'boss' && KINDS[s.kind[dst]].dull; if (dull) v *= dull; const wk = !!type && weakOf(s, dst).includes(type); if (wk) v *= (has(s, 'tabs') ? 1.5 : 1.3) + (setOn(s.run, '火力') ? .15 : 0);
   if (s.inSkill) v *= s.plusK * (has(s, 'redpen') ? 1.2 : 1); else if (s.inUlt) { if (has(s, 'thermos')) v *= 1.25; } else if (o.basic && has(s, 'cutter')) v *= 1.25; v = Math.round(v);
   const fab = Math.min(s.fward[dst] || 0, v); if (fab > 0) { s.fward[dst] -= fab; v -= fab; }      // 敵人的護盾先吸收（弱點、削底氣、拆鎖照算）
   s.hp[dst] = Math.max(0, s.hp[dst] - v); const r = { src, dst, v, crit, weak: true, kill: s.hp[dst] <= 0, hp: s.hp[dst], type, ...lk }; if (fab > 0) { r.fab = fab; r.fward = s.fward[dst]; } if (wk) { r.wk = true; if (!s.cmd.mo) { s.cmd.mo = true; r.wkMo = has(s, 'applause') ? 10 : 6; gain(s, r.wkMo); } } if (armor) { r.armor = true; r.weak = false; } if (dull) { r.dull = true; r.weak = false; }
@@ -635,7 +703,7 @@ function hitHeroes(s, src, list) {
   else if (single && s.taunt && alive(s, 'kevin')) { if (list[0][0] !== 'kevin') out.taunted = list[0][0]; list = [['kevin', list[0][1] * .7]]; }
   else if (single && s.guardian && alive(s, s.guardian)) { if (list[0][0] !== s.guardian) out.taunted = list[0][0]; list = [[s.guardian, list[0][1]]]; }
   for (const [id, raw] of list) { if (!alive(s, id)) continue; if (s.evade[id]) { s.evade[id] = false; const m = { src, dst: id, v: 0, miss: true, hp: s.hp[id] }; if (!s.dodged && FRONT.includes('you') && alive(s, 'you')) { s.dodged = true; m.fxs = [FX.mo(s, 5, '看破不說破')]; } out.push(m); continue; }
-    const ctr = !!s.counter[id]; let v = Math.round(vary(s, raw) * s.run.def * (s.hmark[id] > 0 ? 1.3 : 1) * (s.defend[id] ? .5 : 1) * (s.meeting ? .6 : 1) * (s.friends ? .5 : 1) * (ctr ? .4 : 1)); const ab = Math.min(s.ward[id] || 0, v); if (ab > 0) { s.ward[id] -= ab; v -= ab; } const saved = s.endure > 0 && v >= s.hp[id]; if (saved) v = s.hp[id] - 1; const aid = v >= s.hp[id] && !s.aidUsed && has(s, 'firstaid'); if (aid) s.aidUsed = true;
+    const ctr = !!s.counter[id]; let v = Math.round(vary(s, raw) * Math.max(.65, s.run.def) * (s.hmark[id] > 0 ? 1.3 : 1) * (s.defend[id] ? .5 : 1) * (s.meeting ? .6 : 1) * (s.friends ? .5 : 1) * (ctr ? .4 : 1)); const ab = Math.min(s.ward[id] || 0, v); if (ab > 0) { s.ward[id] -= ab; v -= ab; } const saved = s.endure > 0 && v >= s.hp[id]; if (saved) v = s.hp[id] - 1; const aid = v >= s.hp[id] && !s.aidUsed && has(s, 'firstaid'); if (aid) s.aidUsed = true;
     s.hp[id] = aid ? Math.round(STAT[id].hp * .3) : Math.max(0, s.hp[id] - v); out.push({ src, dst: id, v, ab, ward: s.ward[id] || 0, def: !!s.defend[id] || ctr, endure: saved, aid, kill: s.hp[id] <= 0, hp: s.hp[id] });
     if (ctr) { s.counter[id] = false; if (alive(s, id)) { const c = hitFoe(s, id, src, STAT[id].atk * 1.2 * (has(s, 'riposte') ? 1.8 : 1)); if (c) out.counters.push(c); } } }
   check(s); return out;
@@ -645,7 +713,7 @@ function hitHeroes(s, src, list) {
 // 普通攻擊：回復自己 6% 最大 SP（至少 8）。防禦：受傷減半，另外回 10 SP
 export function doAttack(s, id, target) { newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
   const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
-export function doDefend(s, id) { newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); return after(s, id, r); }
+export function doDefend(s, id) { newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); return after(s, id, r); }
 export function doCheer(s) { return { kind: 'cheer', id: 'vivi', mo: gain(s, MO.cheer) }; }
 export const itemsLeft = s => s.run.ot >= 1 ? Math.max(0, 2 - s.itemUses) : 99;
 export function itemTargets(s, key) { const it = ITEMS[key]; if (itemsLeft(s) <= 0) return []; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
@@ -766,7 +834,7 @@ export function doUnite(s, id, key, target) { const U = UNITES.find(x => x.key =
 
 // ---------- 敵人行動 ----------
 export function enemyTurn(s, id) { newCmd(s);
-  const targets = FRONT.filter(h => alive(s, h)), pick = () => { const t = s.plan[id]; s.plan[id] = null; return t && alive(s, t) ? t : targets[Math.floor(s.rand() * targets.length)]; }, weak = s.atkDown[id] > 0, k = weak ? 1 - (s.downK[id] || .3) : 1; if (weak && !(id === 'boss' && s.broken)) { s.atkDown[id]--; if (!s.atkDown[id]) s.downK[id] = 0; }
+  const targets = FRONT.filter(h => alive(s, h)), pick = () => { const t = s.plan[id]; s.plan[id] = null; return t && alive(s, t) ? t : targets[Math.floor(s.rand() * targets.length)]; }, weak = s.atkDown[id] > 0, k = (weak ? 1 - (s.downK[id] || .3) : 1) * rage(s); if (weak && !(id === 'boss' && s.broken)) { s.atkDown[id]--; if (!s.atkDown[id]) s.downK[id] = 0; }
   if (id !== 'boss' && s.stun[id]) { s.stun[id] = false; return { kind: 'foeStun', id }; }
   const r = foeAct(s, id, targets, pick, weak, k); if (s.pre) { r.pre = s.pre; s.pre = null; } if (s.ignored) { r.ignored = true; r.shieldBack = s.shield; s.ignored = false; } if (!s.over) planFoe(s, id); return r;
 }
@@ -774,6 +842,7 @@ export function enemyTurn(s, id) { newCmd(s);
 function afterHit(s, id, K, hits) { for (const h of hits) { if (!(h.v > 0)) continue;
   if (K.drain && s.sp[h.dst] > 0) { h.spLoss = Math.min(K.drain, s.sp[h.dst]); s.sp[h.dst] -= h.spLoss; h.sp = s.sp[h.dst]; }
   if (K.smoke && alive(s, h.dst)) { s.smoke[h.dst] = id; h.smoke = true; }
+  if (s.affix === 'toxic' && id !== 'boss' && !K.hexPoison && alive(s, h.dst)) { s.hpoison[h.dst] = { k: .04, n: 2 }; h.hex = '中毒'; }
   if (K.hexMark && alive(s, h.dst)) { s.hmark[h.dst] = 2; h.hex = '列管　受傷 ＋30%'; } if (K.hexPoison && alive(s, h.dst)) { s.hpoison[h.dst] = { k: K.hexPoison, n: 2 }; h.hex = '中毒'; } } }
 // 叫一隻小兵（回）來：滿血、重新決定要打誰；上一隻留下的煙不算在新來的頭上
 function callIn(s, m) { s.hp[m] = STAT[m].hp; s.acts[m] = 0; s.fward[m] = 0; planFoe(s, m); for (const h in s.smoke) if (s.smoke[h] === m) s.smoke[h] = null; }
