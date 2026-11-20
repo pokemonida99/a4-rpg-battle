@@ -193,10 +193,10 @@ export function makeUI(cv, A, S) {
   const ANG = -.19;
   function cutins(t) {
     for (const k of S.cutins) { const el = t - k.t0; if (el < 0 || el > k.dur) continue; const d = D[k.id], img = A.eyes[k.id], rem = k.dur - el;
-      const openU = easeOut(sat((el - .16) / .2)), closeU = sat(rem / .14), hh = Math.max(0, 165 * openU * closeU * closeU), lineU = easeOut(sat(el / .14));
+      const openU = easeOut(sat((el - .16) / .2)), closeU = sat(rem / .14), hh = Math.max(0, 165 * (k.hk || 1) * openU * closeU * closeU), lineU = easeOut(sat(el / .14));
       // 時間暫停：整個畫面壓暗
       c.fillStyle = `rgba(6,5,14,${.62 * Math.min(sat(el / .12), sat(rem / .12))})`; c.fillRect(0, 0, W, H);
-      c.save(); c.translate(W / 2, H / 2 - 20); c.rotate(ANG);
+      c.save(); c.translate(W / 2, H / 2 - 20 + (k.dy || 0)); c.rotate(ANG);
       if (hh > 1) {
         c.save(); c.beginPath(); c.rect(-1300, -hh, 2600, hh * 2); c.clip();
         c.fillStyle = '#0a0812'; c.fillRect(-1300, -hh, 2600, hh * 2);

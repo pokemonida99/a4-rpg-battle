@@ -26,7 +26,7 @@ export const ROLE = { kui: '輸出', jie: '輸出', kevin: '坦', mi: '補', viv
 // 敵人照上場人數縮放：[血量倍率, 攻擊倍率]
 export const SCALE = { 1: [.3, .52], 2: [.52, .7], 3: [.76, .86], 4: [1, 1] };
 // 整體難度旋鈕（戰鬥 2.0 之後我方變強，敵人整體往上調）：小兵血、小兵攻擊、頭目血、頭目攻擊、頭目大招
-export const TUNE = { hp: 1.3, atk: 1.5, bhp: 1.4, batk: 1.5, ult: 1.65 };
+export const TUNE = { hp: 1.45, atk: 1.3, bhp: 1.6, batk: 1.3, ult: 1.65 };
 export let BOSS_ULT = {};      // 頭目大招對每個人的傷害（進場時算好）
 export const ITEMS = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000 }, coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150 }, bento: { name: '雞排便當', n: 1, note: '倒下的同伴復活', revive: .5 } };
 // 招式：只花 SP。target：foe 選一個敵人、all 敵方全體、ally 選一個同伴、party 我方全體、self 自己
@@ -558,7 +558,7 @@ export function newState(run = newRun()) {
   for (const id of HEROES) { s.hp[id] = run.picks.includes('snackdrawer') && id !== 'vivi' && run.hp[id] > 0 ? Math.min(STAT[id].hp, run.hp[id] + Math.round(STAT[id].hp * .1)) : run.hp[id]; s.sp[id] = run.sp[id]; }
   if (st.boss && run.picks.includes('notebook')) s.shield = Math.max(1, s.shield - 2);
   if (setOn(run, '補給')) for (const id of HEROES) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .12)); if (setOn(run, '氣勢')) s.mo = Math.min(MO.max, s.mo + 15);
-  s.affix = af; if (af === 'armor') for (const f of ['boss', ...MINIONS]) if (s.hp[f] > 0) s.fward[f] = Math.max(s.fward[f] || 0, Math.round(600 * hk));
+  s.affix = af; if (af === 'armor') for (const f of [...(st.boss ? ['boss'] : []), ...MINIONS]) s.fward[f] = Math.max(s.fward[f] || 0, Math.round(600 * hk));
   s.mo = Math.min(60, s.mo); s.quick = {};      // 開場氣勢最多 60
   s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = nx.ward; s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;

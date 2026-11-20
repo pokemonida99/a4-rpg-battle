@@ -19,7 +19,7 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [x] 第三包：合體技 11 組（UNITES、doUnite；放在技能選單，金色）；資料卡重排（特性、兩欄招式、合體技）
 - [x] v0.19.1：47 個專屬圖示接好（rules.js 的 ic 都拿掉了）；戰鬥背景機制 arena.setBackdrop()（scene.js）＋ game.js 的 BGSRC：台灣篇先用地圖紙中間那一條；美術排了四張專用背景 art/bg/{tw_1,tw_2,tw_3,hell}.jpg，到了把 BGSRC 的路徑換掉、cy 改 .5，並幫 hell 加一筆
 - [x] v0.20.0：GPT 第二輪（gpt_d.md）→ 14 個新事件、菁英詞綴、套裝、防禦加速、拖回合懲罰、減傷與開場氣勢上限
-- [ ] 平衡：TUNE 現在是 hp 1.3／atk 1.5／bhp 1.4／batk 1.5／ult 1.65（一般行程一般玩家約 60～80%、台灣篇約 40%）；全部做完再調一次
+- [x] v0.20.1：敵人圖鑑（隊伍頁第三個頁籤）、通關紀錄（PREF.rec，路線卡上顯示）、合體技雙人眼神特寫；平衡改成「敵人沒那麼痛、血比較厚」：TUNE hp 1.45／atk 1.3／bhp 1.6／batk 1.3／ult 1.65（一般玩家：一般行程 53～66%、台灣篇約 40%、地獄 26～46%、鏡像約 10%）
 - [x] 第四包前半（v0.17.0）：休息站二選一「休息／特訓」（run.plus，招式名後面加＋）、十五個辦公小物（UPGRADES 後半、UP_TAG 標籤；圖示先借舊的）
 - [x] 加班等級（v0.19.0）：五級累加（rules.js 的 OVERTIME、run.ot；通關後 PREF.ot[地圖] +1，選完路線才問）；測試網址可加 &ot=3
 - [x] 第三張地圖「地獄分公司」（v0.18.0，本機已 commit）：規則、畫面、測試都好了；圖沿用現有的，美術 session 在補（icons 47 個 → hell 換皮與兩張地圖紙 art/map/hell_1～2.jpg，座標會寫在 design/hell/README.md；到了要改 LAY.hell、KLOOK／ELOOK，並把 rules.js 裡借圖示的 ic 拿掉）
