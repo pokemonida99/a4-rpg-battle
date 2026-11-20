@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.17.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.18.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -145,6 +145,7 @@ function applyHit(t, h, o = {}) {
   if (o.snd !== false) snd(t, o.snd || 'hit', o.vol ?? .8);
   if (h.dst === 'boss' && h.shield != null) S.shield.boss.push({ t, v: h.shield });
   if (foe && h.dst !== 'boss') { minionShield[h.dst] = Math.max(1, (minionShield[h.dst] ?? 2) - 1); S.shield[h.dst].push({ t, v: minionShield[h.dst] }); if (stepReveal < 4) S.reveal.push({ t, v: ++stepReveal }); }
+  if (h.fab > 0) num(t + .16, h.dst, `護盾擋掉 ${h.fab}`, 'text', { col: '#ffb0a0', px: 26, y: h.dst === 'boss' ? .62 : 1.15 });
   if (h.wk) { num(t - .04, h.dst, '弱點！' + (h.wkMo ? `　氣勢 ＋${h.wkMo}` : ''), 'text', { col: '#ffe27a', px: 32, y: h.dst === 'boss' ? 1.05 : 1.55 }); SFX.add('flash', t, .14, { c: [255, 230, 150], a: .3 }); }
   if (h.armor) num(t + .14, h.dst, '裝甲　傷害減半', 'text', { col: '#c8d0dc', px: 26, y: 1.3 });
   if (h.dull) num(t + .14, h.dst, '一問三不知　招式減半', 'text', { col: '#d8c8e8', px: 26, y: 1.3 });
@@ -391,13 +392,18 @@ function playUlt(r, t0) {
 // 我方的反擊（小葵的架勢、阿強的扛）：敵人打完之後馬上打回去
 function counters(r, th) { (r.hits.counters || []).forEach((cn, i) => { const u = units[cn.src], tt = th + .42 + i * .12; u.pose(tt - .14, 'act'); fx('impacts/crit-hit', tt, cn.dst, { y: cn.dst === 'boss' ? 1.2 : .6, scale: 1.5, palette: DEFS[cn.src].pal }); num(tt - .1, cn.src, '反擊！', 'text', { col: '#ffe27a', px: 30, y: 1.3 }); applyHit(tt, cn, { snd: 'slash', pow: 1.2 }); at(tt + .5, () => { if (!ko[cn.src] && R.alive(state, cn.src) && phase !== 'end') u.pose(now, state.bulwark || state.carry ? 'guard' : 'ready'); }); }); }
 // 敵人打中之後的附帶效果：扣 SP、二手煙
-function sideFx(r, t) { for (const h of r.hits) { if (h.spLoss) { num(t, h.dst, `SP －${h.spLoss}`, 'text', { col: '#8fc0ff', px: 30, y: 1.65 }); S.sp[h.dst].push({ t, v: h.sp }); } if (h.smoke) { num(t + .1, h.dst, '被煙嗆到　下次普攻減半', 'text', { col: '#cfd8a8', px: 28, y: h.spLoss ? 1.95 : 1.65 }); fx('spawn/poof', t - .1, h.dst, { scale: 1.3, y: .9 }); } } }
+function sideFx(r, t) { for (const h of r.hits) { if (h.spLoss) { num(t, h.dst, `SP －${h.spLoss}`, 'text', { col: '#8fc0ff', px: 30, y: 1.65 }); S.sp[h.dst].push({ t, v: h.sp }); } if (h.hex) num(t + .12, h.dst, h.hex, 'text', { col: '#ffb0a0', px: 28, y: h.spLoss ? 1.95 : 1.65 }); if (h.smoke) { num(t + .1, h.dst, '被煙嗆到　下次普攻減半', 'text', { col: '#cfd8a8', px: 28, y: h.spLoss ? 1.95 : 1.65 }); fx('spawn/poof', t - .1, h.dst, { scale: 1.3, y: .9 }); } } }
 // 小兵（重新）上場：地上畫陣、冒煙、跳出來
 function popIn(m, tm) { fx('arcane/rune-circle', tm - .5, home(m), { palette: 'blood', scale: 1.2 }); fx('spawn/poof', tm - .08, home(m), { scale: 1.5, y: .3 }); snd(tm, 'boss_appear', .55);
   at(tm, () => { const mu = units[m]; mu.dead = null; mu.poseK.length = 0; mu.moveK.length = 0; mu.hitK.length = 0; mu.pose(now, 'idle').hop(now, .34, .42); S.hp[m].push({ t: now, v: R.STAT[m].hp }); minionShield[m] = 2; S.shield[m].push({ t: now, v: 2 }); }); }
 function playFoe(r, t0) {
   const id = r.id, u = units[id];
-  if (r.kind === 'foeAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, [hx, hz] = home(id), [tx, tz] = units[tgt].posAt(t0); box(t0, 1.3, R.KINDS[state.kind[id]].move, true); const sk = 'foe_' + (R.KINDS[state.kind[id]].like || state.kind[id]);
+  if (r.pre) { S.hp.boss.push({ t: t0 + .2, v: r.pre.hp }); if (r.pre.regen > 0) { num(t0 + .2, 'boss', r.pre.regen, 'heal'); num(t0 + .1, 'boss', '舊案回流', 'text', { col: '#e8dcc0', px: 26, y: .8 }); fx('holy/heal', t0 + .1, 'boss', { scale: 1.8, y: .6 }); } }
+  if (r.kind === 'foeWard') { const kd0 = id === 'boss' ? null : state.kind[id]; box(t0, 1.3, kd0 ? R.KINDS[kd0].move : '上護盾', true); u.pose(t0 + .15, 'atk').pose(t0 + 1.0, 'idle'); fx('impacts/parry', t0 + .5, r.dst, { scale: r.dst === 'boss' ? 1.8 : 1.2, y: r.dst === 'boss' ? 1.0 : .6, palette: 'blood' }); snd(t0 + .5, 'shield_up', .6); num(t0 + .55, r.dst, `護盾 ${r.v}`, 'text', { col: '#ffb0a0', px: 30, y: r.dst === 'boss' ? .8 : 1.3 }); return t0 + 1.3; }
+  if (r.kind === 'bossMark') { box(t0 + .1, 2.0, '補件通知', true); u.pose(t0 + .2, 'atk').pose(t0 + 1.3, 'idle'); snd(t0 + .3, 'stat', .7); fx('arcane/rune-circle', t0 + .5, r.dst, { palette: 'blood', scale: 1.2 }); num(t0 + .7, r.dst, '被點名列管　受傷 ＋30%', 'text', { col: '#ffb0a0', px: 30, y: 1.5 }); num(t0 + 1.1, 'boss', '下一次只打他，而且很痛', 'text', { col: '#ff8a70', px: 30, y: .55 }); return t0 + 2.0; }
+  if (r.kind === 'bossAoe') { const bh = home('boss'), th = t0 + 1.0; box(t0 + .1, 2.2, r.name, true); cam.to(t0, .5, { x: .3, d: 12.8, y: 1.45 }).to(t0 + 1.9, .5, WIDE); u.move(t0 + .3, -1.4, -.4, .45).anim(t0 + .3, 'swing', [0, .1, .22, .36, .5, .58, 1.3, 1.6]); snd(th, 'explosion', .8); cam.shake(th, .35, .7); SFX.add('flash', th, .3, { c: [255, 120, 100], a: .6 }); fx('impacts/ground-slam', th, [.9, -.3], { scale: 2.2, palette: 'blood' });
+    r.hits.forEach((h, i) => applyHit(th + .04 + i * .06, h, { pow: 1.4, snd: i ? false : 'hit', dy: [-40, -130, -70, -170][i % 4] })); sideFx(r, th + .35); counters(r, th); u.move(t0 + 1.7, bh[0], bh[1], .5).pose(t0 + 2.2, 'idle'); return t0 + 2.4; }
+  if (r.kind === 'foeAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, [hx, hz] = home(id), [tx, tz] = units[tgt].posAt(t0); box(t0, 1.3, R.KINDS[state.kind[id]].move + (r.heavy ? '（重擊）' : ''), true); const sk = 'foe_' + (R.KINDS[state.kind[id]].like || state.kind[id]);
     u.pose(t0 + .15, 'atk').move(t0 + .15, tx - .95, tz + .02, .2, easeOut); snd(t0 + .15, sfxOr(sk, 'whoosh'), buf[sk] ? .7 : .45); const th = t0 + .41; fx('impacts/blunt-hit', th, tgt, { y: .7, dx: -.2, scale: 1.2 });
     r.hits.forEach((h, i) => applyHit(th + i * .05, h, { pow: .9, snd: i ? false : undefined })); sideFx(r, th + .28); if (r.hits.taunted && r.hits[0] && !r.hits[0].miss) num(th - .2, r.hits[0].dst, '我來！', 'text', { col: '#9af0ff', px: 28, y: 1.25 }); counters(r, th); if (r.weak) num(t0 + .1, id, '詛咒中', 'text', { col: '#c9a0ff', px: 24, y: 1.2 }); u.move(th + .3, hx, hz, .28).pose(th + .62, 'idle'); return th + .95; }
   if (r.kind === 'foeHeal') { const th = t0 + .55, kd0 = state.kind[r.echo || id], kd = buf['foe_' + kd0] ? kd0 : R.KINDS[kd0].like || kd0; box(t0, 1.4, (r.echo ? '附議　' : '') + R.KINDS[kd0].move, true); if (r.echo) units[r.echo].hop(t0 + .05, .16, .3); u.pose(t0 + .15, 'atk').pose(t0 + 1.0, 'idle'); snd(t0 + .15, sfxOr('foe_' + kd, 'whoosh'), buf['foe_' + kd] ? .7 : .35); fx('holy/heal', th - .1, r.dst, { scale: r.dst === 'boss' ? 1.9 : 1.2, y: r.dst === 'boss' ? .6 : 0 }); snd(th, 'heal', .7);
@@ -418,7 +424,7 @@ function playFoe(r, t0) {
     if (r.wok) { num(t0 + 1.85, r.wok, '這鍋你背', 'text', { col: '#ffb060', px: 32, y: 1.45 }); at(t0 + 1.8, () => { if (R.alive(state, r.wok)) units[r.wok].hop(now, .2, .3); }); snd(t0 + 1.8, 'shield_block', .6); }
     if (r.called) popIn(r.called, t0 + 1.3); if (r.proj) { at(t0 + 1.75, () => { if (R.alive(state, r.proj)) units[r.proj].hop(now, .2, .3); }); num(t0 + 1.8, r.proj, '臨時專案', 'text', { col: '#ffb060', px: 32, y: 1.35 }); snd(t0 + 1.8, 'shield_up', .5); }
     return t0 + 2.8; }
-  if (r.kind === 'bossAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, bh = home('boss'), [kx, kz] = home(tgt); box(t0 + .1, 2.2, r.echo ? '附議　' + R.KINDS[state.kind[r.echo]].move : state.L.text.atk, true); if (r.echo && R.alive(state, r.echo)) units[r.echo].hop(t0 + .1, .16, .3); cam.to(t0, .5, { x: -.2, d: 12.3, y: 1.5 });
+  if (r.kind === 'bossAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, bh = home('boss'), [kx, kz] = home(tgt); box(t0 + .1, 2.2, r.name || (r.echo ? '附議　' + R.KINDS[state.kind[r.echo]].move : state.L.text.atk) + (r.heavy && !r.name ? '（重擊）' : ''), true); if (r.bward) num(t0 + 1.9, 'boss', `打完上護盾 ${r.bward}`, 'text', { col: '#ffb0a0', px: 30, y: .55 }); if (r.echo && R.alive(state, r.echo)) units[r.echo].hop(t0 + .1, .16, .3); cam.to(t0, .5, { x: -.2, d: 12.3, y: 1.5 });
     const ts = t0 + .3, th = ts + .58; u.move(ts, kx - 2.1, kz + .3, .45).anim(ts, 'swing', [0, .1, .22, .36, .5, .58, 1.3, 1.6]); snd(ts, state.L.id === 'audit' ? sfxOr('foe_audit', 'whoosh') : 'whoosh', .6); fx('melee/hammer-smash', th - .5, [kx - 1.2, kz + .1], { scale: 1.5, palette: 'blood' }); snd(th, 'explosion', .7); cam.shake(th, .3, .6); SFX.add('flash', th, .25, { c: [255, 120, 100], a: .6 });
     r.hits.forEach((h, i) => applyHit(th + .02 + i * .05, h, { pow: 1.6, snd: i ? false : 'hit' })); if (!r.hits[0].guard && !r.hits[0].cover && !r.hits[0].kill) units[tgt].move(th + .02, kx + .55, kz, .2, easeOut).move(th + 1.0, kx, kz, .3);
     if (r.hits.taunted && r.hits[0] && !r.hits[0].miss) num(th - .3, r.hits[0].dst, '我來！', 'text', { col: '#9af0ff', px: 28, y: 1.25 }); sideFx(r, th + .3); counters(r, th);
@@ -455,6 +461,7 @@ function nextTurn() {
     state.events.filter(e => e.kind === 'tempo').forEach(e => { S.mo.push({ t: now + .4, v: e.mo }); num(now + .4, R.FRONT.find(h => R.alive(state, h)) || R.HEROES[0], '準時開會　氣勢 ＋8', 'text', { col: '#ffe27a', px: 26, y: 1.45 }); });
     state.events.filter(e => e.kind === 'burn').forEach((e, i) => { const t = now + .55 + i * .3, big = e.dst === 'boss'; fx('explosions/small-explosion', t - .1, e.dst, { scale: big ? 1.5 : 1, y: big ? 1.0 : .3, palette: 'fire' }); num(t - .2, e.dst, '灼燒', 'text', { col: '#ff9a5a', px: 28, y: big ? .75 : 1.3 }); applyHit(t, { dst: e.dst, v: e.v, hp: e.hp, kill: e.kill }, { snd: 'hit', vol: .5 }); te = Math.max(te, t + .75); });
     state.events.filter(e => e.kind === 'poison').forEach((e, i) => { const t = now + .6 + i * .25, big = e.dst === 'boss'; num(t - .2, e.dst, '中毒', 'text', { col: '#b8e07a', px: 28, y: big ? .75 : 1.3 }); applyHit(t, { dst: e.dst, v: e.v, hp: e.hp, kill: e.kill }, { snd: 'hit', vol: .4 }); te = Math.max(te, t + .7); });
+    state.events.filter(e => e.kind === 'hpoison').forEach((e, i) => { const t = now + .55 + i * .18; num(t - .15, e.dst, '中毒', 'text', { col: '#b8e07a', px: 26, y: 1.6 }); S.hp[e.dst].push({ t, v: e.hp }); num(t, e.dst, e.v, 'foe'); te = Math.max(te, t + .6); });
     state.events.filter(e => e.kind === 'regen').forEach((e, i) => { const t = now + .5 + i * .15; if (e.name) num(t - .05, e.dst, e.name, 'text', { col: '#e8dcc0', px: 24, y: 1.65 }); S.hp[e.dst].push({ t, v: e.hp }); num(t, e.dst, e.v, 'heal'); fx('holy/heal', t - .1, e.dst, { scale: 1.0 }); te = Math.max(te, t + .6); });
     state.events.filter(e => e.kind === 'passive').forEach((e, i) => { const t = now + .45 + i * .15, who = units[e.who] ? e.who : R.FRONT.find(h => R.alive(state, h)); num(t - .05, who, e.name, 'text', { col: '#e8dcc0', px: 24, y: 1.65, dx: e.who === 'vivi' ? -110 : 0 }); if (e.mo != null) S.mo.push({ t, v: e.mo }); if (e.sp != null) { S.sp[e.who].push({ t, v: e.sp }); num(t, e.who, e.v, 'sp'); } if (e.ward) num(t, e.who, `護盾 ${e.ward}`, 'text', { col: '#9af0ff', px: 28, y: 1.35 }); });
     phase = 'anim'; actor = state.queue[0]; setOrder(); actor = null; at(te, nextTurn); return; }
@@ -464,7 +471,7 @@ function nextTurn() {
     if (id === 'kevin' && aegisFx.length) { endFx(aegisFx); goHome(now, 'kevin', .3); num(now + .1, 'kevin', '掩護結束', 'text', { col: '#9af0ff', px: 24, y: 1.2 }); }
     if (id === 'qiang' && bulwarkFx.length) { endFx(bulwarkFx); num(now + .1, 'qiang', '掩護結束', 'text', { col: '#ffc890', px: 24, y: 1.2 }); }
     phase = 'command'; pickTip(id); openMenu('root'); uiSound('move'); }
-  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, now + .9, h.dst); { const v = sumV(r.hits), dn = (r.hits || []).filter(h => h && h.kill).map(h => DEFS[h.dst].name); logStep(`${NAME[id]} ${r.kind === 'bossUlt' ? state.L.text.ult.replace('奧義　', '大招「') + '」' : r.kind === 'charge' ? '蓄力' : r.kind === 'stunned' ? '理虧，沒有行動' : r.kind === 'foeStun' ? '暈眩，沒有行動' : r.kind === 'echoMiss' ? '附議落空，沒有行動' : r.kind === 'ultMiss' ? '大招落空' : r.kind === 'foeHeal' ? `幫${NAME[r.dst]}回了 ${r.v}` : '攻擊'}` + (v ? `　我方 −${v}` : '') + (dn.length ? `　${dn.join('、')}倒下` : '')); } at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
+  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, now + .9, h.dst); { const v = sumV(r.hits), dn = (r.hits || []).filter(h => h && h.kill).map(h => DEFS[h.dst].name); logStep(`${NAME[id]} ${r.kind === 'bossUlt' ? state.L.text.ult.replace('奧義　', '大招「') + '」' : r.kind === 'charge' ? '蓄力' : r.kind === 'stunned' ? '理虧，沒有行動' : r.kind === 'foeWard' ? '上護盾' : r.kind === 'bossMark' ? '補件通知（點名）' : r.kind === 'foeStun' ? '暈眩，沒有行動' : r.kind === 'echoMiss' ? '附議落空，沒有行動' : r.kind === 'ultMiss' ? '大招落空' : r.kind === 'foeHeal' ? `幫${NAME[r.dst]}回了 ${r.v}` : '攻擊'}` + (v ? `　我方 −${v}` : '') + (dn.length ? `　${dn.join('、')}倒下` : '')); } at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
 }
 // 教學便條：第一次遇到某個狀況，輪到玩家下指令時在左上角貼一張（不擋中間），下完這一步就收起來。看過的記在 PREF.tips，之後不再出現
 const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方的「氣勢」，全隊共用。', '招式只花 SP。氣勢到 40、SP 也夠，「奧義」就會亮。'], ult: ['奧義可以放了', '放奧義會用掉 40 氣勢和自己的 SP。', '氣勢全隊共用，想清楚給誰放。'],
@@ -473,12 +480,14 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   parrot: ['鸚鵡長官', '他自己不出主意，只會「附議」一隻小兵，照抄那隻的行動。', '先打倒被附議的小兵，他那一次行動就落空。'], monkey: ['猴子長官', '他蓄力時會把大招丟給一隻小兵當「臨時專案」。', '在他放大招之前打倒那隻小兵，大招就落空。'],
   pig: ['豬腦長官', '他的大招威力看底氣：底氣全滿是 150%。', '蓄力之後多打他幾下，削到理虧只剩 50%。'],
   weak: ['弱點', '敵人頭上的兩格是弱點，一開始是「？」，用對屬性打中才會揭曉，之後永遠記得。', '打中弱點：傷害多三成、氣勢 ＋6，打頭目多削 1 點底氣。'], locks: ['屬性鎖', '頭目蓄力時頭上會出現三個屬性鎖。用那個屬性打中他一下，拆一個。', '每拆一個，大招弱 25%；三個全拆，大招取消、頭目理虧。'],
+  hell_gate: ['補件通知', '人資長會先點名一個人（列管：受傷多三成），下一次只打他，而且是重擊，打完自己上護盾。', '被點名的人防禦、上護盾，或用「解除異常」清掉列管；坦克可以把攻擊引走。'], hell_archive: ['舊案回流', '主任開場和每次理虧恢復後，接下來兩次行動會先回血，而且下一次攻擊打全體又下毒。', '把傷害集中在理虧的時候打；中毒用「解除異常」清掉。'],
+  hell_director: ['責任重新分配', '總監的血掉到七成、三成五時，下一次攻擊會變：前排有兩個人以上有護盾，就只打護盾最多的那個（很痛）；不然打全體。', '想讓坦克一個人扛，就先幫兩個人上護盾，並讓坦克的護盾最厚。'],
   tw_pot: ['這鍋你背', '課長蓄力時會把鍋掛在一個人身上，大招只打那個人，而且很痛。', '輪到背鍋的人時按「防禦」，鍋會彈回去，課長重傷又理虧。'], tw_night: ['加收服務費', '總監的招牌亮著時，我方每用一次招式多扣 10 SP。', '用普通攻擊打他三下，招牌就熄了；他下次蓄力才會再點亮。'],
   tw_roof: ['再加一層就好', '處長每行動一次就加蓋一層（最多三層），層數越多大招越痛。', '用招式打他，一招拆一層。'],
   mirror: ['鏡像內戰', '對面是自己人的鏡像，特長跟本人一樣：', '坦克普攻減半、補師會回血、小燕與黑輪扣 SP、阿傑打全體。'] };
 let tipNow = null;
 function pickTip(id) { const seen = PREF.tips || (PREF.tips = []), kinds = R.MINIONS.filter(m => R.alive(state, m) && state.kind[m] !== 'drone').map(m => 'k_' + state.kind[m]);
-  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
+  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.notice && 'hell_gate', state.L && state.L.backlog && 'hell_archive', state.L && state.L.reassign && state.reassign && 'hell_director', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
   if (!want) return (tipNow = null); seen.push(want); savePref(); const K = want.startsWith('k_') && R.KINDS[want.slice(2)]; tipNow = { t: performance.now(), title: K ? K.name : TIPS[want][0], lines: K ? [K.note + '。'] : TIPS[want].slice(1) }; }
 function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), Wd = 590, X = W - Wd - 14 + (1 - k) * 40, Y = 142, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
   c.save(); c.globalAlpha = k; skin.paper(X, Y, Wd, Hh, { clips: [X + 60] }); c.fillStyle = RED; c.fillRect(X + 22, Y + 22, 7, 30); text(tipNow.title, X + 42, Y + 47, { px: 28, w: 900, fam: SERIF, col: INK, ls: 4 }); text('第一次遇到', X + Wd - 24, Y + 44, { px: 17, w: 700, align: 'right', col: INK2 });
@@ -486,7 +495,7 @@ function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.
 // 敵方意圖：輪到玩家下指令時，每個敵人頭上貼一張小紙條寫下一步（攻擊誰、補誰、蓄力、大招），底下一行是身上的狀態與還剩幾回合。內容來自 rules.js 的 intent()，跟實際行動一致
 function drawIntents() { const placed = []; for (const f of R.foes(state)) { const it = R.intent(state, f); if (!it) continue; const [px, py] = S.proj(f, 1), who = t => t ? (DEFS[t].enemy ? NAME[t] : DEFS[t].name) : '隨機';
     const act = k => ({ atk: `攻擊${it.smoke ? '＋嗆煙' : ''} → ${who(it.target)}`, drain: `攻擊＋扣 SP → ${who(it.target)}`, heal: `補血 → ${who(it.target)}` })[k];
-    const main = { atk: act('atk'), drain: act('drain'), aoe: '攻擊全體', heal: act('heal'), charge: '下一步：蓄力', stun: '理虧　這次動不了',
+    const main = { ward: `上護盾 → ${who(it.target)}`, notice: `補件通知：點名${who(it.target)}（下一次只打他）`, atk: (it.re ? '責任重新分配：' : '') + (it.heavy ? '重擊' : '攻擊') + (it.smoke ? '＋嗆煙' : it.hex ? '＋' + it.hex : '') + ` → ${who(it.target)}` + (it.then ? `（${it.then}）` : ''), drain: act('drain'), aoe: (it.re ? '責任重新分配：' : '') + '攻擊全體' + (it.hex ? '＋' + it.hex : ''), heal: act('heal'), charge: '下一步：蓄力', stun: '理虧　這次動不了',
       ult: it.locks ? `大招：打全體（鎖還剩 ${it.locks.length} 個）` : it.wok ? `大招：只打${DEFS[it.wok].name}（他防禦就彈回去）` : it.proj || it.lost ? (it.lost ? '大招落空（專案沒人做）' : `大招：打全體（打倒${NAME[it.proj]}可阻止）`) : it.pow != null ? `大招：打全體（威力 ${Math.round(it.pow * 100)}%）` : '大招：打全體',
       echo: it.lost ? `附議落空（${NAME[it.echo]}已倒）` : `附議${NAME[it.echo]}：${act(it.act)}` }[it.kind] + (it.weak ? '（攻↓）' : '');
     const col = it.kind === 'heal' ? '#1f6a5c' : it.kind === 'stun' ? INK2 : RED, hot = it.kind === 'ult' || it.kind === 'charge', wkn = knownWeak(f), wkAll = R.weakOf(state, f), cw = wkAll.length * 40 + (wkAll.length ? 10 : 0), w = mw(main, 24, 900) + 30, x = Math.max(8, Math.min(W - w - cw - 8, px - (w + cw) / 2)); let y = Math.max(96, py - 86);
@@ -494,14 +503,14 @@ function drawIntents() { const placed = []; for (const f of R.foes(state)) { con
     skin.paper(x, y, w, 40, { old: it.kind === 'stun' }); if (hot) { c.fillStyle = '#6e1c16'; c.fillRect(x + 3, y + 3, w - 6, 34); } text(main, x + 15, y + 29, { px: 24, w: 900, col: hot ? '#fff0e0' : col });
     wkAll.forEach((_, q) => typeChip(wkn[q] || null, x + w + 8 + q * 40, y + 2, 36));      // 弱點兩格：知道的寫屬性，不知道的是「？」
     if (it.locks) { const n0 = it.lockN, lx = x + (w + cw) / 2 - n0 * 23; for (let q = 0; q < n0; q++) { const t = it.locks[q]; if (t) typeChip(t, lx + q * 46, y - 48, 40); else { c.fillStyle = '#1c120c'; c.fillRect(lx + q * 46 - 2, y - 50, 44, 44); c.fillStyle = '#2f5c50'; c.fillRect(lx + q * 46, y - 48, 40, 40); text('✓', lx + q * 46 + 20, y - 18, { px: 30, w: 900, align: 'center', col: '#bff0dc' }); } } }
-    const tags = []; if (state.burn[f] > 0) tags.push(`灼燒 ${state.burn[f]}`); if (state.mark[f] > 0) tags.push(`標記 ${state.mark[f]}`); if (state.atkDown[f] > 0) tags.push(`攻↓ ${state.atkDown[f]}`); if (state.poison[f] && state.poison[f].n > 0) tags.push(`中毒 ${state.poison[f].n}`); if (f !== 'boss' && state.stun[f]) tags.push('暈眩'); if (f !== 'boss' && R.KINDS[state.kind[f]].armor) tags.push('裝甲'); if (f !== 'boss' && R.KINDS[state.kind[f]].dull) tags.push('招式減半');
+    const tags = []; if (state.burn[f] > 0) tags.push(`灼燒 ${state.burn[f]}`); if (state.mark[f] > 0) tags.push(`標記 ${state.mark[f]}`); if (state.atkDown[f] > 0) tags.push(`攻↓ ${state.atkDown[f]}`); if (state.poison[f] && state.poison[f].n > 0) tags.push(`中毒 ${state.poison[f].n}`); if (f !== 'boss' && state.stun[f]) tags.push('暈眩'); if (state.fward[f] > 0) tags.push(`護盾 ${state.fward[f]}`); if (it.re) tags.push('前排兩人以上有護盾 → 只打護盾最多的人；不然打全體'); if (f !== 'boss' && R.KINDS[state.kind[f]].armor) tags.push('裝甲'); if (f !== 'boss' && R.KINDS[state.kind[f]].dull) tags.push('招式減半');
     if (f === state.proj && state.charging) tags.push('臨時專案：打倒他，大招落空'); if (f !== 'boss' && f === state.echo && (R.intent(state, 'boss') || {}).kind === 'echo') tags.push('被附議中：打倒他，頭目這次落空');
     if (f === 'boss' && state.L.brag && !state.broken) tags.push(`大招威力 ${Math.round(R.bragPow(state) * 100)}%`);
     if (f === 'boss' && state.L.fee) tags.push(state.sign > 0 ? `招牌亮著：招式多扣 ${state.L.fee} SP（普攻再 ${state.sign} 下打熄）` : '招牌熄了'); if (f === 'boss' && state.L.layers) tags.push(`加蓋 ${state.layers} 層：大招 ${Math.round(R.roofPow(state) * 100)}%，用招式打他拆一層`);
     if (f === 'boss' && !state.broken && state.shield > 0) tags.push(`再削 ${state.shield} 點底氣就理虧`); if (f === 'boss' && state.broken) tags.push('理虧中：受傷加倍');
     if (tags.length) { const tl = tags.join('　'), tw = mw(tl, 20, 900); text(tl, Math.max(8 + tw / 2, Math.min(W - 8 - tw / 2, x + (w + cw) / 2)), y + 64, { px: 20, w: 900, align: 'center', col: '#ffe9c0', stroke: 'rgba(20,10,4,.85)', sw: 5 }); } }
   // 我方每個人頭上的狀態（護盾、再生、攻擊提升、嗆到、背鍋、吸引攻擊）
-  for (const h of R.FRONT) { if (!R.alive(state, h)) continue; const ls = []; if (state.wok === h && state.charging) ls.push(['背鍋中：防禦就彈回去', '#ffcf8a']); if (state.ward[h] > 0) ls.push([`護盾 ${state.ward[h]}`, '#9af0ff']); if (state.up[h] > 0) ls.push([`攻↑ ${state.up[h]}`, '#ffb0d0']); if (state.regen[h] && state.regen[h].n > 0) ls.push([`再生 ${state.regen[h].n}`, '#a8f0b0']); if (R.smoked(state, h)) ls.push(['嗆到：普攻減半', '#dfe8b8']); if (state.guardian === h) ls.push(['吸引攻擊中', '#9af0ff']);
+  for (const h of R.FRONT) { if (!R.alive(state, h)) continue; const ls = []; if (state.wok === h && state.charging) ls.push(['背鍋中：防禦就彈回去', '#ffcf8a']); if (state.ward[h] > 0) ls.push([`護盾 ${state.ward[h]}`, '#9af0ff']); if (state.up[h] > 0) ls.push([`攻↑ ${state.up[h]}`, '#ffb0d0']); if (state.regen[h] && state.regen[h].n > 0) ls.push([`再生 ${state.regen[h].n}`, '#a8f0b0']); if (R.smoked(state, h)) ls.push(['嗆到：普攻減半', '#dfe8b8']); if (state.hmark[h] > 0) ls.push([`列管 ${state.hmark[h]}：受傷 ＋30%`, '#ffb0a0']); if (state.hpoison[h] && state.hpoison[h].n > 0) ls.push([`中毒 ${state.hpoison[h].n}`, '#b8e07a']); if (state.guardian === h) ls.push(['吸引攻擊中', '#9af0ff']);
     const [px, py] = S.proj(h, 1); ls.forEach(([tx, col], q) => text(tx, px, py - 58 - q * 28, { px: 22, w: 900, align: 'center', col, stroke: 'rgba(20,10,4,.9)', sw: 5 })); } }
 // 這一場最後幾步的紀錄（輸的時候放進結案報告）
 let lastLog = [];
@@ -543,7 +552,7 @@ function enterStage() {
   const st = R.STAGES[R.stageOf(run, run.node)], L = st.boss; todo.length = 0; lastLog = []; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
   if (L && L.hero) mirrorBoss(L.hero); for (const m of R.SLOTS) { const K = R.KINDS[state.kind[m]]; if (K.hero) mirrorMinions(K.hero); }
   for (const u of [bossU, chiefU, auditU, ...Object.values(eliteU), ...Object.values(mirrorBossU)]) if (u) resetUnit(u, false, 'idle');
-  units.boss = (L && (L.hero ? mirrorBossU[L.hero] : { chief: chiefU, audit: auditU, ...eliteU }[eliteU[L.id] ? L.id : L.like || L.id])) || bossU; if (L) { resetUnit(units.boss, true, 'idle'); DEFS.boss.name = L.name; DEFS.boss.hp = L.hp; DEFS.boss.pos = units.boss.home.slice(); A.face.boss = L.hero && A.face[L.hero] ? A.face[L.hero] : eliteU[L.id] && units.boss === eliteU[L.id] ? eliteFace[L.id] : units.boss === chiefU ? A.faceChief : units.boss === auditU ? A.faceAudit : A.faceBoss; }
+  units.boss = (L && (L.hero ? mirrorBossU[L.hero] : { chief: chiefU, audit: auditU, ...eliteU }[eliteU[L.id] ? L.id : L.like || L.id])) || bossU; if (L) { resetUnit(units.boss, true, 'idle'); DEFS.boss.name = L.name; DEFS.boss.hp = L.hp; DEFS.boss.pos = units.boss.home.slice(); A.face.boss = L.hero && A.face[L.hero] ? A.face[L.hero] : Object.keys(eliteU).some(k => eliteU[k] === units.boss) ? eliteFace[Object.keys(eliteU).find(k => eliteU[k] === units.boss)] : units.boss === chiefU ? A.faceChief : units.boss === auditU ? A.faceAudit : A.faceBoss; }
   // 敵人站的位置：平常第三個人站後面中間；有頭目又帶三四個手下的時候（鏡像 Vivi），第三、第四個站到頭目的左前、左後
   const SPOT = L && R.MINIONS.length > 2 ? { mc: [-3.55, 1.5], md: [-3.6, -1.65] } : { mc: [-2.7, -.3], md: [-3.7, 1.4] };
   for (const m of R.SLOTS) { for (const k in minionU) resetUnit(minionU[k][m], false, 'idle'); const want = state.kind[m], like = R.KINDS[want].like, kind = minionU[want] ? want : minionU[like] ? like : 'drone'; units[m] = minionU[kind][m]; DEFS[m].name = R.KINDS[state.kind[m]].name; A.face[m] = minionFace[kind]; if (SPOT[m]) { DEFS[m].pos = SPOT[m].slice(); units[m].home = SPOT[m].slice(); } }
@@ -582,6 +591,7 @@ function start() { AC.resume(); playMusic('bgm/map'); saved = null; if (Q.has('m
   openCards({ title: '今天走哪一條路線？', sub: '招募、休息、事件每條路線都有；差別在對手、站數和岔路。', foot: '選一條路線', items: [
     { label: '一般行程', tag: '討伐奧客總經理', icon: 'boss', big: true, lines: ['十站', '社畜小兵、甩鍋課長、奧客總經理', '第一次玩選這個'], go: () => { mapKey = 'office'; pickStarter(); } },
     { label: '台灣篇', tag: '颱風天，照常上班', icon: 'chief', big: true, lines: ['十二站，三條支線', '廟埕燈會、不夜城夜市、頂樓加蓋', '比一般行程難一點'], go: () => { mapKey = 'taiwan'; pickStarter(); } },
+    { label: '地獄分公司', tag: '離職申請處理中', icon: 'elite', big: true, lines: ['十三站，三條支線選了就走到底', '敵人會上護盾、下毒、點名列管', '難；有補給站和免費特訓'], go: () => { mapKey = 'hell'; pickStarter(); } },
     { label: '鏡像內戰', tag: '難度很高', icon: 'elite', big: true, lines: ['十站', '對面站的是自己人的鏡像', '最後是鏡像 Vivi，帶著阿傑和小葵'], go: () => { mapKey = 'mirror'; pickStarter(); } }] }); }
 function pickStarter() {
   openCards({ title: '今天誰先去上班？', sub: '從一個人開始。路上會遇到同事，最多帶四個人上場。', foot: '選一位主角', items: R.STARTERS.map(id => heroCard(id, () => pickSkill(id), true)) }); }
@@ -595,12 +605,14 @@ function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || 
 function openEvent() { const key = run.events[run.floor], ev = R.EVENTS[key];
   openCards({ title: ev.name, sub: ev.text, foot: '選一個，選完回到行程表', items: ev.opts.map((o, j) => ({ label: o.label, icon: o.icon, lines: o.lines, big: true, off: !R.eventOk(run, key, j), go: () => { const msg = R.applyEvent(run, key, j); if (msg == null) return; snd(now, 'buff', .8); R.advance(run); openHub(`${ev.name}：${msg}`); } })) }); }
 // 休息站二選一：休息（回血、補 SP），或特訓（三個招式挑一個升級成「＋」：傷害與回復量 ＋25%、SP 消耗 －20%，每招一次）
-function openRest(nd) { const place = nd.name || '茶水間', tr = R.offerTrain(run), hurt = run.roster.filter(id => id !== 'vivi').reduce((a, id) => a + (R.STAT[id].hp - run.hp[id]), 0);
+function openRest(nd, free) { const place = nd.name || '茶水間', tr = R.offerTrain(run), hurt = run.roster.filter(id => id !== 'vivi').reduce((a, id) => a + (R.STAT[id].hp - run.hp[id]), 0);
   const rest = () => { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在${place}休息：全隊共回復 ${v} HP，SP 補滿` : `在${place}休息：SP 補滿（HP 本來就是滿的）`); };
+  const train = () => openCards({ title: free ? place : '特訓', sub: '挑一個招式升級成「＋」（每個招式只能升一次）：', foot: '選完回到行程表', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.applyTrain(run, id, key); snd(now, 'buff', .8); R.advance(run); openHub(`特訓完成：${DEFS[id].name}的「${k.name}」升級成「${k.name}＋」`); } }; }) });
+  if (free) { if (tr.length) return train(); for (const id of run.roster) run.sp[id] = Math.min(R.STAT[id].sp, run.sp[id] + 40); R.advance(run); return openHub(`${place}：招式都升級過了，全員 SP ＋40`); }
   if (!tr.length) return rest();
   openCards({ title: place, sub: '休息一下，還是趁空檔練一招？只能選一個。', foot: '選一個', items: [
     { label: '休息', tag: '回血、補 SP', icon: 'rest', big: true, lines: ['全員 HP 回復一半', '全員 SP 補滿', hurt > 0 ? `現在全隊少了 ${hurt} HP` : '現在大家都是滿血'], go: rest },
-    { label: '特訓', tag: '升級一個招式', icon: 'up_learn', big: true, lines: ['三個招式挑一個升級成「＋」', '傷害與回復量 ＋25%，SP 消耗 －20%', '這一站就不回血了'], go: () => openCards({ title: '特訓', sub: '挑一個招式升級成「＋」（每個招式只能升一次）：', foot: '選完回到行程表', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.applyTrain(run, id, key); snd(now, 'buff', .8); R.advance(run); openHub(`特訓完成：${DEFS[id].name}的「${k.name}」升級成「${k.name}＋」`); } }; }) }) }] }); }
+    { label: '特訓', tag: '升級一個招式', icon: 'up_learn', big: true, lines: ['三個招式挑一個升級成「＋」', '傷害、回復量 ＋25%', 'SP 消耗 －20%；這一站不回血'], go: train }] }); }
 function openUpgrade(gift) { const offers = R.offerUpgrades(run);
   openCards({ title: gift ? '福委會' : '過關獎勵', sub: gift ? '這個月的福利，選一個：' : (rescued ? `救出了${DEFS[rescued].name}！` : '') + '全員回復兩成五 HP、三成 SP，倒下的人也站起來了。再選一個強化：', foot: '選完回到行程表', items: offers.map(k => { const U = R.UPGRADES[k], who = (U.need || []).filter(id => run.roster.includes(id)).map(id => DEFS[id].name); return { label: U.name, tag: [R.UP_TAG[k], who.length ? `配合${who.join('、')}的招式` : ''].filter(Boolean).join('　'), icon: 'up_' + k, lines: U.desc.split('，'), big: true, go: () => pickUpgrade(k) }; }) }); }
 function pickUpgrade(k, opt) {
@@ -637,6 +649,8 @@ function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; panel
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
   else if (nd.type === 'rest') openRest(nd);
+  else if (nd.type === 'supply') { R.supply(run, nd); snd(now, 'buff', .8); R.advance(run); openHub(`${nd.name}：${nd.sub}`); }
+  else if (nd.type === 'train') openRest(nd, true);
   else if (nd.type === 'recruit') openRecruit(i);
   else if (nd.type === 'event') openEvent();
   else openUpgrade(true); }
@@ -711,13 +725,15 @@ function mirrorBlueprint() { if (A.map.mirror || !A.map.blueprint) return A.map.
 const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 606]], [[600, 606]], [[440, 318], [440, 418]], [[720, 368]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 606], [200, 368]] }, START = [296, 868];
 // 行程表地圖：畫面＝(世界座標 − 鏡頭) × 倍率。每張地圖有一到三張「地圖紙」並排，各站位置寫在世界座標；可以用手指或滑鼠拖著看，右上角切換「放大／全覽」
 // 台灣篇三張紙（廟埕燈會、不夜城夜市、頂樓加蓋）；三條支線由上到下是 a、b、c
-const ZBIG = 1.5, VIEW = { x0: 270, x1: 1906, y0: 8, y1: 908 }, MAPNAME = { mirror: '鏡像', taiwan: '台灣篇' };      // VIEW＝沒被隊伍欄、下方說明蓋住的範圍
+const ZBIG = 1.5, VIEW = { x0: 270, x1: 1906, y0: 8, y1: 908 }, MAPNAME = { mirror: '鏡像', taiwan: '台灣篇', hell: '地獄分公司' };      // VIEW＝沒被隊伍欄、下方說明蓋住的範圍
 const TWX = [0, 1580, 3160];
 const sx = (k, pts) => pts.map(([x, y]) => [TWX[k] + x, y]);      // 各站位置照地圖紙上留的空位（design/taiwan/README.md 的座標）
 const TW_STN = [sx(0, [[363, 628]]), sx(0, [[641, 351], [643, 628], [644, 874]]), sx(0, [[927, 351], [918, 628], [938, 874]]), sx(0, [[1213, 351], [1211, 628], [1241, 874]]), sx(0, [[1400, 600]]),
   sx(1, [[277, 315], [271, 586], [271, 846]]), sx(1, [[610, 315], [1000, 590], [611, 847]]), sx(1, [[935, 315], [1338, 587], [935, 847]]), sx(1, [[1297, 315]]),
   sx(2, [[361, 388], [434, 601], [384, 803]]), sx(2, [[808, 350], [925, 549], [910, 751]]), sx(2, [[1300, 330]])];
 const LAY = { office: { sheets: [['blueprint', 0, 0]], stn: STN, via: VIA, start: START }, mirror: { sheets: [['blueprint', 0, 0]], stn: STN, via: VIA, start: START, flip: true },
+  hell: { sheets: [['hell', 0, 0], ['hell', 1580, 0]], via: {}, start: [296, 868], titles: ['地下十九樓', '地下三十樓'],
+    stn: [[[430, 868]], [[720, 868]], [[990, 780], [990, 868], [990, 952]], [[1230, 780], [1230, 868], [1230, 952]], [[1090, 606]], [[845, 556], [845, 656]], [[600, 526], [600, 606], [600, 686]], [[1580 + 300, 788], [1580 + 300, 868], [1580 + 300, 948]], [[1580 + 620, 868]], [[1580 + 940, 868]], [[1580 + 1090, 526], [1580 + 1090, 606], [1580 + 1090, 686]], [[1580 + 760, 526], [1580 + 760, 606], [1580 + 760, 686]], [[1580 + 768, 190]]] },
   taiwan: { sheets: TWX.map((x, i) => ['tw_' + (i + 1), x, 0]), stn: TW_STN, via: {}, start: [150, 640], titles: ['廟埕燈會', '不夜城夜市', '頂樓加蓋'] } };
 const lay = () => LAY[run.map] || LAY.office, laySize = () => [Math.max(...lay().sheets.map(s => s[1])) + 1536, 1024];
 let mapCam = [0, 0], mapCamT = null, mapZ = ZBIG, mapDrag = null, mapFitWas = null, mapOwner = null;
@@ -727,9 +743,10 @@ const mapZoomT = () => { if (!PREF.mapFit) return ZBIG; const [ww, wh] = laySize
 // 把鏡頭帶到地圖上的某一點（放在沒被蓋住的範圍正中間）；snap＝不要滑過去，直接到位
 function mapLook(p, snap) { const z = mapZoomT(), [x, y] = wpt(p); mapCamT = clampCam([x - (VIEW.x0 + VIEW.x1) / 2 / z, y - (VIEW.y0 + VIEW.y1) / 2 / z], z); if (snap) { mapZ = z; mapCam = mapCamT.slice(); mapCamT = null; } }
 // 地圖紙用到才下載（台灣篇三張各 0.8MB）
-function mapArt() { for (const [key] of lay().sheets) if (!(key in A.map)) { A.map[key] = null; loadImg(`art/map/${key}.jpg`).then(im => { A.map[key] = im; }).catch(() => {}); } }
+function hellBlueprint() { const im = A.map.blueprint; if (!im) return null; const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; const x = cv.getContext('2d'); x.drawImage(im, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = '#c0544a'; x.fillRect(0, 0, cv.width, cv.height); x.globalCompositeOperation = 'screen'; x.fillStyle = 'rgba(90,14,8,.32)'; x.fillRect(0, 0, cv.width, cv.height); x.globalCompositeOperation = 'source-over'; const g = x.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * .3, cv.width / 2, cv.height / 2, cv.height * .85); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(10,0,0,.55)'); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.height); return cv; }
+function mapArt() { if (lay() === LAY.hell && !A.map.hell) A.map.hell = hellBlueprint(); for (const [key] of lay().sheets) if (!(key in A.map)) { A.map[key] = null; loadImg(`art/map/${key}.jpg`).then(im => { A.map[key] = im; }).catch(() => {}); } }
 function mapHome(snap) { mapArt(); const L = lay(), pts = R.reachable(run).map(k => L.stn[run.floor][k]), at0 = run.floor === 0 ? L.start : L.stn[run.floor - 1][run.path[run.floor - 1]], cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length; mapLook([(cx * 2 + at0[0]) / 3, (cy * 2 + at0[1]) / 3], snap); }
-const TAGCOL = { 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
+const TAGCOL = { 補給: '#9a6a1c', 特訓: '#1f6a5c', 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
 const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[R.stageOf(run, nd)], cnt = {}; for (const m of st.minions) { const kd = (st.kinds || {})[m] || 'drone', n = kd === 'random' ? '隨機的鏡像同事' : R.KINDS[kd].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
 // 「隊伍與道具」選單的畫面：左邊隊伍常駐，右邊兩個頁籤（道具與強化／夥伴名冊）。整頁用滿 1920 寬，字級以手機橫向看得清楚為準（最小 26）
@@ -779,7 +796,7 @@ function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgb
   }
 }
 // 每一種站「得到什麼／代價是什麼」，給行程表下方的說明用
-const nodeTrade = nd => nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? '，並救出一位夥伴' : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
+const nodeTrade = nd => nd.type === 'supply' ? [nd.sub, '這一站沒有強化'] : nd.type === 'train' ? ['免費把一個招式升級成＋', '不補血、不補 SP'] : nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? '，並救出一位夥伴' : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
   : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? ['多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
 const nextStops = () => R.MAP.slice(run.floor + 1, run.floor + 4).map(fl => [...new Set(fl.map(nd => nd.tag))].join('或')).join(' → ');
 function drawHub() {
@@ -963,7 +980,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'], ['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'] ];
+const CHANGES = [['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'], ['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'], ['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

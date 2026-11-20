@@ -20,7 +20,7 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [ ] 平衡：TUNE 現在是 hp 1.3／atk 1.5／bhp 1.4／batk 1.5／ult 1.65（一般行程一般玩家約 60～80%、台灣篇約 40%）；全部做完再調一次
 - [x] 第四包前半（v0.17.0）：休息站二選一「休息／特訓」（run.plus，招式名後面加＋）、十五個辦公小物（UPGRADES 後半、UP_TAG 標籤；圖示先借舊的）
 - [ ] 加班等級（通關後解鎖的難度）
-- [ ] 第三張地圖「地獄分公司」（GPT 選的，全部沿用現有圖＋紅黑色調；gpt_c.json 的 map3）
+- [x] 第三張地圖「地獄分公司」（v0.18.0，本機已 commit）：規則、畫面、測試都好了；圖沿用現有的，美術 session 在補（icons 47 個 → hell 換皮與兩張地圖紙 art/map/hell_1～2.jpg，座標會寫在 design/hell/README.md；到了要改 LAY.hell、KLOOK／ELOOK，並把 rules.js 裡借圖示的 ic 拿掉）
 - [ ] 每一項做完：sim、機制測試、實機截圖、整輪試玩、改版本號＋CHANGES＋README，commit 在本機
 
 ## 現況（v0.14.0，2026-11-20 已上線）
