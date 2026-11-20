@@ -624,7 +624,8 @@ function startStage() {
 // 卡片：{ label, tag, lines:[…], icon（art/map/icons 的名字）或 bust（角色）, go }
 let rescued = null;
 const met = id => { PREF.met = PREF.met || []; if (!PREF.met.includes(id)) { PREF.met.push(id); savePref(); } };
-const heroCard = (id, go, starter) => ({ label: DEFS[id].name, tag: `${DEFS[id].job}　${R.ROLE[id]}`, bust: id, lines: [`HP ${R.STAT[id].hp}　SP ${R.STAT[id].sp}　攻擊 ${R.STAT[id].atk}`, ...(starter ? ['招式三選一（下一步選）'] : R.SKILLS[id].map(k => `◆ ${k.name}　${k.note}`)), `奧義「${DEFS[id].skill}」`, DEFS[id].desc || ''], go });
+const uniteWith = id => { if (!run || !run.roster) return null; const U = R.UNITES.find(u => u.who.includes(id) && u.who.every(h => h === id || run.roster.includes(h))); return U ? `★ 和${U.who.filter(h => h !== id).map(h => DEFS[h].name).join('、')}有合體技「${U.name}」` : null; };      // 招募卡上提醒：帶他就能放合體技
+const heroCard = (id, go, starter) => ({ label: DEFS[id].name, tag: `${DEFS[id].job}　${R.ROLE[id]}`, bust: id, lines: [`HP ${R.STAT[id].hp}　SP ${R.STAT[id].sp}　攻擊 ${R.STAT[id].atk}`, ...(starter ? ['招式三選一（下一步選）'] : [uniteWith(id), ...R.SKILLS[id].map(k => `◆ ${k.name}　${k.note}`)]), `奧義「${DEFS[id].skill}」`, DEFS[id].desc || ''], go });
 function openCards(o) { phase = 'pick'; menu = { kind: 'pick', ...o }; focus = 0; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; }
 function resume() { const sv = saved; saved = null; if (!sv) return start(); AC.resume(); playMusic('bgm/map'); run = sv.run; for (const id of run.roster) met(id);
   if (sv.pend === 'battle') { phase = 'anim'; menu = null; return beginBattle(sv.bseed, sv.ver === VERSION ? sv.blog : []); }      // 版本不一樣就不重演，這一場從頭打
@@ -1040,8 +1041,8 @@ function drawPick() {
     // 字
     let px = 48; while (px > 30 && mw(it.label, px, 900, SERIF) + it.label.length * 4 > CWd - 50) px -= 2; text(it.label, x + CWd / 2, y + AH + 84, { px, w: 900, fam: SERIF, align: 'center', col: INK, ls: 4 }); let ty = y + AH + 104;
     if (it.tag) { text(fit(it.tag, CWd - 50, 20, 900), x + CWd / 2, ty + 16, { px: 20, w: 900, align: 'center', col: RED, ls: 2 }); ty += 30; } c.fillStyle = RED; c.fillRect(x + CWd / 2 - 60, ty + 2, 120, 4); ty += 16;
-    const lp = it.big ? 28 : 21, lh = it.big ? 40 : 28, maxR = Math.floor((y + CH - 30 - ty) / lh), all = it.lines.filter(Boolean).flatMap(s => { const w0 = mw(s, lp, 700); return s.startsWith('◆') && w0 > CWd - 64 && w0 * 17 / lp <= CWd - 64 ? [{ s, px: Math.floor(lp * (CWd - 64) / w0) }] : wrap(s, CWd - 64, lp).map(q => ({ s: q, px: lp })); }), rows = all.slice(0, maxR); if (all.length > maxR && rows.length) rows[rows.length - 1] = { ...rows.at(-1), s: rows.at(-1).s.slice(0, -1) + '…' };
-    rows.forEach((r, k) => text(r.s, it.big ? x + CWd / 2 : x + 32, ty + 30 + k * lh, { px: r.px, w: 700, align: it.big ? 'center' : 'left', col: r.s.startsWith('奧義') ? INK : INK2 }));
+    const lp = it.big ? 28 : 21, all = it.lines.filter(Boolean).flatMap(s => { const w0 = mw(s, lp, 700); return s.startsWith('◆') && w0 > CWd - 64 && w0 * 17 / lp <= CWd - 64 ? [{ s, px: Math.floor(lp * (CWd - 64) / w0) }] : wrap(s, CWd - 64, lp).map(q => ({ s: q, px: lp })); }), lh = it.big ? 40 : all.length * 28 > y + CH - 30 - ty ? 25 : 28, maxR = Math.floor((y + CH - 30 - ty) / lh), rows = all.slice(0, maxR); if (all.length > maxR && rows.length) rows[rows.length - 1] = { ...rows.at(-1), s: rows.at(-1).s.slice(0, -1) + '…' };
+    rows.forEach((r, k) => text(r.s, it.big ? x + CWd / 2 : x + 32, ty + 30 + k * lh, { px: r.px, w: 700, align: it.big ? 'center' : 'left', col: r.s.startsWith('奧義') ? INK : r.s.startsWith('★') ? '#1f6a5c' : INK2 }));
     if (on && !menu.wide) skin.stamp('選這個', x + CWd - 78, y + AH + 2, -.12, 20); if (off) skin.stamp('現在不行', x + CWd / 2, y + AH / 2 + 22, -.1, 30); c.restore(); });
   if (menu.foot) text(menu.foot, W / 2, 956, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.8)' });
 }
