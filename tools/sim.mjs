@@ -5,7 +5,7 @@
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
 import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
-  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable } from '../js/rules.js';
+  TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
 if (E.BOSSHP) STAGES.boss.boss.hp = +E.BOSSHP; if (E.BOSSULT) STAGES.boss.boss.ult = +E.BOSSULT; if (E.CYCLE) STAGES.boss.boss.cycle = +E.CYCLE; if (E.SPD2 !== undefined) STAGES.boss.boss.spd2 = +E.SPD2; if (E.BOSSATK) STAGES.boss.boss.atk = +E.BOSSATK; if (E.CHIEFHP) STAGES.chief.boss.hp = +E.CHIEFHP; if (E.CHIEFATK) STAGES.chief.boss.atk = +E.CHIEFATK;
@@ -49,6 +49,13 @@ const POLICY = {
     if (id === 'you') { if (canUlt(s, id) && boss) return doUlt(s, id); if (guarded(s) && boss && can(s, id, 'backdoor', keep)) return doSkill(s, id, 'backdoor', 'boss'); if (s.sp[id] < 60 && !s.evade[id]) return doSkill(s, id, 'slack'); }
     if (id === 'zong') { if (s.charging && !covered && canUlt(s, id)) return doUlt(s, id); if (me < .5 && can(s, id, 'sip', 0)) return doSkill(s, id, 'sip'); if (can(s, id, 'news', keep)) return doSkill(s, id, 'news', t); }
     if (id === 'hui') { if (canUlt(s, id) && (boss || nMin >= 2)) return doUlt(s, id); if (s.overtime < 4 && can(s, id, 'overtime', keep)) return doSkill(s, id, 'overtime', t); if (me > .6 && can(s, id, 'allnight', keep)) return doSkill(s, id, 'allnight', t); }
+    // 合體技：打得到頭目（或小兵很多）而且放得出來就放；補血型的等有人受傷
+    { const U = unitesOf(id).find(U => uniteOk(s, id, U) && U.who.every((h, q) => s.sp[h] - U.sp[q] >= (s.mo >= 26 ? 0 : 0)) && (U.type ? (boss && !guarded(s)) || nMin >= 2 : hurt.length >= 2 || U.key === 'u_mc')); if (U) return doUnite(s, id, U.key, U.target === 'foe' ? t : undefined); }
+    // 新招式：打得到弱點的攻擊招式優先；有人受傷就用護盾、回復類
+    { const mine = SKILLS[id].filter(k => k.fx && knows(s, id, k.key) && s.sp[id] - k.sp >= keep && skillOk(s, id, k)), dmg = mine.filter(k => k.type), sup = mine.filter(k => !k.type), wk = dmg.find(k => weakOf(s, t).includes(k.type));
+      if (wk) return doSkill(s, id, wk.key, t);
+      if (sup.length && (hurt.length || (s.charging && !covered))) { const k = sup[0], pool = k.target === 'ally' ? allyTargets(s, id, k) : []; return doSkill(s, id, k.key, k.target === 'ally' ? (pool.includes(lowest(s)) ? lowest(s) : pool[0]) : undefined); }
+      if (dmg.length && !weakOf(s, t).includes(SKILLS[id][0].type) && s.rand() < .5) return doSkill(s, id, dmg[0].key, t); }
     if (s.sp[id] < STAT[id].cost && s.items.coffee && s.mo >= 38) return doItem(s, id, 'coffee', id);
     return doAttack(s, id, t);
   },
@@ -61,7 +68,7 @@ const POLICY = {
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
     if (canUlt(s, id) && !['kevin', 'qiang', 'mi', 'yan', 'cha'].includes(id)) return doUlt(s, id);
-    if (s.rand() < .35) { const k = SKILLS[id].filter(k => knows(s, id, k.key) && s.sp[id] >= k.sp && (k.target === 'foe' || k.target === 'all'))[0]; if (k) return doSkill(s, id, k.key, t); }
+    if (s.rand() < .35) { const ks = SKILLS[id].filter(k => knows(s, id, k.key) && s.sp[id] >= k.sp && (k.target === 'foe' || k.target === 'all')), k = ks[Math.floor(s.rand() * ks.length)]; if (k) return doSkill(s, id, k.key, t); }
     return doAttack(s, id, t);
   },
   // 只按攻擊（Vivi 只應援）

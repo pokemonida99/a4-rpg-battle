@@ -15,8 +15,9 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [ ] 台灣篇美術：美術 session（local_b0b844eb…）在生，三張地圖紙 art/map/tw_1～3.jpg、頭目 tw_pot／tw_night／tw_roof、小兵 tw_*；到了再擺站點、接圖
 - [x] 參考攻略的研究 → 跟 GPT 討論（design/combat2/：research.md、gpt_a.md 系統把關、gpt_b.json 角色內容、gpt_c.json 合體技／弱點／小物／加班等級／地獄分公司）
 - [x] 戰鬥 2.0 第一包（v0.15.0，本機已 commit）：六屬性弱點、屬性鎖、普攻回 SP 6%、防禦回 10 SP、再動護欄、整體難度旋鈕 TUNE
-- [ ] 戰鬥 2.0 第二包：每人 +2 招（gpt_b.json）、被動、普攻附帶效果；新狀態（護盾、再生、中毒、暈眩、解除異常）；做完重調 TUNE
-- [ ] 第三包：合體技 6～8 組（gpt_c.json 的 unites）
+- [x] 戰鬥 2.0 第二包（v0.16.0，本機已 commit）：每人 +2 招（rules.js 的 NEW_SKILLS，效果清單 fx）、被動 PASSIVE、普攻附帶 RIDER；護盾、再生、中毒、暈眩、攻擊提升、吸引攻擊；新招式圖示先借舊的（ic），之後請美術補 32 個
+- [x] 第三包：合體技 11 組（UNITES、doUnite；放在技能選單，金色）；資料卡重排（特性、兩欄招式、合體技）
+- [ ] 平衡：TUNE 現在是 hp 1.3／atk 1.5／bhp 1.4／batk 1.5／ult 1.65（一般行程一般玩家約 60～80%、台灣篇約 40%）；全部做完再調一次
 - [ ] 第四包：休息站「特訓」、辦公小物（標籤）、加班等級
 - [ ] 第三張地圖「地獄分公司」（GPT 選的，全部沿用現有圖＋紅黑色調；gpt_c.json 的 map3）
 - [ ] 每一項做完：sim、機制測試、實機截圖、整輪試玩、改版本號＋CHANGES＋README，commit 在本機
