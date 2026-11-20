@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.13.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.13.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -509,7 +509,7 @@ function pickUpgrade(k, opt) {
   R.applyUpgrade(run, k, opt); snd(now, 'buff', .8); R.advance(run); const r = rescued; rescued = null; openHub((k === 'learn' ? `${DEFS[run.starter].name}學會「${R.SKILLS[run.starter].find(q => q.key === run.skills[run.starter].at(-1)).name}」` : `拿到強化「${R.UPGRADES[k].name}」`) + (r ? `　${DEFS[r].name}加入隊伍` : '')); }
 
 // ---------- 大地圖（行程表）：攤在會議桌上的公司剖面圖。選下一站、調整隊伍順序、看道具強化與夥伴名冊 ----------
-let hubMsg = null, hubSel = -1, sheet = null, panel = false, sheetReal = false, sheetFlipT = -1e9, sheetRect = null, drag = null;      // sheet＝正在看資料卡的那個人；panel＝「隊伍與道具」選單開著（行程表和戰鬥中都叫得出來）；sheetReal＝資料卡的立繪滑到原型那一張
+let hubMsg = null, hubSel = -1, sheet = null, panel = false, panelTab = 0, sheetReal = false, sheetFlipT = -1e9, sheetRect = null, drag = null;      // sheet＝正在看資料卡的那個人；panel＝「隊伍與道具」選單開著（行程表和戰鬥中都叫得出來）；sheetReal＝資料卡的立繪滑到原型那一張
 function hubItems() { const fl = R.MAP[run.floor], items = fl.map((nd, i) => ({ label: R.nodeName(nd), node: i, go: () => { if (hubSel === i) chooseNode(i); else hubSel = i; } }));
   items.push({ label: '出發', depart: true, get off() { return hubSel < 0; }, go: () => chooseNode(hubSel) });
   items.push({ label: '隊伍與道具', panelBtn: true, go: openPanel });
@@ -520,10 +520,11 @@ const inBattle = () => phase !== 'hub', curHp = id => inBattle() && R.HEROES.inc
 function panelItems() { const items = [];
   if (!inBattle()) run.roster.forEach((id, r) => { if (r > 0) items.push({ label: '上移', re: r, d: -1, go: () => { R.reorder(run, r, -1); refreshPanel(); } }); if (r < run.roster.length - 1) items.push({ label: '下移', re: r, d: 1, go: () => { R.reorder(run, r, 1); refreshPanel(); } }); });
   run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => openSheet(id) }));
-  for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
+  for (const t of [0, 1]) items.push({ label: t ? '夥伴名冊' : '道具與強化', tab: t, go: () => { panelTab = t; refreshPanel(); focus = menu.items.findIndex(m => m.tab === t); } });
+  if (panelTab === 1) for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
   items.push({ label: '關閉', back: true, go: closePanel }); return items; }
 const refreshPanel = () => { const f = focus; menu = { kind: 'panel', items: panelItems() }; focus = Math.min(f, menu.items.length - 1); };
-function openPanel() { panel = true; menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; }
+function openPanel() { panel = true; panelTab = 0; menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; }
 function closePanel() { panel = false; if (phase === 'hub') { menu = { kind: 'hub', items: hubItems() }; focus = 0; } else openMenu('root'); }
 const sheetList = () => run.roster.includes(sheet) ? run.roster : DEX.filter(id => (PREF.met || []).includes(id));
 function openSheet(id) { sheet = id; menu = { kind: 'sheet', items: [{ label: '上一位', go: () => stepSheet(-1) }, { label: '下一位', go: () => stepSheet(1) }, { label: '返回', back: true, go: closeSheet }, { label: '換立繪', go: () => flipSheet() }] }; focus = 2; }
@@ -613,29 +614,51 @@ const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612
 const TAGCOL = { 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
 const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[nd.stage], cnt = {}; for (const m of st.minions) { const kd = (st.kinds || {})[m] || 'drone', n = kd === 'random' ? '隨機的鏡像同事' : R.KINDS[kd].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
-// 「隊伍與道具」選單的畫面：隊伍、道具、強化、夥伴名冊排成中間一欄，底下是行程表或戰鬥畫面（壓暗）
-function drawPanel() { if (inBattle()) { c.fillStyle = 'rgba(8,5,4,.74)'; c.fillRect(0, 0, W, H); } else drawTable(.62);
-  text('隊伍與道具', W / 2, 70, { px: 44, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 });
-  const PX = 660, PY = 100, PW = 600, act = R.active(run), fight = inBattle(), bag = fight ? state.items : run.items; skin.wood(PX, PY, PW, 508); text('隊伍', PX + 26, PY + 44, { px: 28, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(fight ? '點人看資料（戰鬥中不能換順序）' : '點人看資料　箭頭調順序（前四位出戰）', PX + PW - 26, PY + 42, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
-  for (let i = 0; i < 6; i++) { const id = run.roster[i], y = PY + 60 + i * 72 + (i >= 4 ? 8 : 0);
-    if (!id) { c.strokeStyle = 'rgba(239,230,207,.2)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.strokeRect(PX + 16, y + 2, PW - 32, 60); c.setLineDash([]); text(i < 4 ? '出戰空位' : '候補空位', PX + PW / 2, y + 39, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.32)' }); continue; }
-    const d = DEFS[id], on = act.includes(id), hp = curHp(id), mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(PX + 14, y, PW - 28, 64, { old: !on }); { const vi = menu.items.findIndex(m => m.view === id && m.row === i); if (vi >= 0) { zones.push({ x: PX + 14, y, w: PW - 28 - 104, h: 64, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(PX + 16, y + 2, PW - 32, 60); } } } c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(PX + 14, y, 9, 64); skin.face(A.face[id], PX + 32, y + 6, 52);
-    text(d.name, PX + 96, y + 29, { px: 23, w: 900, fam: SERIF, col: INK }); text(id === 'vivi' ? '公主・後排' : d.job, PX + 104 + mw(d.name, 23, 900, SERIF), y + 28, { px: 14, w: 700, col: INK2 }); text(on ? '出戰' : '候補', PX + 96, y + 54, { px: 14, w: 900, col: on ? '#1f6a5c' : INK2 });
-    if (id !== 'vivi') { skin.bar(PX + 138, y + 43, 170, 11, hp / mx, low ? '#c8443a' : '#4f9a4a'); text(`${hp}／${mx}`, PX + 316, y + 55, { px: 15, w: 700, col: low ? RED : INK }); } text(`SP ${curSp(id)}`, PX + 458, y + 29, { px: 16, w: 700, col: '#27507e', align: 'right' });
-    for (const dd of [-1, 1]) { const idx = menu.items.findIndex(m => m.re === i && m.d === dd); if (idx < 0) continue; const ax = PX + PW - 28 - (dd < 0 ? 96 : 48), ay = y + 9, pe = pressK(idx), dn = pe >= 0, hov = focus === idx; zones.push({ x: ax - 2, y: y, w: 46, h: 64, i: idx, off: false });
-      c.fillStyle = '#2b1f18'; c.fillRect(ax, ay + (dn ? 3 : 0), 42, 46); c.fillStyle = dn ? '#fff0c8' : hov ? '#d8b25a' : '#b08a4a'; c.fillRect(ax + 3, ay + 3 + (dn ? 3 : 0), 36, 40); c.fillStyle = '#2b1f18'; c.beginPath(); const cy = ay + 23 + (dn ? 3 : 0); if (dd < 0) { c.moveTo(ax + 21, cy - 10); c.lineTo(ax + 32, cy + 8); c.lineTo(ax + 10, cy + 8); } else { c.moveTo(ax + 21, cy + 10); c.lineTo(ax + 32, cy - 8); c.lineTo(ax + 10, cy - 8); } c.fill(); } }
-  // 道具
-  const IY2 = PY + 518; Object.keys(R.ITEMS).forEach((k, i) => { const x = PX + i * 202, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null); skin.wood(x, IY2, 196, 72, { studs: false }); if (im) pix(im, x + 12, IY2 + 9, 54 * im.width / im.height, 54); text(R.ITEMS[k].name, x + 72, IY2 + 32, { px: 19, w: 900, fam: SERIF, col: CREAM }); text(fit(R.ITEMS[k].note, 84, 13, 700), x + 72, IY2 + 56, { px: 13, w: 700, col: 'rgba(239,230,207,.7)' }); text(`×${bag[k]}`, x + 186, IY2 + 58, { px: 22, w: 900, col: BRASS, align: 'right' }); });
-  // 強化
-  const UY = IY2 + 82; skin.paper(PX, UY, PW, 78); text('強化', PX + 22, UY + 48, { px: 24, w: 900, fam: SERIF, col: INK, ls: 4 });
-  { const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; let x = PX + 96; if (!run.picks.length) text('還沒有。打贏戰鬥或到福委會可以三選一', x, UY + 46, { px: 18, w: 700, col: INK2 });
-    for (const k in cnt) { const im = A.icons['up_' + k]; if (im) pix(im, x, UY + 11, 56, 56); else text(R.UPGRADES[k].name, x, UY + 46, { px: 16, w: 900, col: INK }); if (cnt[k] > 1) { c.fillStyle = RED; c.fillRect(x + 36, UY + 48, 30, 22); text(`×${cnt[k]}`, x + 51, UY + 65, { px: 16, w: 900, align: 'center', col: '#fff8e6' }); } x += 66; } }
-  // 夥伴名冊：這一輪同行的是亮的；以前遇過的是暗的；還沒遇過的是問號
-  const RY = UY + 88, RH = H - 14 - RY, seen = PREF.met || []; skin.wood(PX, RY, PW, RH); text('夥伴名冊', PX + 26, RY + 42, { px: 26, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`遇過 ${DEX.filter(id => seen.includes(id)).length}／${DEX.length}`, PX + PW - 26, RY + 40, { px: 18, w: 700, align: 'right', col: BRASS });
-  DEX.forEach((id, j) => { const col = j % 8, row = j / 8 | 0, x = PX + 22 + col * 70, y = RY + 56 + row * 100, inRun = run.roster.includes(id), known = seen.includes(id) && A.face[id]; skin.paper(x, y, 64, 92, { old: !inRun });
-    if (known) { const vi = menu.items.findIndex(m => m.view === id && m.dex); if (vi >= 0) { zones.push({ x, y, w: 64, h: 92, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(x + 2, y + 2, 60, 88); } } c.save(); c.globalAlpha = inRun ? 1 : .55; skin.face(A.face[id], x + 5, y + 5, 54); c.restore(); text(fit(DEFS[id].name, 60, 13, 900), x + 32, y + 80, { px: 13, w: 900, align: 'center', col: inRun ? INK : INK2 }); if (inRun) { c.fillStyle = TEAL; c.fillRect(x + 5, y + 84, 54, 4); } }
-    else { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x + 5, y + 5, 54, 54); text('？', x + 32, y + 46, { px: 36, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.38)' }); } });
-  sheetBtn(inBattle() ? '回戰鬥' : '回行程表', PX + PW + 36, H - 14 - 100, 300, 100, menu.items.length - 1, true);
+// 「隊伍與道具」選單的畫面：左邊隊伍常駐，右邊兩個頁籤（道具與強化／夥伴名冊）。整頁用滿 1920 寬，字級以手機橫向看得清楚為準（最小 26）
+function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgba(8,5,4,.93)'; c.fillRect(0, 0, W, H); } else drawTable(.62);
+  const act = R.active(run), bag = fight ? state.items : run.items, n = run.roster.length, seen = PREF.met || [];
+  text('隊伍與道具', 64, 104, { px: 54, w: 900, fam: SERIF, col: CREAM, ls: 10, stroke: 'rgba(20,10,4,.8)', sw: 8 });
+  sheetBtn(fight ? '回戰鬥' : '回行程表', 1584, 30, 280, 100, menu.items.length - 1, true);
+  // 左：隊伍
+  const LX = 56, LY = 140, LW = 1024; skin.wood(LX, LY, LW, 924); text('隊伍', LX + 28, LY + 45, { px: 32, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 });
+  text(`出戰 ${act.length}／4　候補 ${n - act.length}／2`, LX + 128, LY + 44, { px: 26, w: 700, col: BRASS }); text(fight ? '點人看資料（戰鬥中不能換順序）' : '點人看資料　箭頭調順序', LX + LW - 28, LY + 44, { px: 26, w: 700, align: 'right', col: 'rgba(239,230,207,.78)' });
+  for (let i = 0; i < 6; i++) { const id = run.roster[i], x = LX + 16, w = LW - 32, h = 134, y = LY + 60 + i * 142 + (i >= 4 ? 8 : 0);
+    if (i === 4) { c.fillStyle = 'rgba(216,178,90,.5)'; c.fillRect(x + 6, y - 9, w - 12, 2); }
+    if (!id) { c.strokeStyle = 'rgba(239,230,207,.22)'; c.setLineDash([10, 10]); c.lineWidth = 2; c.strokeRect(x + 2, y + 2, w - 4, h - 4); c.setLineDash([]); text(i < 4 ? '出戰空位' : '候補空位', x + w / 2, y + 78, { px: 28, w: 700, align: 'center', col: 'rgba(239,230,207,.36)' }); continue; }
+    const d = DEFS[id], on = act.includes(id), hp = curHp(id), mx = R.STAT[id].hp, low = hp / mx < .3, viv = id === 'vivi'; skin.paper(x, y, w, h, { old: !on });
+    { const vi = menu.items.findIndex(m => m.view === id && m.row === i); if (vi >= 0) { zones.push({ x, y, w: fight ? w : 764, h, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 5; c.strokeRect(x + 3, y + 3, w - 6, h - 6); } } }
+    c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(x, y, 10, h); skin.face(A.face[id], x + 26, y + 15, 104);
+    text(d.name, x + 150, y + 56, { px: 40, w: 900, fam: SERIF, col: INK }); text(viv ? '公主・後排' : d.job, x + 166 + mw(d.name, 40, 900, SERIF), y + 54, { px: 26, w: 700, col: INK2 });
+    c.fillStyle = on ? '#1f6a5c' : '#8a7a66'; c.fillRect(x + 668, y + 18, 88, 42); text(on ? '出戰' : '候補', x + 712, y + 49, { px: 26, w: 900, align: 'center', col: '#fff8e6' });
+    if (!viv) { skin.bar(x + 150, y + 84, 250, 26, hp / mx, low ? '#c8443a' : '#4f9a4a'); text(`${hp}／${mx}`, x + 416, y + 110, { px: 34, w: 900, col: low ? RED : INK }); }
+    text(`SP ${curSp(id)}`, x + 756, y + 110, { px: 32, w: 900, col: '#27507e', align: 'right' });
+    for (const dd of [-1, 1]) { const idx = menu.items.findIndex(m => m.re === i && m.d === dd); if (idx < 0) continue; const ax = x + w - 16 - (dd < 0 ? 200 : 96), pe = pressK(idx), dn = pe >= 0, hov = focus === idx, ay = y + 19 + (dn ? 4 : 0); zones.push({ x: ax - 4, y, w: 104, h, i: idx, off: false });
+      c.fillStyle = '#2b1f18'; c.fillRect(ax, ay, 96, 96); c.fillStyle = dn ? '#fff0c8' : hov ? '#d8b25a' : '#b08a4a'; c.fillRect(ax + 6, ay + 6, 84, 84); c.fillStyle = 'rgba(255,255,255,.2)'; c.fillRect(ax + 6, ay + 6, 84, 6); c.fillStyle = '#2b1f18'; c.beginPath(); const cx = ax + 48, cy = ay + 48; if (dd < 0) { c.moveTo(cx, cy - 22); c.lineTo(cx + 26, cy + 18); c.lineTo(cx - 26, cy + 18); } else { c.moveTo(cx, cy + 22); c.lineTo(cx + 26, cy - 18); c.lineTo(cx - 26, cy - 18); } c.fill(); } }
+  // 右：頁籤
+  const RX = 1096, RW = 768, RY = 244, met9 = DEX.filter(id => seen.includes(id)).length;
+  [['道具與強化'], [`夥伴名冊　${met9}／${DEX.length}`]].forEach(([lab], t) => { const idx = menu.items.findIndex(m => m.tab === t), x = RX + t * 388, y = 140, w = 380, h = 100, cur = panelTab === t, pe = pressK(idx), dn = pe >= 0; zones.push({ x, y, w, h, i: idx, off: false });
+    if (cur) skin.paper(x, y, w, h + 10); else skin.wood(x, y + 8, w, h - 8, { studs: false }); if (focus === idx && !cur) { c.strokeStyle = TEAL; c.lineWidth = 5; c.strokeRect(x + 4, y + 12, w - 8, h - 16); } if (dn) { c.fillStyle = 'rgba(255,246,216,.45)'; c.fillRect(x, y + 8, w, h - 8); }
+    text(lab, x + w / 2, y + (cur ? 64 : 68), { px: 34, w: 900, fam: SERIF, align: 'center', ls: 3, col: cur ? INK : 'rgba(239,230,207,.82)' }); });
+  skin.wood(RX, RY, RW, 820);
+  if (panelTab === 0) {
+    // 道具：這裡只看數量
+    Object.keys(R.ITEMS).forEach((k, j) => { const x = RX + 16 + j * 248, y = RY + 18, w = 240, h = 168, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null), it = R.ITEMS[k]; skin.paper(x, y, w, h, { old: !bag[k] });
+      if (im) pix(im, x + 14, y + 10, 78 * im.width / im.height, 78); text(`×${bag[k]}`, x + w - 18, y + 68, { px: 48, w: 900, align: 'right', col: bag[k] ? INK : RED }); text(it.name, x + 16, y + 124, { px: 32, w: 900, fam: SERIF, col: INK }); text(fit(it.note, w - 28, 26, 700), x + 16, y + 156, { px: 26, w: 700, col: INK2 }); });
+    text('道具在戰鬥中輪到自己時，從「道具」指令使用', RX + 22, RY + 226, { px: 26, w: 700, col: 'rgba(239,230,207,.72)' });
+    // 強化：名字和效果都寫出來
+    const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; const ks = Object.keys(cnt), UY = RY + 304;
+    text('這一輪的強化', RX + 22, RY + 284, { px: 32, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`${run.picks.length} 個`, RX + RW - 24, RY + 284, { px: 28, w: 700, align: 'right', col: BRASS });
+    if (!ks.length) text('還沒有。打贏戰鬥或到福委會可以三選一', RX + 22, UY + 48, { px: 28, w: 700, col: 'rgba(239,230,207,.6)' });
+    else if (ks.length <= 6) ks.forEach((k, j) => { const u = R.UPGRADES[k], x = RX + 16, y = UY + j * 84, w = RW - 32, im = A.icons['up_' + k]; skin.paper(x, y, w, 78); if (im) pix(im, x + 10, y + 7, 64, 64);
+      text(u.name, x + 88, y + 36, { px: 30, w: 900, fam: SERIF, col: INK }); if (cnt[k] > 1) text(`×${cnt[k]}`, x + 100 + mw(u.name, 30, 900, SERIF), y + 36, { px: 30, w: 900, col: RED }); text(fit(u.desc, w - 104, 26, 700), x + 88, y + 68, { px: 26, w: 700, col: INK2 }); });
+    else ks.forEach((k, j) => { const u = R.UPGRADES[k], w = 364, x = RX + 16 + (j % 2) * 372, y = UY + (j >> 1) * 63, im = A.icons['up_' + k]; skin.paper(x, y, w, 58); if (im) pix(im, x + 8, y + 5, 48, 48); text(u.name, x + 66, y + 40, { px: 28, w: 900, fam: SERIF, col: INK }); if (cnt[k] > 1) text(`×${cnt[k]}`, x + w - 14, y + 40, { px: 28, w: 900, align: 'right', col: RED }); });
+  } else {
+    // 夥伴名冊：這一輪同行的是亮的；以前遇過的是暗的；還沒遇過的是問號
+    DEX.forEach((id, j) => { const x = RX + 16 + (j % 4) * 186, y = RY + 18 + (j >> 2) * 198, w = 178, h = 190, inRun = run.roster.includes(id), known = seen.includes(id) && A.face[id]; skin.paper(x, y, w, h, { old: !inRun });
+      if (known) { const vi = menu.items.findIndex(m => m.view === id && m.dex); if (vi >= 0) { zones.push({ x, y, w, h, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 5; c.strokeRect(x + 3, y + 3, w - 6, h - 6); } }
+        c.save(); c.globalAlpha = inRun ? 1 : .6; skin.face(A.face[id], x + 37, y + 12, 104); c.restore(); text(fit(DEFS[id].name, w - 12, 30, 900, SERIF), x + w / 2, y + 150, { px: 30, w: 900, fam: SERIF, align: 'center', col: INK }); text(inRun ? '同行中' : '遇過', x + w / 2, y + 180, { px: 26, w: 900, align: 'center', col: inRun ? '#1f6a5c' : INK2 }); }
+      else { c.fillStyle = 'rgba(43,31,24,.16)'; c.fillRect(x + 37, y + 12, 104, 104); text('？', x + w / 2, y + 90, { px: 72, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.36)' }); text('還沒遇到', x + w / 2, y + 166, { px: 26, w: 700, align: 'center', col: 'rgba(43,31,24,.5)' }); } });
+  }
 }
 // 每一種站「得到什麼／代價是什麼」，給行程表下方的說明用
 const nodeTrade = nd => nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? '，並救出一位夥伴' : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
@@ -804,7 +827,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'], ['v0.8.1', '新夥伴出招會喊聲，老鼠是吱吱聲', ''], ['v0.8.0', '事件站、三種新敵人、菁英考績魔導士', '八個流派強化、教學便條、全員招式圖示'], ['v0.7.2', '角色資料卡；在職進修可以自己挑招式', ''], ['v0.7.0', '11 位新夥伴的出招動畫', ''], ];
+const CHANGES = [['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'], ['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'], ['v0.8.1', '新夥伴出招會喊聲，老鼠是吱吱聲', ''], ['v0.8.0', '事件站、三種新敵人、菁英考績魔導士', '八個流派強化、教學便條、全員招式圖示'], ['v0.7.2', '角色資料卡；在職進修可以自己挑招式', ''] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -870,7 +893,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
-window.__game = { get state() { return state; }, sheet: id => openSheet(id), get sheetId() { return sheet; }, openPanel: () => openPanel(), flip: () => flipSheet(), get panel() { return panel; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
+window.__game = { get state() { return state; }, sheet: id => openSheet(id), get sheetId() { return sheet; }, openPanel: () => openPanel(), tab: t => { panelTab = t; refreshPanel(); }, flip: () => flipSheet(), get panel() { return panel; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load'; audioReady.then(() => { if (phase === 'load') phase = 'title'; });
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
