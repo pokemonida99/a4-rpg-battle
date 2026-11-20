@@ -66,8 +66,8 @@ function battle(policy, run) {
   while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) POLICY[policy](s, id); else enemyTurn(s, id); } }
   return s;
 }
-function playRun(policy, seed, starter) {
-  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key); prepare(run);
+function playRun(policy, seed, starter, map = 'office') {
+  const rand = mulberry(seed), run = newRun(rand, starter, SKILLS[starter][Math.floor(rand() * 3)].key, map); prepare(run);
   const pick = () => { const offer = offerUpgrades(run); applyUpgrade(run, policy === 'smart' ? [...offer].sort((a, b) => PICK.indexOf(a) - PICK.indexOf(b))[0] : offer[0]); };
   while (run.floor < MAP.length) { const opts = MAP[run.floor], off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
     if (opts.length > 1) { const rec = opts.findIndex((nd, k) => (nd.type === 'recruit' || nd.rescue) && off[k]), rst = opts.findIndex(nd => nd.type === 'rest'); i = policy === 'mash' ? 0 : rst >= 0 && hpK < .55 ? rst : rec >= 0 && run.roster.length < 4 ? rec : opts.length - 1; }
@@ -80,9 +80,9 @@ function playRun(policy, seed, starter) {
   return { win: true, floor: MAP.length, size: run.roster.length, rounds: run.rounds };
 }
 const N = +(process.argv[2] || 400);
-for (const starter of ['kui', 'jie']) { console.log(`── 起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
+for (const map of (E.MAP || 'office,mirror').split(',')) for (const starter of ['kui', 'jie']) { console.log(`── ${map === 'mirror' ? '鏡像內戰' : '一般行程'}　起始角色：${starter === 'kui' ? '小葵' : '阿傑'}`);
   for (const p of Object.keys(POLICY)) { let win = 0, rounds = 0, size = 0; const died = MAP.map(() => 0);
-    for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
+    for (let i = 0; i < N; i++) { const r = playRun(p, i * 7919 + 13, starter, map); if (r.win) { win++; rounds += r.rounds; size += r.size; } else died[r.floor]++; }
     console.log(`${p.padEnd(6)} 通關 ${(win / N * 100).toFixed(0).padStart(3)}%　倒在各站的比例 ${died.map(v => (v / N * 100).toFixed(0)).join(' ')}　通關平均 ${(rounds / Math.max(1, win)).toFixed(1)} 回合、隊伍 ${(size / Math.max(1, win)).toFixed(1)} 人`); } }
 // ---------- 存檔自我檢查：每一站存檔再讀回來要一模一樣；壞掉或版本不對的存檔要作廢 ----------
 { const R2 = await import('../js/rules.js'); let n = 0, bad = 0; const strip = r => JSON.stringify(R2.saveRun(r));

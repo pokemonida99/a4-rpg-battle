@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.9.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.11.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -39,17 +39,24 @@ const bossU = units.boss; let chiefU = null; A.faceBoss = A.face.boss;
 try { const [i, w, a, h] = await Promise.all(['idle', 'wind', 'atk', 'hurt'].map(k => loadTex(`art/enemy/chief_${k}.png`)));
   chiefU = new Unit(stageGroup, { idle: i, atk: a, hurt: h, stun: h, swing: [i, w, w, a, a, a, i, i] }, { x: -2.5, z: -.5, scale: 2.3 * PPU / i.image.height, tint: 0xf0e8f4, shadowK: .7 });
   const fc = document.createElement('canvas'); fc.width = fc.height = 96; const fk = fc.getContext('2d'); fk.imageSmoothingEnabled = false; fk.drawImage(i.image, 40, 4, 56, 56, 0, 0, 96, 96); A.faceChief = fc; } catch (e) { /* 沒有圖就用魔王頂著 */ }
-DEFS.mc.pos = [-2.7, -.3]; units.mc.home = [-2.7, -.3]; DEFS.ma.name = DEFS.mb.name = DEFS.mc.name = '社畜小兵';
+DEFS.mc.pos = [-2.7, -.3]; units.mc.home = [-2.7, -.3]; DEFS.ma.name = DEFS.mb.name = DEFS.mc.name = DEFS.md.name = '社畜小兵';
 // 其他種類的一般敵人（rules.js 的 KINDS）與菁英「考績魔導士」：一般敵人共用 ma／mb／mc 三個位置，菁英共用 'boss' 的位置，進關時換上去。沒有圖的種類用社畜小兵頂著
 const cropFace = (im, [x, y, sz]) => { const fc = document.createElement('canvas'); fc.width = fc.height = 96; const k = fc.getContext('2d'); k.imageSmoothingEnabled = false; k.drawImage(im, x, y, sz, sz, 0, 0, 96, 96); return fc; };
-const minionU = { drone: { ma: units.ma, mb: units.mb, mc: units.mc } }, minionFace = { drone: A.face.ma }, KLOOK = { courier: { hgt: 1.44, face: [22, 2, 40] }, knight: { hgt: 1.34, face: [26, 0, 40] }, intern: { hgt: 1.4, face: [12, 0, 42] } };
+const minionU = { drone: { ma: units.ma, mb: units.mb, mc: units.mc, md: units.md } }, minionFace = { drone: A.face.ma }, KLOOK = { courier: { hgt: 1.44, face: [22, 2, 40] }, knight: { hgt: 1.34, face: [26, 0, 40] }, intern: { hgt: 1.4, face: [12, 0, 42] } };
 for (const kind in KLOOK) try { const f = {}; for (const k of ['idle', 'atk', 'hit']) f[k] = await loadTex(`art/enemy/${kind}_${k}.png`); const us = {};
-  for (const m of ['ma', 'mb', 'mc']) { const front = m !== 'mb'; us[m] = new Unit(stageGroup, f, { x: DEFS[m].pos[0], z: DEFS[m].pos[1], scale: KLOOK[kind].hgt * PPU / f.idle.image.height, tint: front ? 0xf0e8f4 : 0xd8d4ee, phase: front ? .2 : .7 }); us[m].show(-1e9, false); }
+  for (const m of R.SLOTS) { const front = m !== 'mb' && m !== 'md'; us[m] = new Unit(stageGroup, f, { x: DEFS[m].pos[0], z: DEFS[m].pos[1], scale: KLOOK[kind].hgt * PPU / f.idle.image.height, tint: front ? 0xf0e8f4 : 0xd8d4ee, phase: front ? .2 : .7 }); us[m].show(-1e9, false); }
   minionU[kind] = us; minionFace[kind] = cropFace(f.idle.image, KLOOK[kind].face); } catch (e) { /* 沒有圖 */ }
 let auditU = null;
 try { const [i, w, a, h] = await Promise.all(['idle', 'wind', 'atk', 'hurt'].map(k => loadTex(`art/enemy/audit_${k}.png`)));
   auditU = new Unit(stageGroup, { idle: i, atk: a, hurt: h, stun: h, swing: [i, w, w, a, a, a, i, i] }, { x: -2.5, z: -.5, scale: 1.95 * PPU / i.image.height, tint: 0xf0e8f4, shadowK: .7 }); auditU.show(-1e9, false); A.faceAudit = cropFace(i.image, [2, 0, 34]); } catch (e) { /* 沒有圖就用魔王頂著 */ }
-const spareUnits = () => [bossU, chiefU, auditU, ...Object.values(minionU).flatMap(us => Object.values(us))].filter(u => u && !Object.values(units).includes(u));
+// 鏡像內戰：敵人是我方夥伴的鏡像。圖直接拿那個夥伴的（站姿、出手、受擊），左右翻過來、染一點紫；用到才做，做過的留著
+const MIRROR_TINT = 0xa794ec, mirrorBossU = {};
+function mirrorMinions(hero) { const key = 'm_' + hero; if (minionU[key] || !units[hero]) return minionU[key]; const f = units[hero].frames, fr = { idle: f.ready, atk: f.act, hit: f.hurt || f.wind }, us = {};
+  for (const m of R.SLOTS) { us[m] = new Unit(stageGroup, fr, { x: DEFS[m].pos[0], z: DEFS[m].pos[1], scale: units[hero].s, tint: MIRROR_TINT, phase: m === 'mb' || m === 'md' ? .7 : .2 }); us[m].group.scale.x = -1; us[m].show(-1e9, false); }
+  minionFace[key] = A.face[hero]; return (minionU[key] = us); }
+function mirrorBoss(hero) { if (mirrorBossU[hero] || !units[hero]) return mirrorBossU[hero]; const f = units[hero].frames, hurt = f.hurt || f.wind;
+  const u = new Unit(stageGroup, { idle: f.ready, atk: f.act, hurt, stun: hurt, swing: [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.ready, f.ready] }, { x: -2.5, z: -.5, scale: units[hero].s * 1.45, tint: MIRROR_TINT, shadowK: .7 }); u.group.scale.x = -1; u.show(-1e9, false); return (mirrorBossU[hero] = u); }
+const spareUnits = () => [bossU, chiefU, auditU, ...Object.values(mirrorBossU), ...Object.values(minionU).flatMap(us => Object.values(us))].filter(u => u && !Object.values(units).includes(u));
 S.noBp = true; S.stamps = []; S.mo = [{ t: -1, v: state.mo }];      // 個人 BP 拿掉，改成全隊共用的氣勢條
 S.partyMode = 'h';      // 隊伍狀態放最上面一排，不蓋到右邊的角色
 const skin = makeSkin(c, A, S, DEFS); let moShown = state.mo;
@@ -370,7 +377,7 @@ function playFoe(r, t0) {
 
 // ---------- 回合流程 ----------
 let menu = null, focus = 0, lastOrder = '';
-const NAME = new Proxy({}, { get: (_, f) => { if (f === 'boss') return DEFS.boss.name; if (!DEFS[f]) return undefined; const same = ['ma', 'mb', 'mc'].filter(m => R.MINIONS.includes(m) && DEFS[m].name === DEFS[f].name); return DEFS[f].name + (same.length > 1 ? ' ' + 'ABC'[same.indexOf(f)] : ''); } });
+const NAME = new Proxy({}, { get: (_, f) => { if (f === 'boss') return DEFS.boss.name; if (!DEFS[f]) return undefined; const same = R.SLOTS.filter(m => R.MINIONS.includes(m) && DEFS[m].name === DEFS[f].name); return DEFS[f].name + (same.length > 1 ? ' ' + 'ABCD'[same.indexOf(f)] : ''); } });
 function setOrder() { const list = [actor, ...state.queue].filter(id => id && R.alive(state, id)); const key = list.join(); if (key !== lastOrder) { lastOrder = key; S.order.push({ t: now, v: list }); } }
 function nextTurn() {
   if (state.over) return finish();
@@ -390,12 +397,13 @@ function nextTurn() {
 // 教學便條：第一次遇到某個狀況，輪到玩家下指令時在左上角貼一張（不擋中間），下完這一步就收起來。看過的記在 PREF.tips，之後不再出現
 const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方的「氣勢」，全隊共用。', '招式只花 SP。氣勢到 40、SP 也夠，「奧義」就會亮。'], ult: ['奧義可以放了', '放奧義會用掉 40 氣勢和自己的 SP。', '氣勢全隊共用，想清楚給誰放。'],
   charge: ['頭目在蓄力', '他下一次行動會打全體。', '現在防禦，或用坦克的招式、奧義擋下來。'], broken: ['頭目理虧了', '底氣歸零：他下一次行動取消。', '這段時間打他的傷害是 1.5 倍，趁現在全力打。'],
-  guard: ['護衛中', '小兵還在場上時，打頭目沒有傷害。', '先把小兵清掉。'], pot: ['甩鍋', '課長每回合第一次被打，會甩給小兵承受。', '先用小招騙掉這一下，再放大招。'], audit: ['考績魔導士', '她的大招除了打全體，還會扣 40 氣勢。', '奧義亮了就放，不要存。'] };
+  guard: ['護衛中', '小兵還在場上時，打頭目沒有傷害。', '先把小兵清掉。'], pot: ['甩鍋', '課長每回合第一次被打，會甩給小兵承受。', '先用小招騙掉這一下，再放大招。'], audit: ['考績魔導士', '她的大招除了打全體，還會扣 40 氣勢。', '奧義亮了就放，不要存。'],
+  mirror: ['鏡像內戰', '對面是自己人的鏡像，特長跟本人一樣：', '坦克普攻減半、補師會回血、小燕與黑輪扣 SP、阿傑打全體。'] };
 let tipNow = null;
 function pickTip(id) { const seen = PREF.tips || (PREF.tips = []), kinds = R.MINIONS.filter(m => R.alive(state, m) && state.kind[m] !== 'drone').map(m => 'k_' + state.kind[m]);
-  const want = ['basics', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', ...kinds, id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
+  const want = ['basics', run.map === 'mirror' && 'mirror', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
   if (!want) return (tipNow = null); seen.push(want); savePref(); const K = want.startsWith('k_') && R.KINDS[want.slice(2)]; tipNow = { t: performance.now(), title: K ? K.name : TIPS[want][0], lines: K ? [K.note + '。'] : TIPS[want].slice(1) }; }
-function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), X = 14 - (1 - k) * 40, Y = 206, Wd = 590, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
+function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), X = 14 - (1 - k) * 40, Y = 250, Wd = 590, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
   c.save(); c.globalAlpha = k; skin.paper(X, Y, Wd, Hh, { clips: [X + 60] }); c.fillStyle = RED; c.fillRect(X + 22, Y + 22, 7, 30); text(tipNow.title, X + 42, Y + 47, { px: 28, w: 900, fam: SERIF, col: INK, ls: 4 }); text('第一次遇到', X + Wd - 24, Y + 44, { px: 17, w: 700, align: 'right', col: INK2 });
   rows.forEach((l, i) => text(l, X + 28, Y + 86 + i * 32, { px: 22, w: 700, col: INK })); c.restore(); }
 function act(r) {      // 玩家選完，演出然後換下一個
@@ -427,10 +435,13 @@ const resetUnit = (u, vis, pose) => { u.dead = null; u.poseK.length = 0; u.moveK
 const FORM = { 1: [[2.3, -.2]], 2: [[1.7, -1.0], [3.0, .5]], 3: [[1.4, -1.5], [2.4, -.3], [3.5, .9]], 4: [[1.4, -1.6], [2.25, -.5], [3.35, .5], [4.25, 1.5]] }, BACK = [5.55, -.55];
 function enterStage() {
   const st = R.STAGES[run.node.stage], L = st.boss; todo.length = 0; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
-  for (const u of [bossU, chiefU, auditU]) if (u) resetUnit(u, false, 'idle');
-  units.boss = (L && { chief: chiefU, audit: auditU }[L.id]) || bossU; if (L) { resetUnit(units.boss, true, 'idle'); DEFS.boss.name = L.name; DEFS.boss.hp = L.hp; DEFS.boss.pos = units.boss.home.slice(); A.face.boss = units.boss === chiefU ? A.faceChief : units.boss === auditU ? A.faceAudit : A.faceBoss; }
-  for (const m of ['ma', 'mb', 'mc']) { for (const k in minionU) resetUnit(minionU[k][m], false, 'idle'); const kind = minionU[state.kind[m]] ? state.kind[m] : 'drone'; units[m] = minionU[kind][m]; DEFS[m].name = R.KINDS[state.kind[m]].name; A.face[m] = minionFace[kind]; }
-  for (const m of ['ma', 'mb', 'mc']) { resetUnit(units[m], R.MINIONS.includes(m), 'idle'); S.hp[m] = [{ t: -1, v: state.hp[m] }]; S.shield[m] = [{ t: -1, v: 2 }]; delete minionShield[m]; }
+  if (L && L.hero) mirrorBoss(L.hero); for (const m of R.SLOTS) { const K = R.KINDS[state.kind[m]]; if (K.hero) mirrorMinions(K.hero); }
+  for (const u of [bossU, chiefU, auditU, ...Object.values(mirrorBossU)]) if (u) resetUnit(u, false, 'idle');
+  units.boss = (L && (L.hero ? mirrorBossU[L.hero] : { chief: chiefU, audit: auditU }[L.id])) || bossU; if (L) { resetUnit(units.boss, true, 'idle'); DEFS.boss.name = L.name; DEFS.boss.hp = L.hp; DEFS.boss.pos = units.boss.home.slice(); A.face.boss = L.hero && A.face[L.hero] ? A.face[L.hero] : units.boss === chiefU ? A.faceChief : units.boss === auditU ? A.faceAudit : A.faceBoss; }
+  // 敵人站的位置：平常第三個人站後面中間；有頭目又帶三四個手下的時候（鏡像 Vivi），第三、第四個站到頭目的左前、左後
+  const SPOT = L && R.MINIONS.length > 2 ? { mc: [-3.55, 1.5], md: [-3.6, -1.65] } : { mc: [-2.7, -.3], md: [-3.7, 1.4] };
+  for (const m of R.SLOTS) { for (const k in minionU) resetUnit(minionU[k][m], false, 'idle'); const kind = minionU[state.kind[m]] ? state.kind[m] : 'drone'; units[m] = minionU[kind][m]; DEFS[m].name = R.KINDS[state.kind[m]].name; A.face[m] = minionFace[kind]; if (SPOT[m]) { DEFS[m].pos = SPOT[m].slice(); units[m].home = SPOT[m].slice(); } }
+  for (const m of R.SLOTS) { resetUnit(units[m], R.MINIONS.includes(m), 'idle'); S.hp[m] = [{ t: -1, v: state.hp[m] }]; S.shield[m] = [{ t: -1, v: 2 }]; delete minionShield[m]; }
   for (const id in units) if (DEFS[id] && !DEFS[id].enemy) resetUnit(units[id], false, 'ready');      // 沒上場的夥伴先收起來
   R.FRONT.forEach((id, i) => { DEFS[id].pos = FORM[R.FRONT.length][i].slice(); }); if (R.HEROES.includes('vivi')) DEFS.vivi.pos = BACK.slice();
   for (const id of R.HEROES) { units[id].home = DEFS[id].pos.slice(); resetUnit(units[id], true, 'ready'); ko[id] = false; DEFS[id].hp = R.STAT[id].hp; S.hp[id] = [{ t: -1, v: state.hp[id] }]; S.sp[id] = [{ t: -1, v: state.sp[id] }]; }
@@ -441,7 +452,7 @@ function enterStage() {
 }
 // 關卡開場：轉場、關卡牌、鏡頭帶一下敵人，再回到全景
 function startStage() {
-  playMusic(run.node.stage === 'boss' && buf['bgm/boss'] ? 'bgm/boss' : 'bgm/battle');      // 魔王那一站換魔王曲（使用者的歌：一般戰鬥〈月底吃土〉、魔王〈幽靈舞步〉）
+  playMusic(R.isFinal(run) && buf['bgm/boss'] ? 'bgm/boss' : 'bgm/battle');      // 魔王那一站換魔王曲（使用者的歌：一般戰鬥〈月底吃土〉、魔王〈幽靈舞步〉）
   phase = 'anim'; const st = R.STAGES[run.node.stage], L = st.boss, t0 = now + .1; SFX.add('encounter', t0, 1.3); snd(t0 + .05, 'encounter'); S.stageCard = { t0: t0 + 1.0, t1: t0 + 3.5, n: run.floor + 1, name: st.name, sub: st.sub };
   if (L && L.id === 'boss') { cam.to(t0 - .01, 0, { x: -3.0, y: 1.9, z: -.5, d: 7.2, pitch: 3, blur: 10 }).to(t0 + .7, 2.6, { d: 8.4, y: 1.75 }, easeOut); snd(t0 + 1.15, 'boss_appear'); cam.shake(t0 + 1.2, .16, .6);
     units.boss.anim(t0 + 1.9, 'swing', [0, .1, .22, .38, 9, 9, 9, 9]).pose(t0 + 3.2, 'idle'); say(t0 + 1.95, 'boss_intro', 'boss'); cam.shake(t0 + 2.25, .2, .9); SFX.add('lines', t0 + 2.25, .9, { cx: 190, cy: 120, c: [255, 120, 100], a: .55, r0: 150 }); }
@@ -459,11 +470,17 @@ const heroCard = (id, go, starter) => ({ label: DEFS[id].name, tag: `${DEFS[id].
 function openCards(o) { phase = 'pick'; menu = { kind: 'pick', ...o }; focus = 0; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; }
 function resume() { const sv = saved; saved = null; if (!sv) return start(); AC.resume(); playMusic('bgm/map'); run = sv.run; for (const id of run.roster) met(id);
   if (sv.pend === 'upgrade') { rescued = sv.rescued; openUpgrade(false); } else openHub(`讀取進度：從第 ${run.floor + 1} 站繼續`); }
-function start() { AC.resume(); playMusic('bgm/map'); saved = null;
+// 開局先選路線（網址加 ?map=office 或 ?map=mirror 就跳過這一步，測試用）
+let mapKey = 'office';
+function start() { AC.resume(); playMusic('bgm/map'); saved = null; if (Q.has('map')) { mapKey = Q.get('map') === 'mirror' ? 'mirror' : 'office'; return pickStarter(); }
+  openCards({ title: '今天走哪一條路線？', sub: '兩條路線的站數一樣，招募、休息、事件也都照舊；差別在對手。', foot: '選一條路線', items: [
+    { label: '一般行程', tag: '討伐奧客總經理', icon: 'boss', big: true, lines: ['十站', '社畜小兵、甩鍋課長、奧客總經理', '第一次玩選這個'], go: () => { mapKey = 'office'; pickStarter(); } },
+    { label: '鏡像內戰', tag: '難度很高', icon: 'elite', big: true, lines: ['十站', '對面站的是自己人的鏡像', '最後是鏡像 Vivi，帶著阿傑和小葵'], go: () => { mapKey = 'mirror'; pickStarter(); } }] }); }
+function pickStarter() {
   openCards({ title: '今天誰先去上班？', sub: '從一個人開始。路上會遇到同事，最多帶四個人上場。', foot: '選一位主角', items: R.STARTERS.map(id => heroCard(id, () => pickSkill(id), true)) }); }
 function pickSkill(id) { openCards({ title: `${DEFS[id].name}的第一招`, sub: '三個招式先帶一個。其他的之後可以靠強化「在職進修」學會。', foot: '選一個招式就出發', items: R.SKILLS[id].map(k => ({ label: k.name, tag: `SP ${k.sp}　${k.note}`, icon: 'sk_' + k.key, lines: [k.desc], go: () => beginRun(id, k.key) })) }); }
 // 測試用：網址加 ?stage=chief 或 ?floor=5（第幾站）直接跳過去，隊伍用 ?team=kevin,mi
-function beginRun(id, key) { run = R.newRun(RAND, id, key); if (Q.has('stage') || Q.has('floor')) { const f = Q.has('floor') ? Math.min(R.MAP.length - 1, +Q.get('floor') - 1) : R.MAP.findIndex(fl => fl.some(nd => nd.stage === Q.get('stage'))); if (f > 0) { for (const h of (Q.get('team') || 'kevin,mi,vivi').split(',')) if (units[h]) R.join(run, h); run.floor = f; for (let k = 0; k < f; k++) run.path[k] = 0; } }
+function beginRun(id, key) { run = R.newRun(RAND, id, key, mapKey); if (Q.has('stage') || Q.has('floor')) { const f = Q.has('floor') ? Math.min(R.MAP.length - 1, +Q.get('floor') - 1) : R.MAP.findIndex(fl => fl.some(nd => nd.stage === Q.get('stage'))); if (f > 0) { for (const h of (Q.get('team') || 'kevin,mi,vivi').split(',')) if (units[h]) R.join(run, h); run.floor = f; for (let k = 0; k < f; k++) run.path[k] = 0; } }
   R.prepare(run); snd(now, 'buff', .8); openHub(`${DEFS[id].name}出發，第一招「${R.SKILLS[id].find(k => k.key === key).name}」`); }
 function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || {})[i] || []; if (!list.length) { R.advance(run); return openHub('名冊已經滿了，這一站沒有人可以帶'); }
   openCards({ title: nd.name, sub: '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: '選完回到行程表', items: list.map(id => heroCard(id, () => { R.join(run, id); met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍`); })) }); }
@@ -477,20 +494,31 @@ function pickUpgrade(k, opt) {
   R.applyUpgrade(run, k, opt); snd(now, 'buff', .8); R.advance(run); const r = rescued; rescued = null; openHub((k === 'learn' ? `${DEFS[run.starter].name}學會「${R.SKILLS[run.starter].find(q => q.key === run.skills[run.starter].at(-1)).name}」` : `拿到強化「${R.UPGRADES[k].name}」`) + (r ? `　${DEFS[r].name}加入隊伍` : '')); }
 
 // ---------- 大地圖（行程表）：攤在會議桌上的公司剖面圖。選下一站、調整隊伍順序、看道具強化與夥伴名冊 ----------
-let hubMsg = null, hubSel = -1, sheet = null;      // sheet＝正在看資料卡的那個人
+let hubMsg = null, hubSel = -1, sheet = null, panel = false, sheetReal = false, sheetFlipT = -1e9, sheetRect = null, drag = null;      // sheet＝正在看資料卡的那個人；panel＝「隊伍與道具」選單開著（行程表和戰鬥中都叫得出來）；sheetReal＝資料卡的立繪滑到原型那一張
 function hubItems() { const fl = R.MAP[run.floor], items = fl.map((nd, i) => ({ label: R.nodeName(nd), node: i, go: () => { if (hubSel === i) chooseNode(i); else hubSel = i; } }));
   items.push({ label: '出發', depart: true, get off() { return hubSel < 0; }, go: () => chooseNode(hubSel) });
-  run.roster.forEach((id, r) => { if (r > 0) items.push({ label: '上移', re: r, d: -1, go: () => { R.reorder(run, r, -1); refreshHub(); } }); if (r < run.roster.length - 1) items.push({ label: '下移', re: r, d: 1, go: () => { R.reorder(run, r, 1); refreshHub(); } }); });
-  run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => openSheet(id) }));      // 點隊伍那一列或名冊的頭像看資料卡
-  for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
+  items.push({ label: '隊伍與道具', panelBtn: true, go: openPanel });
   return items; }
 // 資料卡：素質、招式、奧義。這一輪同行的人可以用「上一位／下一位」翻；名冊裡沒同行的人只看基本資料
+// 「隊伍與道具」選單：隊伍順序（只有在行程表能調）、每個人的資料卡、道具、強化、夥伴名冊。行程表與戰鬥中輪到自己時都能叫出來
+const inBattle = () => phase !== 'hub', curHp = id => inBattle() && R.HEROES.includes(id) ? Math.max(0, state.hp[id]) : run.hp[id], curSp = id => inBattle() && R.HEROES.includes(id) ? state.sp[id] : run.sp[id];
+function panelItems() { const items = [];
+  if (!inBattle()) run.roster.forEach((id, r) => { if (r > 0) items.push({ label: '上移', re: r, d: -1, go: () => { R.reorder(run, r, -1); refreshPanel(); } }); if (r < run.roster.length - 1) items.push({ label: '下移', re: r, d: 1, go: () => { R.reorder(run, r, 1); refreshPanel(); } }); });
+  run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => openSheet(id) }));
+  for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
+  items.push({ label: '關閉', back: true, go: closePanel }); return items; }
+const refreshPanel = () => { const f = focus; menu = { kind: 'panel', items: panelItems() }; focus = Math.min(f, menu.items.length - 1); };
+function openPanel() { panel = true; menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; }
+function closePanel() { panel = false; if (phase === 'hub') { menu = { kind: 'hub', items: hubItems() }; focus = 0; } else openMenu('root'); }
 const sheetList = () => run.roster.includes(sheet) ? run.roster : DEX.filter(id => (PREF.met || []).includes(id));
-function openSheet(id) { sheet = id; menu = { kind: 'sheet', items: [{ label: '上一位', go: () => stepSheet(-1) }, { label: '下一位', go: () => stepSheet(1) }, { label: '回行程表', back: true, go: closeSheet }] }; focus = 2; }
+function openSheet(id) { sheet = id; menu = { kind: 'sheet', items: [{ label: '上一位', go: () => stepSheet(-1) }, { label: '下一位', go: () => stepSheet(1) }, { label: '返回', back: true, go: closeSheet }, { label: '換立繪', go: () => flipSheet() }] }; focus = 2; }
+// 立繪左右滑：像素版 ↔ 真人版（重畫的上半身，art/cutin/real_<代號>.jpg，第一次看才下載；兩隻老鼠是寫實版）
+const REAL3D = ['hui', 'zong']; A.real = {};
+function flipSheet(to = !sheetReal) { if (to === sheetReal) return; sheetReal = to; sheetFlipT = performance.now(); uiSound('move'); }
 function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; }
-function closeSheet() { sheet = null; menu = { kind: 'hub', items: hubItems() }; focus = 0; }
+function closeSheet() { sheet = null; sheetRect = null; if (panel) { menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; } else { menu = { kind: 'hub', items: hubItems() }; focus = 0; } }
 const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItems() }; focus = Math.min(f, menu.items.length - 1); };
-function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; hubSel = R.MAP[run.floor].length === 1 ? 0 : -1; menu = { kind: 'hub', items: hubItems() }; focus = 0; for (const id of run.roster) met(id); saveGame(); }
+function openHub(msg) { playMusic('bgm/map'); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; hubSel = R.MAP[run.floor].length === 1 ? 0 : -1; menu = { kind: 'hub', items: hubItems() }; focus = 0; for (const id of run.roster) met(id); saveGame(); }
 function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu = null;
   if (nd.type === 'battle') { phase = 'anim'; SFX.add('black', now + .05, .5, { from: 0, to: 1 }); at(now + .5, () => { state = R.newState(run); enterStage(); startStage(); }); }
   else if (nd.type === 'rest') { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在茶水間休息：全隊共回復 ${v} HP，SP 補滿` : '在茶水間休息：SP 補滿（HP 本來就是滿的）'); }
@@ -544,7 +572,7 @@ function button(x, y, w, h, it, on, i) {
 function toggle(label, x, y, key, w = 150) { const pe = pressed && pressed.opt === key ? (performance.now() - pressed.t) / PRESS_MS : -1; zones.push({ x, y, w, h: 38, opt: key }); c.save(); c.translate(0, pe >= 0 ? 3 : 0); skin.paper(x, y, w, 38, { old: !!PREF[key] === (key === 'mute') }); text(label, x + w / 2, y + 27, { px: 20, w: 700, align: 'center', col: INK }); c.restore(); }
 const toggles = (x, y) => { toggle(PREF.mute ? '聲音　關' : '聲音　開', x, y, 'mute'); toggle(PREF.low ? '畫質　省電' : '畫質　一般', x + 162, y, 'low', 170); };
 function drawMenu() {
-  zones = []; if (phase === 'hub' && menu) return drawHub(); if (phase === 'pick' && menu) return drawPick(); if (phase !== 'command' || !menu) return; drawTip();
+  zones = []; if (sheet && menu) return drawSheet(); if (panel && menu) return drawPanel(); if (phase === 'hub' && menu) return drawHub(); if (phase === 'pick' && menu) return drawPick(); if (phase !== 'command' || !menu) return; drawTip();
   const n = menu.items.length, X0 = 770, X1 = 1880, gap = 12, w = Math.min(290, (X1 - X0 - gap * (n - 1)) / n), h = 116, y = 944, x0 = X1 - (w * n + gap * (n - 1)), d = DEFS[actor];
   // 木頭資料夾：上面夾一張說明紙（輪到誰＋目前選項的說明），下面一排索引標籤
   const it = menu.items[focus] || {}, tip = it.hint || (menu.kind === 'target' ? '選攻擊對象（也可以直接點敵人）' : menu.kind === 'ally' || menu.kind === 'allySkill' ? '選要給誰' : menu.kind === 'items' ? '選道具' : menu.kind === 'skills' ? '選招式' : '');
@@ -552,7 +580,7 @@ function drawMenu() {
   text(d.name, X0 + 26, y - 39, { px: 28, w: 900, fam: SERIF, col: INK }); const nw = mw(d.name, 28, 900, SERIF); text(d.job, X0 + 36 + nw, y - 40, { px: 18, w: 700, col: INK2 }); const jw = mw(d.job, 18);
   text(fit(tip, X1 - X0 - nw - jw - 90, 20, 700), X0 + 62 + nw + jw, y - 40, { px: 20, w: 700, col: INK });
   menu.items.forEach((m, i) => button(x0 + i * (w + gap), y, w, h, m, i === focus, i));
-  toggles(28, 148); skin.paper(364, 148, 150, 38); text(`第 ${run.floor + 1}／${R.MAP.length} 站`, 439, 175, { px: 20, w: 700, align: 'center', col: INK });
+  toggles(28, 148); toggle('隊伍・道具', 28, 194, 'panel', 170); skin.paper(364, 148, 150, 38); text(`第 ${run.floor + 1}／${R.MAP.length} 站`, 439, 175, { px: 20, w: 700, align: 'center', col: INK });
   // 目標頭上的箭頭
   if (it.target) { const [tx, ty] = S.proj(it.target, 1), foe = DEFS[it.target].enemy, col = foe ? '#ff6a5a' : '#8cf09a', by = ty - 40 + Math.sin(now * 9) * 6; c.fillStyle = col; c.strokeStyle = 'rgba(10,8,18,.9)'; c.lineWidth = 3; c.beginPath(); c.moveTo(tx - 19, by - 26); c.lineTo(tx + 19, by - 26); c.lineTo(tx, by); c.closePath(); c.stroke(); c.fill(); text('目標', tx, by - 34, { px: 22, w: 900, align: 'center', col, stroke: 'rgba(10,8,18,.9)', sw: 5, ls: 3 }); }
   // 現在是誰：頭上的箭頭
@@ -563,17 +591,44 @@ function drawMenu() {
 // 會議桌（大地圖與選卡畫面的底）
 function drawTable(dim) { if (A.map.table) c.drawImage(A.map.table, 0, 0, W, H); else { c.fillStyle = '#1a110b'; c.fillRect(0, 0, W, H); } if (dim) { c.fillStyle = `rgba(8,5,4,${dim})`; c.fillRect(0, 0, W, H); } }
 // 行程表各站在藍圖上的位置（藍圖原圖 1536×1024 的座標）。一樓三站 → 電梯 → 二樓 → 樓梯 → 三樓 → 塔頂
-const MK = .805, BPX = 30, BPY = 104, bp = ([x, y]) => [BPX + x * MK, BPY + y * MK];
+const MK = .9, BPX = 269, BPY = 8, bp = ([x, y]) => [BPX + (run.map === 'mirror' ? 1536 - x : x) * MK, BPY + y * MK];
+function mirrorBlueprint() { if (A.map.mirror || !A.map.blueprint) return A.map.mirror; const im = A.map.blueprint, cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; const x = cv.getContext('2d');
+  x.translate(im.width, 0); x.scale(-1, 1); x.drawImage(im, 0, 0); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = '#8f86cf'; x.fillRect(0, 0, cv.width, cv.height); x.globalCompositeOperation = 'screen'; x.fillStyle = 'rgba(40,24,90,.35)'; x.fillRect(0, 0, cv.width, cv.height); return (A.map.mirror = cv); }
 const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 606]], [[600, 606]], [[440, 318], [440, 418]], [[720, 368]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 606], [200, 368]] }, START = [296, 868];
 const TAGCOL = { 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
-const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[nd.stage], cnt = {}; for (const m of st.minions) { const n = R.KINDS[(st.kinds || {})[m] || 'drone'].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
+const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[nd.stage], cnt = {}; for (const m of st.minions) { const kd = (st.kinds || {})[m] || 'drone', n = kd === 'random' ? '隨機的鏡像同事' : R.KINDS[kd].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
+// 「隊伍與道具」選單的畫面：隊伍、道具、強化、夥伴名冊排成中間一欄，底下是行程表或戰鬥畫面（壓暗）
+function drawPanel() { if (inBattle()) { c.fillStyle = 'rgba(8,5,4,.74)'; c.fillRect(0, 0, W, H); } else drawTable(.62);
+  text('隊伍與道具', W / 2, 70, { px: 44, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 });
+  const PX = 660, PY = 100, PW = 600, act = R.active(run), fight = inBattle(), bag = fight ? state.items : run.items; skin.wood(PX, PY, PW, 508); text('隊伍', PX + 26, PY + 44, { px: 28, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(fight ? '點人看資料（戰鬥中不能換順序）' : '點人看資料　箭頭調順序（前四位出戰）', PX + PW - 26, PY + 42, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
+  for (let i = 0; i < 6; i++) { const id = run.roster[i], y = PY + 60 + i * 72 + (i >= 4 ? 8 : 0);
+    if (!id) { c.strokeStyle = 'rgba(239,230,207,.2)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.strokeRect(PX + 16, y + 2, PW - 32, 60); c.setLineDash([]); text(i < 4 ? '出戰空位' : '候補空位', PX + PW / 2, y + 39, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.32)' }); continue; }
+    const d = DEFS[id], on = act.includes(id), hp = curHp(id), mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(PX + 14, y, PW - 28, 64, { old: !on }); { const vi = menu.items.findIndex(m => m.view === id && m.row === i); if (vi >= 0) { zones.push({ x: PX + 14, y, w: PW - 28 - 104, h: 64, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(PX + 16, y + 2, PW - 32, 60); } } } c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(PX + 14, y, 9, 64); skin.face(A.face[id], PX + 32, y + 6, 52);
+    text(d.name, PX + 96, y + 29, { px: 23, w: 900, fam: SERIF, col: INK }); text(id === 'vivi' ? '公主・後排' : d.job, PX + 104 + mw(d.name, 23, 900, SERIF), y + 28, { px: 14, w: 700, col: INK2 }); text(on ? '出戰' : '候補', PX + 96, y + 54, { px: 14, w: 900, col: on ? '#1f6a5c' : INK2 });
+    if (id !== 'vivi') { skin.bar(PX + 138, y + 43, 170, 11, hp / mx, low ? '#c8443a' : '#4f9a4a'); text(`${hp}／${mx}`, PX + 316, y + 55, { px: 15, w: 700, col: low ? RED : INK }); } text(`SP ${curSp(id)}`, PX + 458, y + 29, { px: 16, w: 700, col: '#27507e', align: 'right' });
+    for (const dd of [-1, 1]) { const idx = menu.items.findIndex(m => m.re === i && m.d === dd); if (idx < 0) continue; const ax = PX + PW - 28 - (dd < 0 ? 96 : 48), ay = y + 9, pe = pressK(idx), dn = pe >= 0, hov = focus === idx; zones.push({ x: ax - 2, y: y, w: 46, h: 64, i: idx, off: false });
+      c.fillStyle = '#2b1f18'; c.fillRect(ax, ay + (dn ? 3 : 0), 42, 46); c.fillStyle = dn ? '#fff0c8' : hov ? '#d8b25a' : '#b08a4a'; c.fillRect(ax + 3, ay + 3 + (dn ? 3 : 0), 36, 40); c.fillStyle = '#2b1f18'; c.beginPath(); const cy = ay + 23 + (dn ? 3 : 0); if (dd < 0) { c.moveTo(ax + 21, cy - 10); c.lineTo(ax + 32, cy + 8); c.lineTo(ax + 10, cy + 8); } else { c.moveTo(ax + 21, cy + 10); c.lineTo(ax + 32, cy - 8); c.lineTo(ax + 10, cy - 8); } c.fill(); } }
+  // 道具
+  const IY2 = PY + 518; Object.keys(R.ITEMS).forEach((k, i) => { const x = PX + i * 202, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null); skin.wood(x, IY2, 196, 72, { studs: false }); if (im) pix(im, x + 12, IY2 + 9, 54 * im.width / im.height, 54); text(R.ITEMS[k].name, x + 72, IY2 + 32, { px: 19, w: 900, fam: SERIF, col: CREAM }); text(fit(R.ITEMS[k].note, 84, 13, 700), x + 72, IY2 + 56, { px: 13, w: 700, col: 'rgba(239,230,207,.7)' }); text(`×${bag[k]}`, x + 186, IY2 + 58, { px: 22, w: 900, col: BRASS, align: 'right' }); });
+  // 強化
+  const UY = IY2 + 82; skin.paper(PX, UY, PW, 78); text('強化', PX + 22, UY + 48, { px: 24, w: 900, fam: SERIF, col: INK, ls: 4 });
+  { const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; let x = PX + 96; if (!run.picks.length) text('還沒有。打贏戰鬥或到福委會可以三選一', x, UY + 46, { px: 18, w: 700, col: INK2 });
+    for (const k in cnt) { const im = A.icons['up_' + k]; if (im) pix(im, x, UY + 11, 56, 56); else text(R.UPGRADES[k].name, x, UY + 46, { px: 16, w: 900, col: INK }); if (cnt[k] > 1) { c.fillStyle = RED; c.fillRect(x + 36, UY + 48, 30, 22); text(`×${cnt[k]}`, x + 51, UY + 65, { px: 16, w: 900, align: 'center', col: '#fff8e6' }); } x += 66; } }
+  // 夥伴名冊：這一輪同行的是亮的；以前遇過的是暗的；還沒遇過的是問號
+  const RY = UY + 88, RH = H - 14 - RY, seen = PREF.met || []; skin.wood(PX, RY, PW, RH); text('夥伴名冊', PX + 26, RY + 42, { px: 26, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`遇過 ${DEX.filter(id => seen.includes(id)).length}／${DEX.length}`, PX + PW - 26, RY + 40, { px: 18, w: 700, align: 'right', col: BRASS });
+  DEX.forEach((id, j) => { const col = j % 8, row = j / 8 | 0, x = PX + 22 + col * 70, y = RY + 56 + row * 100, inRun = run.roster.includes(id), known = seen.includes(id) && A.face[id]; skin.paper(x, y, 64, 92, { old: !inRun });
+    if (known) { const vi = menu.items.findIndex(m => m.view === id && m.dex); if (vi >= 0) { zones.push({ x, y, w: 64, h: 92, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(x + 2, y + 2, 60, 88); } } c.save(); c.globalAlpha = inRun ? 1 : .55; skin.face(A.face[id], x + 5, y + 5, 54); c.restore(); text(fit(DEFS[id].name, 60, 13, 900), x + 32, y + 80, { px: 13, w: 900, align: 'center', col: inRun ? INK : INK2 }); if (inRun) { c.fillStyle = TEAL; c.fillRect(x + 5, y + 84, 54, 4); } }
+    else { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x + 5, y + 5, 54, 54); text('？', x + 32, y + 46, { px: 36, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.38)' }); } });
+  sheetBtn(inBattle() ? '回戰鬥' : '回行程表', PX + PW + 36, H - 14 - 100, 300, 100, menu.items.length - 1, true);
+}
 function drawHub() {
   if (sheet) return drawSheet();
   drawTable(.3); const nF = R.MAP.length, fl = R.MAP[run.floor], tp = performance.now() / 1000, bw = 1536 * MK, bh = 1024 * MK;
-  text('上班旅人', 40, 74, { px: 54, w: 900, fam: SERIF, col: CREAM, ls: 10, stroke: 'rgba(20,10,4,.9)', sw: 8 }); text(`今日行程　第 ${run.floor + 1}／${nF} 站`, 336, 70, { px: 26, w: 700, col: BRASS, ls: 4, stroke: 'rgba(20,10,4,.8)', sw: 5 }); toggles(1558, 40);
+  text('上班旅人', 22, 64, { px: 46, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.9)', sw: 8 }); text(`第 ${run.floor + 1}／${nF} 站` + (run.map === 'mirror' ? '　鏡像' : ''), 26, 102, { px: 24, w: 700, col: run.map === 'mirror' ? '#c9b8ff' : BRASS, ls: 3, stroke: 'rgba(20,10,4,.8)', sw: 5 });
+  toggle(PREF.mute ? '聲音　關' : '聲音　開', 1670, 18, 'mute', 236); toggle(PREF.low ? '畫質　省電' : '畫質　一般', 1670, 64, 'low', 236);
   // 藍圖
-  c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(BPX + 10, BPY + 12, bw, bh); if (A.map.blueprint) c.drawImage(A.map.blueprint, BPX, BPY, bw, bh); else skin.paper(BPX, BPY, bw, bh);
+  c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(BPX + 10, BPY + 12, bw, bh); if (A.map.blueprint) c.drawImage(run.map === 'mirror' ? mirrorBlueprint() : A.map.blueprint, BPX, BPY, bw, bh); else skin.paper(BPX, BPY, bw, bh);
   // 路線：走過的是紅線、現在可以走的是會動的金線、還沒到的是灰色虛線
   const segs = [[[START, STN[0][0]], run.floor > 0 ? 'walked' : 'open']];
   for (let i = 0; i < nF - 1; i++) R.MAP[i].forEach((_, a) => R.MAP[i + 1].forEach((_, b) => { const mine = i < run.floor && run.path[i] === a, st = i + 1 < run.floor ? (mine && run.path[i + 1] === b ? 'walked' : 'dead') : i + 1 === run.floor ? (mine ? 'open' : 'dead') : i < run.floor && !mine ? 'dead' : 'future'; segs.push([[STN[i][a], ...(VIA[i] || []), STN[i + 1][b]], st]); }));
@@ -607,27 +662,16 @@ function drawHub() {
     const it = menu.items[di], bx = IX + IW - BW2 - 8, by = IY + 12, bh2 = IH - 24, off = it.off, pe = pressK(di), dn = pe >= 0 && !off, on = focus === di && !off; zones.push({ x: bx, y: by, w: BW2, h: bh2, i: di, off });
     c.save(); c.translate(pe >= 0 && off ? Math.sin(pe * 22) * 6 * (1 - Math.min(1, pe)) : 0, dn ? 5 : 0); skin.paper(bx, by, BW2, bh2, { old: off }); if (!off) { c.fillStyle = '#1e3b36'; c.fillRect(bx + 6, by + 6, BW2 - 12, bh2 - 12); c.fillStyle = on ? '#3f9c88' : TEAL; c.fillRect(bx + 8, by + 8, BW2 - 16, bh2 - 16); c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(bx + 8, by + 8, BW2 - 16, 5); }
     if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(bx, by, BW2, bh2); } text('出發', bx + BW2 / 2, by + bh2 / 2 + 17, { px: 46, w: 900, fam: SERIF, align: 'center', ls: 12, col: off ? 'rgba(43,31,24,.36)' : '#fff8e6' }); c.restore(); }
-  // 右欄：隊伍（前四位出戰，可以調順序）
-  const PX = 1294, PY = 100, PW = 600, act = R.active(run); skin.wood(PX, PY, PW, 508); text('隊伍', PX + 26, PY + 44, { px: 28, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text('點人看資料　箭頭調順序（前四位出戰）', PX + PW - 26, PY + 42, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
-  for (let i = 0; i < 6; i++) { const id = run.roster[i], y = PY + 60 + i * 72 + (i >= 4 ? 8 : 0);
-    if (!id) { c.strokeStyle = 'rgba(239,230,207,.2)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.strokeRect(PX + 16, y + 2, PW - 32, 60); c.setLineDash([]); text(i < 4 ? '出戰空位' : '候補空位', PX + PW / 2, y + 39, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.32)' }); continue; }
-    const d = DEFS[id], on = act.includes(id), hp = run.hp[id], mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(PX + 14, y, PW - 28, 64, { old: !on }); { const vi = menu.items.findIndex(m => m.view === id && m.row === i); if (vi >= 0) { zones.push({ x: PX + 14, y, w: PW - 28 - 104, h: 64, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(PX + 16, y + 2, PW - 32, 60); } } } c.fillStyle = on ? TEAL : '#8a7a66'; c.fillRect(PX + 14, y, 9, 64); skin.face(A.face[id], PX + 32, y + 6, 52);
-    text(d.name, PX + 96, y + 29, { px: 23, w: 900, fam: SERIF, col: INK }); text(id === 'vivi' ? '公主・後排' : d.job, PX + 104 + mw(d.name, 23, 900, SERIF), y + 28, { px: 14, w: 700, col: INK2 }); text(on ? '出戰' : '候補', PX + 96, y + 54, { px: 14, w: 900, col: on ? '#1f6a5c' : INK2 });
-    if (id !== 'vivi') { skin.bar(PX + 138, y + 43, 170, 11, hp / mx, low ? '#c8443a' : '#4f9a4a'); text(`${hp}／${mx}`, PX + 316, y + 55, { px: 15, w: 700, col: low ? RED : INK }); } text(`SP ${run.sp[id]}`, PX + 458, y + 29, { px: 16, w: 700, col: '#27507e', align: 'right' });
-    for (const dd of [-1, 1]) { const idx = menu.items.findIndex(m => m.re === i && m.d === dd); if (idx < 0) continue; const ax = PX + PW - 28 - (dd < 0 ? 96 : 48), ay = y + 9, pe = pressK(idx), dn = pe >= 0, hov = focus === idx; zones.push({ x: ax - 2, y: y, w: 46, h: 64, i: idx, off: false });
-      c.fillStyle = '#2b1f18'; c.fillRect(ax, ay + (dn ? 3 : 0), 42, 46); c.fillStyle = dn ? '#fff0c8' : hov ? '#d8b25a' : '#b08a4a'; c.fillRect(ax + 3, ay + 3 + (dn ? 3 : 0), 36, 40); c.fillStyle = '#2b1f18'; c.beginPath(); const cy = ay + 23 + (dn ? 3 : 0); if (dd < 0) { c.moveTo(ax + 21, cy - 10); c.lineTo(ax + 32, cy + 8); c.lineTo(ax + 10, cy + 8); } else { c.moveTo(ax + 21, cy + 10); c.lineTo(ax + 32, cy - 8); c.lineTo(ax + 10, cy - 8); } c.fill(); } }
-  // 道具
-  const IY2 = PY + 518; Object.keys(R.ITEMS).forEach((k, i) => { const x = PX + i * 202, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null); skin.wood(x, IY2, 196, 72, { studs: false }); if (im) pix(im, x + 12, IY2 + 9, 54 * im.width / im.height, 54); text(R.ITEMS[k].name, x + 72, IY2 + 32, { px: 19, w: 900, fam: SERIF, col: CREAM }); text(fit(R.ITEMS[k].note, 84, 13, 700), x + 72, IY2 + 56, { px: 13, w: 700, col: 'rgba(239,230,207,.7)' }); text(`×${run.items[k]}`, x + 186, IY2 + 58, { px: 22, w: 900, col: BRASS, align: 'right' }); });
-  // 強化
-  const UY = IY2 + 82; skin.paper(PX, UY, PW, 78); text('強化', PX + 22, UY + 48, { px: 24, w: 900, fam: SERIF, col: INK, ls: 4 });
-  { const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; let x = PX + 96; if (!run.picks.length) text('還沒有。打贏戰鬥或到福委會可以三選一', x, UY + 46, { px: 18, w: 700, col: INK2 });
-    for (const k in cnt) { const im = A.icons['up_' + k]; if (im) pix(im, x, UY + 11, 56, 56); else text(R.UPGRADES[k].name, x, UY + 46, { px: 16, w: 900, col: INK }); if (cnt[k] > 1) { c.fillStyle = RED; c.fillRect(x + 36, UY + 48, 30, 22); text(`×${cnt[k]}`, x + 51, UY + 65, { px: 16, w: 900, align: 'center', col: '#fff8e6' }); } x += 66; } }
-  // 夥伴名冊：這一輪同行的是亮的；以前遇過的是暗的；還沒遇過的是問號
-  const RY = UY + 88, RH = H - 14 - RY, seen = PREF.met || []; skin.wood(PX, RY, PW, RH); text('夥伴名冊', PX + 26, RY + 42, { px: 26, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`遇過 ${DEX.filter(id => seen.includes(id)).length}／${DEX.length}`, PX + PW - 26, RY + 40, { px: 18, w: 700, align: 'right', col: BRASS });
-  DEX.forEach((id, j) => { const col = j % 8, row = j / 8 | 0, x = PX + 22 + col * 70, y = RY + 56 + row * 100, inRun = run.roster.includes(id), known = seen.includes(id) && A.face[id]; skin.paper(x, y, 64, 92, { old: !inRun });
-    if (known) { const vi = menu.items.findIndex(m => m.view === id && m.dex); if (vi >= 0) { zones.push({ x, y, w: 64, h: 92, i: vi, off: false }); if (focus === vi) { c.strokeStyle = TEAL; c.lineWidth = 4; c.strokeRect(x + 2, y + 2, 60, 88); } } c.save(); c.globalAlpha = inRun ? 1 : .55; skin.face(A.face[id], x + 5, y + 5, 54); c.restore(); text(fit(DEFS[id].name, 60, 13, 900), x + 32, y + 80, { px: 13, w: 900, align: 'center', col: inRun ? INK : INK2 }); if (inRun) { c.fillStyle = TEAL; c.fillRect(x + 5, y + 84, 54, 4); } }
-    else { c.fillStyle = 'rgba(43,31,24,.18)'; c.fillRect(x + 5, y + 5, 54, 54); text('？', x + 32, y + 46, { px: 36, w: 900, fam: SERIF, align: 'center', col: 'rgba(43,31,24,.38)' }); } });
-  if (hubMsg) { const el = (performance.now() - hubMsg.t) / 1000; if (el < 4.5) { const a = Math.min(1, el / .2, (4.5 - el) / .5), w = Math.min(1100, mw(hubMsg.text, 28, 900, SERIF) + 90), mx = BPX + bw / 2; c.save(); c.globalAlpha = a; skin.paper(mx - w / 2, 118 - (1 - Math.min(1, el / .2)) * 20, w, 64, { clips: [mx] }); text(hubMsg.text, mx, 162, { px: 28, w: 900, fam: SERIF, align: 'center', col: INK }); c.restore(); } }
+  // 左邊：隊伍的狀態（頭像＋血條）與道具數量。整塊是一顆按鈕，按了叫出「隊伍與道具」選單
+  { const pi = menu.items.findIndex(m => m.panelBtn), LX = 14, LY = 128, LW = 242, n = run.roster.length, LH = 158 + n * 62, pe = pressK(pi), dn = pe >= 0, on = focus === pi, act = R.active(run); zones.push({ x: LX, y: LY, w: LW, h: LH, i: pi, off: false });
+    c.save(); c.translate(0, dn ? 4 : 0); skin.wood(LX, LY, LW, LH); text('隊伍', LX + 18, LY + 40, { px: 26, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(`${n}／6 人`, LX + LW - 18, LY + 38, { px: 17, w: 700, align: 'right', col: 'rgba(239,230,207,.72)' });
+    run.roster.forEach((id, k) => { const y = LY + 54 + k * 62, on4 = act.includes(id), hp = run.hp[id], mx = R.STAT[id].hp, low = hp / mx < .3; skin.paper(LX + 10, y, LW - 20, 56, { old: !on4 }); c.fillStyle = on4 ? TEAL : '#8a7a66'; c.fillRect(LX + 10, y, 7, 56); skin.face(A.face[id], LX + 22, y + 5, 46);
+      text(fit(DEFS[id].name, 96, 19, 900, SERIF), LX + 76, y + 25, { px: 19, w: 900, fam: SERIF, col: INK }); text(on4 ? '出戰' : '候補', LX + LW - 20, y + 24, { px: 13, w: 900, align: 'right', col: on4 ? '#1f6a5c' : INK2 }); if (id !== 'vivi') skin.bar(LX + 76, y + 37, LW - 106, 9, hp / mx, low ? '#c8443a' : '#4f9a4a'); else text('後排應援', LX + 76, y + 46, { px: 13, w: 700, col: INK2 }); });
+    { const iy = LY + 58 + n * 62; Object.keys(R.ITEMS).forEach((k, q) => { const x = LX + 12 + q * 76, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null); if (im) pix(im, x, iy, 36 * im.width / im.height, 36); text(`×${run.items[k]}`, x + 40, iy + 27, { px: 20, w: 900, col: CREAM, stroke: 'rgba(20,10,4,.7)', sw: 4 }); }); }
+    skin.paper(LX + 10, LY + LH - 54, LW - 20, 44); if (on) { c.fillStyle = TEAL; c.fillRect(LX + 14, LY + LH - 50, LW - 28, 36); } text('隊伍・道具・名冊', LX + LW / 2, LY + LH - 24, { px: 19, w: 900, align: 'center', col: on ? '#fff8e6' : INK, ls: 1 });
+    if (dn) { c.fillStyle = `rgba(255,246,216,${.5 - .4 * Math.min(1, pe)})`; c.fillRect(LX, LY, LW, LH); } c.restore(); }
+  // 訊息橫幅放地圖下緣，不擋最上面的魔王站
+  if (hubMsg) { const el = (performance.now() - hubMsg.t) / 1000; if (el < 4.5) { const a = Math.min(1, el / .2, (4.5 - el) / .5), w = Math.min(1100, mw(hubMsg.text, 28, 900, SERIF) + 90), mx = BPX + bw / 2; c.save(); c.globalAlpha = a; skin.paper(mx - w / 2, 846 + (1 - Math.min(1, el / .2)) * 20, w, 64, { clips: [mx] }); text(hubMsg.text, mx, 890, { px: 28, w: 900, fam: SERIF, align: 'center', col: INK }); c.restore(); } }
 }
 // 資料卡：左邊半身像與名字，右邊素質、招式、奧義
 function sheetBtn(label, x, y, w, h, i, main) { const pe = pressK(i), dn = pe >= 0, on = focus === i; zones.push({ x, y, w, h, i, off: false }); c.save(); c.translate(0, dn ? 5 : 0); skin.paper(x, y, w, h);
@@ -638,7 +682,15 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   // 左：半身像、名字、職業
   const lx = X + 40, ly = Y + 46, lw = 500, lh = PH - 92; skin.paper(lx, ly, lw, lh, { clips: [lx + lw / 2] });
   { const ax = lx + 18, ay = ly + 22, aw = lw - 36, AH = 440, im = A.bust[id]; c.fillStyle = '#241812'; c.fillRect(ax, ay, aw, AH); c.fillStyle = d.color || '#3a2a1e'; c.globalAlpha = .34; c.fillRect(ax + 4, ay + 4, aw - 8, AH - 8); c.globalAlpha = 1; c.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < AH - 8; k += 6) c.fillRect(ax + 4, ay + 4 + k, aw - 8, 2);
-    if (im) { const bh = 620, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + (AH - 8) * .43 - (EYE[id] || .38) * bh); c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, aw - 8, AH - 8); c.clip(); pix(im, ax + aw / 2 - bw / 2, by, bw, bh); c.restore(); }
+    { if (!(id in A.real)) { A.real[id] = null; loadImg(`art/cutin/real_${id}.jpg`).then(r => { A.real[id] = r; }); }      // 立繪兩張並排，左右滑：像素版 ↔ 原型
+      const k0 = Math.min(1, (performance.now() - sheetFlipT) / 260), e = 1 - (1 - k0) ** 3, k = sheetReal ? e : 1 - e, iw = aw - 8, ih = AH - 8, re = A.real[id]; sheetRect = { x: ax, y: ay, w: aw, h: AH };
+      c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, iw, ih); c.clip();
+      if (im && k < 1) { const bh = 620, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + ih * .43 - (EYE[id] || .38) * bh); pix(im, ax + aw / 2 - bw / 2 - k * iw, by, bw, bh); }
+      if (k > 0) { const x0 = ax + 4 + (1 - k) * iw; c.fillStyle = '#e4e1dc'; c.fillRect(x0, ay + 4, iw, ih); if (re) { const sc = Math.max(iw / re.width, ih / re.height), rw = re.width * sc, rh = re.height * sc; c.drawImage(re, x0 + iw / 2 - rw / 2, ay + 4, rw, rh); } else text('載入中', x0 + iw / 2, ay + AH / 2, { px: 22, w: 700, align: 'center', col: INK2 }); }
+      c.restore();
+      const tag = sheetReal ? (REAL3D.includes(id) ? '寫實版' : '真人版') : '像素版', tw = mw(tag, 18, 900) + 28; skin.paper(ax + 12, ay + AH - 46, tw, 34); text(tag, ax + 26, ay + AH - 22, { px: 18, w: 900, col: INK });
+      for (const q of [0, 1]) { c.fillStyle = '#1c120c'; c.fillRect(ax + aw / 2 - 19 + q * 24, ay + AH - 30, 14, 14); c.fillStyle = (q === 1) === sheetReal ? CREAM : '#6a5846'; c.fillRect(ax + aw / 2 - 16 + q * 24, ay + AH - 27, 8, 8); }
+      text('左右滑換立繪', ax + aw - 14, ay + AH - 20, { px: 16, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.8)', sw: 4 }); }
     c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
     let ty = ay + AH + 84; text(d.name, lx + lw / 2, ty, { px: 64, w: 900, fam: SERIF, align: 'center', col: INK, ls: 6 }); ty += 44; text(`${viv ? '公主' : d.job}　${R.ROLE[id]}`, lx + lw / 2, ty, { px: 24, w: 900, align: 'center', col: RED, ls: 3 }); c.fillStyle = RED; c.fillRect(lx + lw / 2 - 70, ty + 14, 140, 4); ty += 58;
     text(inRun ? (on ? '出戰中' : '候補（排到前四位才會上場）') : '這一輪沒有同行', lx + lw / 2, ty, { px: 22, w: 900, align: 'center', col: on ? '#1f6a5c' : INK2 }); ty += 26;
@@ -648,8 +700,8 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   const rx = lx + lw + 30, rw = X + PW - 40 - rx, rh = lh - 124; skin.paper(rx, ly, rw, rh); const cx = rx + 40, cw = rw - 80; let y = ly + 58;
   const head = (s, note) => { c.fillStyle = RED; c.fillRect(cx, y - 24, 7, 28); text(s, cx + 20, y, { px: 26, w: 900, fam: SERIF, col: INK, ls: 8 }); const x1 = cx + 40 + mw(s, 26, 900, SERIF) + s.length * 8; c.fillStyle = 'rgba(43,31,24,.22)'; c.fillRect(x1, y - 10, cx + cw - x1 - (note ? mw(note, 18) + 18 : 0), 2); if (note) text(note, cx + cw, y - 3, { px: 18, w: 700, align: 'right', col: INK2 }); y += 20; };
   head('素質', inRun && run.picks.length ? `已拿 ${run.picks.length} 個強化` : '');
-  { const up = run.atk > 1.001 ? `強化 ＋${Math.round((run.atk - 1) * 100)}%` : '', cut = run.def < .999 ? `強化 －${Math.round((1 - run.def) * 100)}%` : '', cells = viv ? [['位置', '後排', '不會被攻擊'], ['應援', `氣勢 ＋${R.MO.cheer}`, '每次行動替全隊加氣勢'], ['速度', st.spd, '數字大的先行動'], ['SP', inRun ? `${run.sp[id]}／${st.sp}` : st.sp, '放招式用'], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]]
-      : [['HP', inRun ? `${run.hp[id]}／${st.hp}` : st.hp, '', inRun ? run.hp[id] / st.hp : null, '#4f9a4a'], ['SP', inRun ? `${run.sp[id]}／${st.sp}` : st.sp, '放招式與奧義用', inRun ? run.sp[id] / st.sp : null, '#3d6fa8'], ['攻擊', Math.round(st.atk * (inRun ? run.atk : 1)), inRun ? up : ''], ['速度', st.spd, '數字大的先行動'], ['受到的傷害', inRun && cut ? `×${run.def.toFixed(2)}` : '×1', inRun ? cut : ''], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]];
+  { const up = run.atk > 1.001 ? `強化 ＋${Math.round((run.atk - 1) * 100)}%` : '', cut = run.def < .999 ? `強化 －${Math.round((1 - run.def) * 100)}%` : '', cells = viv ? [['位置', '後排', '不會被攻擊'], ['應援', `氣勢 ＋${R.MO.cheer}`, '每次行動替全隊加氣勢'], ['速度', st.spd, '數字大的先行動'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式用'], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]]
+      : [['HP', inRun ? `${curHp(id)}／${st.hp}` : st.hp, '', inRun ? curHp(id) / st.hp : null, '#4f9a4a'], ['SP', inRun ? `${curSp(id)}／${st.sp}` : st.sp, '放招式與奧義用', inRun ? curSp(id) / st.sp : null, '#3d6fa8'], ['攻擊', Math.round(st.atk * (inRun ? run.atk : 1)), inRun ? up : ''], ['速度', st.spd, '數字大的先行動'], ['受到的傷害', inRun && cut ? `×${run.def.toFixed(2)}` : '×1', inRun ? cut : ''], ['奧義', `SP ${st.cost}`, `氣勢要 ${R.MO.ult}`]];
     const colW = cw / 3; cells.forEach(([k, v, note, bar, bcol], i) => { const x = cx + (i % 3) * colW, yy = y + 12 + Math.floor(i / 3) * 92; text(k, x, yy + 16, { px: 18, w: 900, col: INK2, ls: 3 }); text(String(v), x, yy + 56, { px: 38, w: 900, col: INK }); if (bar != null) skin.bar(x, yy + 66, colW - 60, 11, bar, bar < .3 && k === 'HP' ? '#c8443a' : bcol); else if (note) text(fit(note, colW - 20, 17), x, yy + 80, { px: 17, w: 700, col: note.startsWith('強化') ? '#1f6a5c' : INK2 }); }); y += 12 + Math.ceil(cells.length / 3) * 92 + 38; }
   const sk = R.SKILLS[id] || [], known = k => !inRun || (run.skills[id] || []).includes(k.key), rowH = sk.length > 2 ? 86 : 96;
   head('招式', id === run.starter && sk.some(k => !known(k)) ? '還沒學的招式，拿到強化「在職進修」可以學' : '只花 SP，不用氣勢');
@@ -660,7 +712,7 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   { const im = A.icons.sk_ult || A.icons.up_morale; c.fillStyle = '#6e1c16'; c.fillRect(cx + 4, y + 12, 56, 56); c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(cx + 5.5, y + 13.5, 53, 53); if (im) pix(im, cx + 8, y + 16, 48, 48); text(`「${d.skill}」`, cx + 70, y + 38, { px: 32, w: 900, fam: SERIF, col: INK, ls: 2 }); wrap(d.desc || (R.ULTS[id] || [])[1] || '', cw - 90, 21).slice(0, 2).forEach((ln, k) => text(ln, cx + 84, y + 70 + k * 30, { px: 21, w: 700, col: INK2 })); }
   // 下方按鈕
   const by = ly + lh - 100, n = sheetList().length; if (n > 1) { sheetBtn('上一位', rx, by, 230, 100, 0); sheetBtn('下一位', rx + 250, by, 230, 100, 1); text(`${sheetList().indexOf(id) + 1}／${n}`, rx + 580, by + 50, { px: 26, w: 900, align: 'center', col: CREAM }); text(inRun ? '隊伍' : '名冊', rx + 580, by + 80, { px: 18, w: 700, align: 'center', col: 'rgba(239,230,207,.7)' }); }
-  sheetBtn('回行程表', rx + rw - 330, by, 330, 100, 2, true);
+  sheetBtn(panel ? '回選單' : '回行程表', rx + rw - 330, by, 330, 100, 2, true);
 }
 // 選卡畫面：兩到三張夾在木板上的紙卡，上面是圖（角色半身像或小圖示），下面是說明
 // 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
@@ -749,13 +801,17 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (
 function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
   if (z.opt === 'a2hs') { pressed = { opt: 'a2hs', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(r => { if (r && r.outcome === 'accepted') installed = true; }).catch(() => 0); } else { PREF.noA2hs = true; savePref(); } return; }
+  if (z.opt === 'panel') { pressed = { opt: 'panel', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; if (phase === 'command' && menu && !panel) openPanel(); }, PRESS_MS); return; }
   if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.off) { pressed = { i: z.i, t: performance.now() }; uiSound('no'); buzz([8, 40, 8]); setTimeout(() => { pressed = null; }, 260); return; }
   pressed = { i: z.i, big: z.big, act: z.act, t: performance.now() }; uiSound('ok'); buzz(14); if (!z.big) focus = z.i;
   const m = menu, ph = phase; setTimeout(() => { pressed = null; if (z.big) { if (ph === 'title') { phase = 'anim'; audioReady.then(z.act === 'cont' ? resume : start); } else if (ph === 'over') location.reload(); return; } if (menu === m && ['command', 'pick', 'hub'].includes(phase)) m.items[z.i].go(); }, PRESS_MS);
 }
 stage.addEventListener('pointermove', e => { pointer = toStage(e); const z = hitZone(pointer); if (z && !z.big && !z.opt && !z.off && ['command', 'pick', 'hub'].includes(phase) && z.i !== focus) { focus = z.i; } });
-stage.addEventListener('pointerdown', e => { e.preventDefault(); pointer = toStage(e); if (AC.state !== 'running') AC.resume(); press(hitZone(pointer)); });
+const inRect = (p, r) => p && r && p[0] >= r.x && p[0] <= r.x + r.w && p[1] >= r.y && p[1] <= r.y + r.h;
+stage.addEventListener('pointerdown', e => { e.preventDefault(); pointer = toStage(e); if (AC.state !== 'running') AC.resume(); if (sheet && inRect(pointer, sheetRect)) { drag = pointer; return; } press(hitZone(pointer)); });
+// 資料卡的立繪：往左滑看原型、往右滑回像素版；只點一下就是換另一張
+addEventListener('pointerup', e => { if (!drag) return; const p = toStage(e), dx = p[0] - drag[0]; drag = null; if (sheet) flipSheet(Math.abs(dx) > 40 ? dx < 0 : !sheetReal); });
 addEventListener('keydown', e => { if (phase === 'title' && (e.code === 'Enter' || e.code === 'Space')) return press(zones.find(z => z.big)); if (phase === 'over' && (e.code === 'Enter' || e.code === 'Space')) return press(zones.find(z => z.big)); if (!['command', 'pick', 'hub'].includes(phase) || !menu) return; const n = menu.items.length;
   const step = d => { let i = focus; for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (!menu.items[i].off) break; } if (i !== focus) { focus = i; uiSound('move'); } };
   if (e.code === 'ArrowRight' || e.code === 'ArrowDown') { step(1); e.preventDefault(); } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') { step(-1); e.preventDefault(); } else if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); press({ i: focus, off: !!menu.items[focus]?.off }); } else if (e.code === 'Escape' || e.code === 'Backspace') { const b = menu.items.find(i => i.back); if (b) b.go(); } });
@@ -778,7 +834,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
-window.__game = { get state() { return state; }, sheet: id => openSheet(id), get sheetId() { return sheet; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
+window.__game = { get state() { return state; }, sheet: id => openSheet(id), get sheetId() { return sheet; }, openPanel: () => openPanel(), flip: () => flipSheet(), get panel() { return panel; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load'; audioReady.then(() => { if (phase === 'load') phase = 'title'; });
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
