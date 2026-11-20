@@ -41,12 +41,23 @@
 | fanfare | 5.00 | fanfare/v4 | Victory fanfare: a short triumphant orchestral brass fanfare phrase with trumpets, timpani and cymbal, bright heroic fantasy RPG battle win jingle, ending on a held major chord |
 | card | 0.79 | card/v2 | Character card slide-in: a quick light swoosh followed by a tiny bright bell ding, clean game UI transition, no voices, no music |
 | stat | 0.20 | stat/v3 | Stat number pop: a single very short soft tick tap, crisp digital UI counter sound, dry, no voices, no music |
+| foe_courier | 0.80 | foe_courier/v4 | a short frantic alarm clock ring cut off by a sharp paper slap, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| foe_knight | 0.79 | foe_knight/v4 | a heavy metal filing cabinet drawer slamming shut with a clanging stamp thud, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| foe_intern | 0.89 | foe_intern/v1 | a bottle cap popping off, fizzy soda hiss and a quick gulp-like bubbling, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| foe_audit | 0.95 | foe_audit/v4 | a fast fountain pen scratch across paper ending in a hard rubber stamp thunk with a dark magical sting, fantasy RPG combat sound effect, punchy and clean, no voices, no music |
+| squeak_1 | 0.44 | squeak_1/v2 | a cartoon mouse giving one short fierce high-pitched angry squeak as it attacks, fantasy RPG combat sound effect, punchy and clean, no music |
+| squeak_2 | 0.66 | squeak_2/v3 | a cartoon rat with a quick aggressive hiss followed by a sharp double chitter squeak, fierce rodent attack cry, fantasy RPG combat sound effect, punchy and clean, no music |
+| shout_m_1 | 0.42 | 文字轉語音 AMeng - Young Taiwanese male，第 1 版第一聲 | [shouting, short powerful martial arts battle cry] 賀！ |
+| shout_m_2 | 0.60 | 文字轉語音 AMeng - Young Taiwanese male，第 1 版第一聲 | [shouting, short powerful martial arts battle cry] 哈！ |
+| shout_f_1 | 0.50 | 文字轉語音 Lucy - Friendly Taiwanese Youth，第 1 版 | [shouting, short powerful martial arts battle cry] 賀！ |
+| shout_f_2 | 0.49 | 文字轉語音 Lucy - Friendly Taiwanese Youth，第 2 版第一聲 | [shouting, short powerful martial arts battle cry] 哈！ |
 
 備註：
 - `cursor` 用重生的 cursor2（第一版四個都太小聲）；`dark_charge` 用重生的 dark_charge2（第一版是先大後小，不是越來越強）。
 - `slash_multi` 只有 3 刀；重生的 slash_multi2 四版都只剩 1 刀，所以留原版。要更多刀可以疊 slash／slash_alt。
 - `hit` 生成時長度跑成自動（1 秒），已裁成 0.4 秒。
 - `whoosh.wav` 是主 session 的檔，不是這次做的。
+- 11/20 追加 10 檔（敵人出招 4、老鼠吱吱 2、共用喊聲 4）。喊聲用文字轉語音 Eleven v4，挑了兩個聲音庫現成、沒給主角用過的台灣年輕男女聲；原檔多半連喊兩聲，只留第一聲。`foe_courier` 四版從頻譜看都只有很短的一下拍擊，看不到鬧鐘鈴聲，要人耳確認；從波形看 `squeak_1` 是單聲尖叫、`squeak_2` 是連續吱吱，還沒人耳確認。原清單的夥伴專屬音效改成不做，但改單前已生好 hero_yan、hero_heilun 兩組（花 20 點），沒放進 sfx/，留在暫存區。點數 4,735 → 4,492（243 點：音效 84、喊聲 159）。
 
 ## 人聲 `vo/`（Eleven v4，穩定度 35%、相似度 75%，每句一次出兩版 → `_1`、`_2`）
 

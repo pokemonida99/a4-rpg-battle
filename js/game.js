@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.8.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.8.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -78,8 +78,8 @@ applyQuality();
 const AC = new (window.AudioContext || window.webkitAudioContext)(), master = AC.createGain(), musicGain = AC.createGain(); master.connect(AC.destination); musicGain.connect(master); master.gain.value = PREF.mute ? 0 : .9;
 const buf = {}; let now = 0, music = null;
 const SFX_IDS = ['boss_appear', 'boss_charge', 'boss_down', 'break', 'buff', 'card', 'confirm', 'cursor', 'cutin', 'dark_blast', 'dark_charge', 'defeat', 'encounter', 'explosion', 'explosion_big', 'fanfare', 'heal', 'hit', 'holy_cast', 'paper_storm', 'shield_block', 'shield_up', 'slash', 'slash_b', 'slash_multi', 'stat',
-  // 新夥伴與新敵人的專屬音效（audio/sfx/hero_<代號>.mp3、foe_<種類>.mp3）。檔案還沒有的話就用原本共用的聲音
-  ...EXTRA.map(id => 'hero_' + id), 'foe_courier', 'foe_knight', 'foe_intern', 'foe_audit'];
+  // 新敵人的專屬音效（audio/sfx/foe_<種類>.mp3）與新夥伴共用的喊聲。檔案還沒有的話就用原本共用的聲音
+  'foe_courier', 'foe_knight', 'foe_intern', 'foe_audit', 'shout_m_1', 'shout_m_2', 'shout_f_1', 'shout_f_2', 'squeak_1', 'squeak_2'];
 const sfxOr = (a, b) => buf[a] ? a : b;
 async function loadSound(id, url) { try { const r = await fetch(url); if (!r.ok) return; buf[id] = await AC.decodeAudioData(await r.arrayBuffer()); } catch (e) { /* 少一個聲音不影響遊戲 */ } }
 const pick = await fetch('audio/pick.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
@@ -145,17 +145,20 @@ const goHome = (t, id, dur = .28) => units[id].move(t, home(id)[0], home(id)[1],
 // 新夥伴的普攻是近戰還是施法
 const CASTER = { yan: 1, cha: 1, fairy: 1, xu: 1 };
 // 新夥伴出招：有 8 格圖就逐格播（1～4 準備、5 揮出、6 出手的頂點、7 停住、8 收回），第 6 格對在 th 前一點；圖還沒有的人用蓄力／出手兩張
+// 沒有專屬語音的夥伴（黑輪之後的人）：出招時喊一聲共用的「賀！」「哈！」，分男女；兩隻老鼠是吱吱聲。每個人兩種聲音輪流（audio/sfx/shout_m_1～2、shout_f_1～2、squeak_1～2）
+const VOICE = { heilun: 'm', qiang: 'm', you: 'm', yan: 'f', cha: 'f', senpai: 'f', wu: 'f', fairy: 'f', xu: 'f', zong: 'q', hui: 'q' }, shoutN = {};
+const shout = (t, id, v = 1.15) => { const k = VOICE[id]; if (!k) return; const n = 1 + ((shoutN[id] = (shoutN[id] ?? Object.keys(VOICE).indexOf(id)) + 1) % 2); snd(t, k === 'q' ? 'squeak_' + n : `shout_${k}_${n}`, v); };
 const has8 = id => !!units[id].frames.ult.real, BLADE = { wu: 1, you: 1 };      // BLADE：拿扇子、匕首的人，打中是刀光與斬擊聲
 const reach = (id, big) => (big ? 2.0 : 1.05) + (has8(id) ? .4 : 0);      // 逐格圖出手那格會往前伸很長，站遠一點武器才剛好碰到人
 function swing(id, t0, th, ta = .3, hold = .5) { const u = units[id], d = th - t0; if (has8(id)) u.anim(t0, 'ult', [0, d * .16, d * .34, d * .54, d * .76, d * .93, d + .16, d + hold]); else u.pose(t0, 'wind').pose(t0 + ta, 'act'); return u; }
 function playAttack(r, t0) {
   grunt(t0 + .05, r.id);
-  if (DEFS[r.id].extra) { const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss', pal = DEFS[id].pal; let th, te;
+  if (DEFS[r.id].extra) { const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss', pal = DEFS[id].pal; let th, te; shout(t0 + .04, id);
     if (CASTER[id]) { th = t0 + .7; swing(id, t0, th - .08, .32); fx('arcane/spell-charge', t0, id, { palette: pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .4);
-      fx('explosions/small-explosion', th - .1, tg, { scale: big ? 1.7 : 1.1, y: big ? 1.0 : .3, palette: pal }); snd(th - .05, sfxOr('hero_' + id, 'hit'), .8); applyHit(th, h, { snd: false }); te = th + .7; }
+      fx('explosions/small-explosion', th - .1, tg, { scale: big ? 1.7 : 1.1, y: big ? 1.0 : .3, palette: pal }); snd(th - .05, 'hit', .7); applyHit(th, h, { snd: false }); te = th + .7; }
     else { const k = has8(id) ? .16 : 0; th = t0 + .32 + k; swing(id, t0, th, .22).move(t0 + .06 + k, tx + reach(id, big), tz + .02, .16, easeOut); SFX.add('speed', t0 + .04 + k, .2, { a: .4 }); snd(t0 + .06 + k, 'whoosh', .5);
       if (BLADE[id]) fx('melee/sword-slash', th - .08, [tx + reach(id, big), tz], { flip: true, palette: pal, scale: big ? 1.5 : 1.1 }); else fx('impacts/blunt-hit', th, tg, { y: big ? 1.0 : .6, dx: big ? 1.0 : .4, scale: 1.6, palette: pal });
-      cam.shake(th, .12, .28); applyHit(th, h, { snd: h?.guard ? false : sfxOr('hero_' + id, BLADE[id] ? 'slash' : 'hit') }); goHome(th + .5, id, .28); te = th + .9; }
+      cam.shake(th, .12, .28); applyHit(th, h, { snd: h?.guard ? false : BLADE[id] ? 'slash' : 'hit' }); goHome(th + .5, id, .28); te = th + .9; }
     if (h?.guard) box(th + .2, 1.6, '小兵護衛中　魔王不受傷害', true); ready(te - .05, id); return te; }
   const id = r.id, u = units[id], h = r.hits[0], tg = r.target, [tx, tz] = units[tg].posAt(t0), gap = tg === 'boss' ? 2.0 : 1.05; let th, te;
   if (id === 'kui' && u.frames.h3 && Q.get('h3') === '1') { th = t0 + H3_HIT; u.anim(t0, 'h3', H3_T).move(t0 + .45, tx + gap + .25, tz + .02, .22, easeOut); snd(t0 + .45, 'whoosh', .5); SFX.add('speed', t0 + .8, .2, { a: .4 });
@@ -190,7 +193,7 @@ const SKFX = { counter: { type: 'self', say: '放馬過來！', pose: 'guard', h
   encore: { type: 'ally', say: '再來一次！' }, dance: { type: 'self', say: '尾牙熱舞！' }, slack: { type: 'self', say: '摸魚中……' }, backdoor: { type: 'melee', fx: 'impacts/hit-spark', pal: 'cyber' }, mice: { type: 'all', fx: 'impacts/hit-spark', pal: 'gold', sfx: 'hit' }, wand: { type: 'ally', say: '下一擊必爆擊' },
   sip: { type: 'self', say: '續命……', pose: 'guard', hold: true }, news: { type: 'melee', fx: 'impacts/blunt-hit', pal: 'gold' }, overtime: { type: 'melee', fx: 'impacts/blunt-hit', pal: 'shadow' }, allnight: { type: 'melee', fx: 'impacts/ground-slam', pal: 'blood', heavy: true }, transfer: { type: 'ally', say: '幫您轉接' }, mix: { type: 'ally', say: '特調一杯' } };
 function genericSkill(r, t0, G) {
-  const id = r.id, u = units[id], hs = r.hits || [], fy = f => f === 'boss' ? 1.2 : .6; box(t0, 1.5, r.name); at(t0 + .1, () => syncBars(now)); let th = t0 + .5, te = t0 + 1.25;
+  const id = r.id, u = units[id], hs = r.hits || [], fy = f => f === 'boss' ? 1.2 : .6; box(t0, 1.5, r.name); at(t0 + .1, () => syncBars(now)); let th = t0 + .5, te = t0 + 1.25; shout(t0 + .06, id);
   if (G.type === 'melee') { const tg = r.target, [tx, tz] = units[tg].posAt(t0), big = tg === 'boss'; const k = has8(id) ? .16 : 0; th = t0 + .36 + k; swing(id, t0, th, .24, .6).move(t0 + .08 + k, tx + reach(id, big), tz + .02, .16, easeOut); SFX.add('speed', t0 + .05 + k, .22, { a: .45 }); snd(t0 + .08 + k, 'whoosh', .55);
     fx(G.fx, th - .04, tg, { y: G.heavy ? .1 : fy(tg), dx: big ? .9 : .3, scale: G.heavy ? (big ? 2.2 : 1.6) : 1.5, palette: G.pal }); if (G.heavy) { snd(th, 'explosion', .6); cam.shake(th, .24, .45); SFX.add('flash', th, .2, { a: .4 }); } else cam.shake(th, .12, .3);
     hs.forEach((h, i) => applyHit(th + i * .2, h, { pow: G.heavy ? 1.5 : 1.1, snd: h.guard ? false : BLADE[id] ? 'slash' : 'hit' })); goHome(th + .6, id, .28); te = th + 1.05; }
@@ -241,7 +244,7 @@ function playSkill(r, t0) {
 function playUltNew(r, t0) {
   const id = r.id, u = units[id], d = DEFS[id], hs = r.hits || [], tc = t0 + .1, has = !!A.eyes[id], ta = tc + (has ? 1.6 : .45); if (has) { S.cutins.push({ t0: tc, dur: 1.55, id }); snd(tc, 'cutin', 1); }
   S.subs.push({ t0: tc + .2, len: 1.5, text: d.shout, name: d.name, color: d.color }); S.cards.push({ t0: ta - .12, t1: ta + 2.3, id }); at(tc, () => syncBars(now)); cam.to(t0, .4, { x: lerp(WIDE.x, home(id)[0], .08), d: 12.5, y: 1.48 }).to(tc + 1.35, .35, WIDE);
-  const tk = ta + .55; let te = ta + 2.3; swing(id, ta, tk, .45, 1.5); fx('arcane/magic-circle-cast', ta - .1, id, { palette: d.pal, scale: 1.1, dz: -.05 }); snd(ta, 'buff', .8);
+  const tk = ta + .55; let te = ta + 2.3; swing(id, ta, tk, .45, 1.5); shout(ta + .1, id, 1.3); fx('arcane/magic-circle-cast', ta - .1, id, { palette: d.pal, scale: 1.1, dz: -.05 }); snd(ta, 'buff', .8);
   const tag = (f, s, col, dt = 0) => num(tk + .2 + dt, f, s, 'text', { col, px: 30, y: DEFS[f].enemy ? (f === 'boss' ? .75 : 1.3) : 1.2 });
   if (id === 'yan') { SFX.add('flash', tk, .4, { c: [255, 220, 140], a: .5 }); SFX.add('embers', tk, 2.0, { c: [255, 210, 120], n: 60 }); snd(tk, 'holy_cast', .8); R.foes(state).forEach((f, i) => { fx('arcane/rune-circle', tk - .2 + i * .08, f, { palette: 'gold', scale: f === 'boss' ? 1.9 : 1.2 }); tag(f, '延到最後', '#ffe27a', i * .08); });
     R.FRONT.filter(h => !ko[h]).forEach((h, i) => { tag(h, '這回合受傷 －40%', '#9af0ff', .3 + i * .06); units[h].hop(tk + .4 + i * .06, .16, .3); }); }
