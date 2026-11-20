@@ -96,5 +96,5 @@ for (const starter of ['kui', 'jie']) { console.log(`── 起始角色：${sta
   const leak = broke.filter(b => R2.loadRun(b) !== null).length;
   // 舊版存檔（v1：還沒有事件站，行程表 8 站）要能轉成現在的格式：停在舊的第 6 站（福委會／獵頭）→ 新的第 7 站
   { const run = newRun(mulberry(9), 'kui', null); join(run, 'kevin'); const old = R2.saveRun(run); delete old.events; Object.assign(old, { v: 1, floor: 5, path: [0, 0, 0, 1, 0], offers: { 5: { 1: ['mi', 'xu'] } } }); const back = R2.loadRun(old, mulberry(9));
-    if (!back || back.run.floor !== 6 || back.run.path.join() !== '0,0,0,1,0,0' || (back.run.offers[6] || {})[1]?.join() !== 'mi,xu' || MAP[back.run.floor][1].type !== 'recruit') { bad++; console.log('v1 存檔轉換失敗', back && back.run.floor, back && back.run.path); } }
+    if (!back || back.run.floor !== 6 || back.run.path.join() !== '0,0,0,1,0,0' || (back.run.offers[6] || {})[1]?.join() !== 'mi,xu' || MAP[back.run.floor][1].type !== 'recruit') /* v1 的第 6 站在兩次插層之後還是第 7 站（第二次插在它後面） */ { bad++; console.log('v1 存檔轉換失敗', back && back.run.floor, back && back.run.path); } }
   console.log(`── 存檔檢查：${n} 次存讀${bad ? `，${bad} 次不一致` : '全部一致'}；${broke.length} 種壞檔${leak ? `有 ${leak} 種沒擋下來` : '全部作廢'}`); if (bad || leak) process.exitCode = 1; }

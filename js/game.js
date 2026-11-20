@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.8.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.9.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -199,8 +199,8 @@ function genericSkill(r, t0, G) {
     hs.forEach((h, i) => applyHit(th + i * .2, h, { pow: G.heavy ? 1.5 : 1.1, snd: h.guard ? false : BLADE[id] ? 'slash' : 'hit' })); goHome(th + .6, id, .28); te = th + 1.05; }
   else if (G.type === 'cast' || G.type === 'all') { const tgs = G.type === 'all' ? (r.down || r.marked || hs.map(h => h.dst)) : [r.target]; th = t0 + .62; swing(id, t0, th - .08, .3); fx('arcane/spell-charge', t0, id, { palette: G.pal, scale: .6, y: .9, dx: -.4, flip: true, dur: .4 }); snd(t0, 'buff', .45);
     tgs.forEach((f, i) => fx(G.fx, th - .25 + i * .1, f, { scale: f === 'boss' ? 1.8 : 1.1, y: G.fx.startsWith('explosions') ? fy(f) - .3 : G.fx.startsWith('impacts') ? fy(f) : 0, dx: G.fx.startsWith('impacts') ? (i % 3 - 1) * .3 : 0, palette: G.pal })); snd(th - .05, G.sfx, .6); hs.forEach((h, i) => applyHit(th + i * .12, h, { snd: i ? false : 'hit' })); te = th + .95; }
-  else if (G.type === 'self') { u.pose(t0, G.pose && u.frames[G.pose] ? G.pose : 'act').hop(t0 + .05, .16, .3); fx('impacts/parry', t0 + .1, id, { scale: 1.1, y: .5, palette: DEFS[id].pal }); snd(t0 + .1, 'shield_up', .5); num(t0 + .15, id, G.say, 'text', { col: DEFS[id].color, px: 32, y: 1.3 }); th = t0 + .3; te = t0 + 1.1; }
-  else { th = t0 + .45; swing(id, t0, th, .3); snd(t0 + .3, 'buff', .6); te = t0 + 1.25; if (r.target && units[r.target]) { fx('holy/blessing', th - .1, r.target, { scale: 1.0, dur: 1.1 }); units[r.target].hop(th + .1, .18, .3); if (G.say) num(th, r.target, G.say, 'text', { col: DEFS[id].color, px: 30, y: 1.3 }); } }
+  else if (G.type === 'self') { if (u.frames.sup && !G.pose) { u.anim(t0, 'sup', [0, .16, .4, .92]); u.pose(t0 + 1.25, 'ready'); te = t0 + 1.35; } else u.pose(t0, G.pose && u.frames[G.pose] ? G.pose : 'act').hop(t0 + .05, .16, .3); fx('impacts/parry', t0 + .1, id, { scale: 1.1, y: .5, palette: DEFS[id].pal }); snd(t0 + .1, 'shield_up', .5); num(t0 + .15, id, G.say, 'text', { col: DEFS[id].color, px: 32, y: 1.3 }); th = t0 + .3; te = Math.max(te, t0 + 1.1); }
+  else { th = t0 + .45; if (u.frames.sup) { u.anim(t0, 'sup', [0, .16, .4, .92]); u.pose(t0 + 1.25, 'ready'); } else swing(id, t0, th, .3); snd(t0 + .3, 'buff', .6); te = t0 + (u.frames.sup ? 1.35 : 1.25); if (r.target && units[r.target]) { fx('holy/blessing', th - .1, r.target, { scale: 1.0, dur: 1.1 }); units[r.target].hop(th + .1, .18, .3); if (G.say) num(th, r.target, G.say, 'text', { col: DEFS[id].color, px: 30, y: 1.3 }); } }
   // 附帶效果用字說明
   const tag = (f, s, col = '#ffe27a', dt = .25) => num(th + dt, f, s, 'text', { col, px: 30, y: DEFS[f].enemy ? (f === 'boss' ? .75 : 1.3) : 1.2 });
   for (const f of r.down || []) tag(f, '攻擊力 ↓', '#c9a0ff'); for (const f of r.marked || []) tag(f, '大客戶　受傷 ＋30%'); if (r.delayed) tag(r.delayed, '延到最後'); if (r.burn) tag(r.burn, '灼燒', '#ff9a5a'); if (r.cover) { tag(r.cover, '幫忙擋下一擊', '#9af0ff', 0); units[r.cover].hop(th, .16, .3); }
@@ -334,7 +334,7 @@ function playFoe(r, t0) {
   const id = r.id, u = units[id];
   if (r.kind === 'foeAtk') { const tgt = (r.hits.find(h => h.guard) || r.hits[0]).dst, [hx, hz] = home(id), [tx, tz] = units[tgt].posAt(t0); box(t0, 1.3, R.KINDS[state.kind[id]].move, true);
     u.pose(t0 + .15, 'atk').move(t0 + .15, tx - .95, tz + .02, .2, easeOut); snd(t0 + .15, sfxOr('foe_' + state.kind[id], 'whoosh'), buf['foe_' + state.kind[id]] ? .7 : .45); const th = t0 + .41; fx('impacts/blunt-hit', th, tgt, { y: .7, dx: -.2, scale: 1.2 });
-    r.hits.forEach((h, i) => applyHit(th + i * .05, h, { pow: .9, snd: i ? false : undefined })); for (const h of r.hits) if (h.spLoss) { num(th + .28, h.dst, `SP －${h.spLoss}`, 'text', { col: '#8fc0ff', px: 30, y: 1.35 }); S.sp[h.dst].push({ t: th + .28, v: h.sp }); } if (r.hits.taunted && r.hits[0] && !r.hits[0].miss) num(th - .2, r.hits[0].dst, '我來！', 'text', { col: '#9af0ff', px: 28, y: 1.25 }); counters(r, th); if (r.weak) num(t0 + .1, id, '詛咒中', 'text', { col: '#c9a0ff', px: 24, y: 1.2 }); u.move(th + .3, hx, hz, .28).pose(th + .62, 'idle'); return th + .95; }
+    r.hits.forEach((h, i) => applyHit(th + i * .05, h, { pow: .9, snd: i ? false : undefined })); for (const h of r.hits) if (h.spLoss) { num(th + .28, h.dst, `SP －${h.spLoss}`, 'text', { col: '#8fc0ff', px: 30, y: 1.65 }); S.sp[h.dst].push({ t: th + .28, v: h.sp }); } if (r.hits.taunted && r.hits[0] && !r.hits[0].miss) num(th - .2, r.hits[0].dst, '我來！', 'text', { col: '#9af0ff', px: 28, y: 1.25 }); counters(r, th); if (r.weak) num(t0 + .1, id, '詛咒中', 'text', { col: '#c9a0ff', px: 24, y: 1.2 }); u.move(th + .3, hx, hz, .28).pose(th + .62, 'idle'); return th + .95; }
   if (r.kind === 'foeHeal') { const th = t0 + .55; box(t0, 1.4, R.KINDS[state.kind[id]].move, true); u.pose(t0 + .15, 'atk').pose(t0 + 1.0, 'idle'); snd(t0 + .15, sfxOr('foe_' + state.kind[id], 'whoosh'), buf['foe_' + state.kind[id]] ? .7 : .35); fx('holy/heal', th - .1, r.dst, { scale: r.dst === 'boss' ? 1.9 : 1.2, y: r.dst === 'boss' ? .6 : 0 }); snd(th, 'heal', .7);
     S.hp[r.dst].push({ t: th + .15, v: r.hp }); num(th + .15, r.dst, r.v, 'heal'); units[r.dst].hop(th + .2, .16, .3); return t0 + 1.4; }
   if (r.kind === 'stunned') { box(t0, 1.3, '理虧中　說不出話', true); u.pose(t0, 'stun').pose(t0 + 1.0, 'idle'); num(t0 + .9, 'boss', '底氣回復', 'text', { col: '#ffd0c8', y: .5 }); S.shield.boss.push({ t: t0 + .9, v: r.shield }); snd(t0 + .9, 'shield_up', .5); return t0 + 1.4; }
@@ -564,7 +564,7 @@ function drawMenu() {
 function drawTable(dim) { if (A.map.table) c.drawImage(A.map.table, 0, 0, W, H); else { c.fillStyle = '#1a110b'; c.fillRect(0, 0, W, H); } if (dim) { c.fillStyle = `rgba(8,5,4,${dim})`; c.fillRect(0, 0, W, H); } }
 // 行程表各站在藍圖上的位置（藍圖原圖 1536×1024 的座標）。一樓三站 → 電梯 → 二樓 → 樓梯 → 三樓 → 塔頂
 const MK = .805, BPX = 30, BPY = 104, bp = ([x, y]) => [BPX + x * MK, BPY + y * MK];
-const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 606]], [[600, 606]], [[440, 318], [440, 418]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 606], [200, 368]] }, START = [296, 868];
+const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 606]], [[600, 606]], [[440, 318], [440, 418]], [[720, 368]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 606], [200, 368]] }, START = [296, 868];
 const TAGCOL = { 戰鬥: INK2, 事件: '#7a4a8a', 休息: TEAL, 福利: '#9a6a1c', 招募: '#27507e', 救援: '#27507e', 菁英: RED, 頭目: RED, 魔王: RED };
 const DEX = ['kui', 'jie', 'kevin', 'mi', 'vivi', ...EXTRA];
 const nodeDesc = nd => { if (nd.type !== 'battle') return [nd.sub || '', '這一站不用戰鬥']; const st = R.STAGES[nd.stage], cnt = {}; for (const m of st.minions) { const n = R.KINDS[(st.kinds || {})[m] || 'drone'].name; cnt[n] = (cnt[n] || 0) + 1; } return [nd.sub || st.sub, `敵人：${st.boss ? st.boss.name + '、' : ''}${Object.entries(cnt).map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join('、')}　打贏可以三選一強化`]; };
@@ -692,7 +692,7 @@ function bigButton(label, cx, cy, w = 440, h = 116, act = 'go') { const on = poi
 // ---------- 結案報告（結算）：通關或全員倒下之後，把這一輪的路線、夥伴、強化攤在一張公文上 ----------
 let report = null;
 function openReport(t0, win) { const rounds = run.rounds + (state.round || 0), cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1;
-  report = { t0, win, rounds, bonus: win ? Math.max(1000, 12000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
+  report = { t0, win, rounds, bonus: win ? Math.max(1000, 16000 - rounds * 400) : 0, floor: run.floor, stage: R.nodeName(run.node), bossHp: !win && state.hasBoss ? Math.ceil(state.hp.boss / R.STAT.boss.hp * 100) : null, ups: Object.entries(cnt),
     route: R.MAP.map((fl, k) => k <= run.floor && run.path[k] != null && fl[run.path[k]] ? fl[run.path[k]] : null), party: run.roster.map(id => { const on = R.HEROES.includes(id); return { id, on, down: id !== 'vivi' && !((on ? state.hp[id] : run.hp[id]) > 0) }; }) };
   for (let i = 0; i < 4; i++) snd(t0 + .5 + i * .3, 'stat', .7); snd(t0 + 1.9, 'card', .9); }
 function drawReport() { const k = report; if (!k || now < k.t0) return; zones = [];

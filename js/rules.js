@@ -71,12 +71,12 @@ export const STAGES = {
   crowd: { name: '加班大隊', sub: '人越來越多了', minions: ['ma', 'mb', 'mc'], kinds: { mc: 'courier' }, minion: { hp: 4200, atk: 340 }, boss: null },
   night: { name: '夜班大隊', sub: '燈還亮著', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'knight', mc: 'intern' }, minion: { hp: 5600, atk: 430 }, boss: null },
   chief: { name: '甩鍋課長', sub: '這不是我的問題', minions: ['ma', 'mb'], minion: { hp: 3000, atk: 360 },
-    boss: { id: 'chief', name: '甩鍋課長', hp: 48000, spd: 200, spd2: 0, atk: 950, shield: 5, cycle: 4, guard: false, pot: true, ult: 900, text: { charge: '蓄力　這不是我的問題', atk: '甩鍋', ult: '奧義　全體背鍋', summon: '召喚　找人背鍋' } } },
+    boss: { id: 'chief', name: '甩鍋課長', hp: 45000, spd: 200, spd2: 0, atk: 950, shield: 5, cycle: 4, guard: false, pot: true, ult: 900, text: { charge: '蓄力　這不是我的問題', atk: '甩鍋', ult: '奧義　全體背鍋', summon: '召喚　找人背鍋' } } },
   // 菁英：沒有護衛也不甩鍋，但是大招會把氣勢扣掉（moDrain），身邊帶一個催稿的、一個會補血的
   audit: { name: '考績魔導士', sub: '請進，把門帶上', minions: ['ma', 'mb'], kinds: { ma: 'courier', mb: 'intern' }, minion: { hp: 4200, atk: 380 },
     boss: { id: 'audit', name: '考績魔導士', hp: 34000, spd: 230, spd2: 0, atk: 900, shield: 6, cycle: 4, guard: false, pot: false, ult: 900, moDrain: 40, text: { charge: '蓄力　年度考核', atk: '紅筆退件', ult: '奧義　考績丙等', summon: '召喚　找人來補件' } } },
   boss: { name: '奧客總經理', sub: '我要找你們主管', minions: ['ma', 'mb'], minion: { hp: 3800, atk: 400 },
-    boss: { id: 'boss', name: '奧客總經理', hp: 66000, spd: 200, spd2: 0, atk: 1100, shield: 8, cycle: 5, guard: true, pot: false, ult: 1200, text: { charge: '蓄力　再改一版！', atk: '退件重擊', ult: '奧義　無限改稿', summon: '召喚　加班大隊' } } },
+    boss: { id: 'boss', name: '奧客總經理', hp: 61000, spd: 200, spd2: 0, atk: 1100, shield: 8, cycle: 5, guard: true, pot: false, ult: 1100, text: { charge: '蓄力　再改一版！', atk: '退件重擊', ult: '奧義　無限改稿', summon: '召喚　加班大隊' } } },
 };
 // 肉鴿路線（行程表）：一層一站，有兩個選項的那一層要選一邊走。
 // type：battle 戰鬥（打贏三選一強化）、rest 茶水間、gift 福委會（直接三選一）、recruit 招募（兩個人選一個）、event 事件（EVENTS 抽一個，選一個選項）。rescue＝打贏救出一個夥伴。bonus＝打贏多拿的道具。
@@ -88,6 +88,7 @@ export const MAP = [
   [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'battle', stage: 'chief', tag: '頭目', icon: 'chief' }],
   [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '兩位同事選一位同行' }],
+  [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'audit', tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'boss', tag: '魔王', icon: 'boss' }],
 ];
@@ -133,6 +134,26 @@ export const EVENTS = {
     { label: '自己修', icon: 'up_learn', kind: 'buff', lines: ['主角 HP －25%（手被夾到）', '主角學會一個還不會的招式；都會了就攻擊力 ＋6%'], go: run => { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * .25)); const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); return `修好了，還順便悟出一招「${SKILLS[run.starter].find(k => k.key === u[0]).name}」`; } run.atk *= 1.06; return '修好了。原來只是紙放反'; } },
     { label: '交給總務', icon: 'rest', kind: 'rest', lines: ['全員 SP 回復 50%（等的時候休息一下）'], go: run => { spAll(run, .5); return '總務十分鐘就修好了，大家趁機休息'; } }] },
 };
+Object.assign(EVENTS, {
+  mentor: { name: '帶新人', text: '人資把一個新人帶到你面前：「他今天報到，先跟著你們。」新人手上只有一本空白筆記本。', opts: [
+    { label: '認真教', icon: 'up_raise', kind: 'buff', lines: ['全員 SP －40%（講到口乾舌燥）', '全員攻擊力 ＋7%'], go: run => { spAll(run, -.4); run.atk *= 1.07; return '教了一輪，自己的觀念也順了一遍'; } },
+    { label: '丟一疊文件給他', icon: 'up_coffee', kind: 'item', lines: ['黑咖啡 ＋1（新人買來孝敬的）'], go: run => { run.items.coffee++; return '新人看不懂，只好跑去買咖啡請大家'; } }] },
+  checkup: { name: '年度健檢', text: '健檢車停在樓下，廣播第三次唸到你們部門的名字。', opts: [
+    { label: '乖乖去做', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 補滿', '珍珠奶茶 －1（醫生說少喝含糖飲料）'], ok: run => run.items.tea > 0, go: run => { hpAll(run, 1); run.items.tea--; return '抽血、量血壓、被唸了一頓。身體倒是調回來了'; } },
+    { label: '翹掉去補眠', icon: 'rest', kind: 'rest', lines: ['全員 SP 補滿'], go: run => { spAll(run, 1); return '在會議室角落睡了二十分鐘，神清氣爽'; } }] },
+  groupbuy: { name: '辦公室團購', text: '群組跳出訊息：「珍奶買十送二，還差三杯成團！」', opts: [
+    { label: '跟團', icon: 'up_drinks', kind: 'item', lines: ['珍珠奶茶 ＋2', '全員 HP －8%（下樓搬貨）'], go: run => { run.items.tea += 2; hpAll(run, -.08); return '搬了三箱上樓，換到兩杯'; } },
+    { label: '當主揪', icon: 'up_bento', kind: 'item', lines: ['雞排便當 ＋1（店家送的）', '全員 SP －25%（對帳對到眼花）'], go: run => { run.items.bento++; spAll(run, -.25); return '收錢、對帳、分飲料。店家多送一個便當'; } }] },
+  drill: { name: '消防演習', text: '警鈴響了。廣播說：「這是演習，請各樓層依序從安全梯疏散。」', opts: [
+    { label: '認真跑完', icon: 'up_chair', kind: 'buff', lines: ['全員 HP －12%', '受到的傷害 －7%'], go: run => { hpAll(run, -.12); run.def *= .93; return '跑了十二層樓。至少現在知道怎麼護住頭了'; } },
+    { label: '躲在廁所', icon: 'rest', kind: 'rest', lines: ['全員 SP 回復 40%'], go: run => { spAll(run, .4); return '安靜的二十分鐘，沒有人找'; } }] },
+  letter: { name: '老闆的勉勵信', text: '全公司都收到一封主旨是「致每一位夥伴」的長信，一共三千字。', opts: [
+    { label: '讀完還回信', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋12'], go: run => { run.moStart += 12; return '居然有一段寫得還不錯'; } },
+    { label: '已讀不回', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 回復 25%（省下來的時間拿去休息）'], go: run => { hpAll(run, .25); return '標成已讀，去泡了一杯茶'; } }] },
+  lost: { name: '失物招領', text: '影印機旁邊有一個沒寫名字的紙袋，裡面好像是飲料。', opts: [
+    { label: '送去櫃檯', icon: 'up_raise', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
+    { label: '自己留著', icon: 'gift', kind: 'item', lines: ['一半機會：黑咖啡 ＋2', '一半機會：珍珠奶茶 ＋2'], go: run => { if (run.rand() < .5) { run.items.coffee += 2; return '是兩杯黑咖啡'; } run.items.tea += 2; return '是兩杯珍珠奶茶'; } }] },
+});
 export const eventOk = (run, key, i) => { const o = EVENTS[key] && EVENTS[key].opts[i]; return !!o && (!o.ok || o.ok(run)); };
 export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[key].opts[i].go(run) : null; }
 export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -180,9 +201,11 @@ export function applyUpgrade(run, key, opt) { run.picks.push(key);
 // ---------- 存檔：站與站之間的進度（戰鬥打到一半不存，重開會回到進站前） ----------
 // SAVE_V＝存檔格式的版本。格式有變就加一，並在 MIGRATE[舊版號] 放一個把舊資料改成下一版的函式；
 // 沒有對應的轉換、或轉完檢查不過，loadRun 回傳 null（存檔作廢，不會帶著壞資料進遊戲）。
-export const SAVE_V = 2;
+export const SAVE_V = 3;
 // 1→2：行程表在第 5 站插了一層事件站，後面的樓層編號都往後一格
-const MIGRATE = { 1: d => { const K = 4, sh = o => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [+k >= K ? +k + 1 : +k, v])); if (d.floor >= K) { d.floor++; d.path.splice(K, 0, 0); } d.offers = sh(d.offers); d.events = {}; return d; } };
+// 2→3：第 8 站又插了一層事件站「樓梯間」
+const insertFloor = K => d => { const sh = o => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [+k >= K ? +k + 1 : +k, v])); if (d.floor >= K) { d.floor++; d.path.splice(K, 0, 0); } d.offers = sh(d.offers); d.events = sh(d.events); return d; };
+const MIGRATE = { 1: insertFloor(4), 2: insertFloor(7) };
 export function saveRun(run, extra = {}) { const { rand, node, ...d } = run; return { v: SAVE_V, ...JSON.parse(JSON.stringify(d)), ...extra }; }
 export function loadRun(data, rand = Math.random) {
   try {
