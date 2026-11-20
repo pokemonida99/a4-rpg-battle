@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.19.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.19.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -481,6 +481,7 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   guard: ['護衛中', '小兵還在場上時，打頭目沒有傷害。', '先把小兵清掉。'], pot: ['甩鍋', '課長每回合第一次被打，會甩給小兵承受。', '先用小招騙掉這一下，再放大招。'], audit: ['考績魔導士', '她的大招除了打全體，還會扣 40 氣勢。', '奧義亮了就放，不要存。'],
   parrot: ['鸚鵡長官', '他自己不出主意，只會「附議」一隻小兵，照抄那隻的行動。', '先打倒被附議的小兵，他那一次行動就落空。'], monkey: ['猴子長官', '他蓄力時會把大招丟給一隻小兵當「臨時專案」。', '在他放大招之前打倒那隻小兵，大招就落空。'],
   pig: ['豬腦長官', '他的大招威力看底氣：底氣全滿是 150%。', '蓄力之後多打他幾下，削到理虧只剩 50%。'],
+  unite: ['合體技', '特定的夥伴一起上場，技能選單裡會多一招金色的合體技。', '輪到其中一人、夥伴這回合還沒動時才能放；放了之後兩個人的行動都用掉。'],
   weak: ['弱點', '敵人頭上的兩格是弱點，一開始是「？」，用對屬性打中才會揭曉，之後永遠記得。', '打中弱點：傷害多三成、氣勢 ＋6，打頭目多削 1 點底氣。'], locks: ['屬性鎖', '頭目蓄力時頭上會出現三個屬性鎖。用那個屬性打中他一下，拆一個。', '每拆一個，大招弱 25%；三個全拆，大招取消、頭目理虧。'],
   hell_gate: ['補件通知', '人資長會先點名一個人（列管：受傷多三成），下一次只打他，而且是重擊，打完自己上護盾。', '被點名的人防禦、上護盾，或用「解除異常」清掉列管；坦克可以把攻擊引走。'], hell_archive: ['舊案回流', '主任開場和每次理虧恢復後，接下來兩次行動會先回血，而且下一次攻擊打全體又下毒。', '把傷害集中在理虧的時候打；中毒用「解除異常」清掉。'],
   hell_director: ['責任重新分配', '總監的血掉到七成、三成五時，下一次攻擊會變：前排有兩個人以上有護盾，就只打護盾最多的那個（很痛）；不然打全體。', '想讓坦克一個人扛，就先幫兩個人上護盾，並讓坦克的護盾最厚。'],
@@ -489,7 +490,7 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   mirror: ['鏡像內戰', '對面是自己人的鏡像，特長跟本人一樣：', '坦克普攻減半、補師會回血、小燕與黑輪扣 SP、阿傑打全體。'] };
 let tipNow = null;
 function pickTip(id) { const seen = PREF.tips || (PREF.tips = []), kinds = R.MINIONS.filter(m => R.alive(state, m) && state.kind[m] !== 'drone').map(m => 'k_' + state.kind[m]);
-  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.notice && 'hell_gate', state.L && state.L.backlog && 'hell_archive', state.L && state.L.reassign && state.reassign && 'hell_director', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
+  const want = ['basics', run.map === 'mirror' && 'mirror', state.round >= 2 && 'weak', id !== 'vivi' && R.unitesOf(id).some(U => R.uniteOk(state, id, U)) && 'unite', state.locks && state.charging && 'locks', state.charging && 'charge', state.broken && 'broken', R.guarded(state) && 'guard', S.pot() && 'pot', state.L && state.L.moDrain && 'audit', state.L && state.L.echo && 'parrot', state.L && state.L.proj && state.charging && 'monkey', state.L && state.L.brag && 'pig', state.L && state.L.notice && 'hell_gate', state.L && state.L.backlog && 'hell_archive', state.L && state.L.reassign && state.reassign && 'hell_director', state.L && state.L.wok && state.charging && 'tw_pot', state.L && state.L.fee && 'tw_night', state.L && state.L.layers && 'tw_roof', ...kinds.filter(k => R.KINDS[k.slice(2)].note), id !== 'vivi' && R.canUlt(state, id) && 'ult'].find(k => k && !seen.includes(k));
   if (!want) return (tipNow = null); seen.push(want); savePref(); const K = want.startsWith('k_') && R.KINDS[want.slice(2)]; tipNow = { t: performance.now(), title: K ? K.name : TIPS[want][0], lines: K ? [K.note + '。'] : TIPS[want].slice(1) }; }
 function drawTip() { if (!tipNow || phase !== 'command') return; const k = Math.min(1, (performance.now() - tipNow.t) / 220), Wd = 590, X = W - Wd - 14 + (1 - k) * 40, Y = 142, rows = tipNow.lines.flatMap(l => wrap(l, Wd - 56, 22)), Hh = 74 + rows.length * 32;
   c.save(); c.globalAlpha = k; skin.paper(X, Y, Wd, Hh, { clips: [X + 60] }); c.fillStyle = RED; c.fillRect(X + 22, Y + 22, 7, 30); text(tipNow.title, X + 42, Y + 47, { px: 28, w: 900, fam: SERIF, col: INK, ls: 4 }); text('第一次遇到', X + Wd - 24, Y + 44, { px: 17, w: 700, align: 'right', col: INK2 });
@@ -550,7 +551,12 @@ function openMenu(kind, arg) {
 const resetUnit = (u, vis, pose) => { u.dead = null; u.poseK.length = 0; u.moveK.length = 0; u.hitK.length = 0; u.hopK.length = 0; u.showK = [{ t: -1e9, v: vis }]; if (pose) u.pose(-1e9, pose); };
 // 前排站位（依人數）；Vivi 固定在後排
 const FORM = { 1: [[2.3, -.2]], 2: [[1.7, -1.0], [3.0, .5]], 3: [[1.4, -1.5], [2.4, -.3], [3.5, .9]], 4: [[1.4, -1.6], [2.25, -.5], [3.35, .5], [4.25, 1.5]] }, BACK = [5.55, -.55];
-function enterStage() {
+// 戰鬥背景：台灣篇照走到哪一段換一張大背景圖（掛在後牆前面，大廳的擺設收起來）。BGSRC＝[圖檔, 取圖的高度中心, 色調]；
+// 專屬背景圖（art/bg/）還沒畫之前，先拿地圖紙中間那一條頂著。地獄分公司沿用大廳。
+const BGSRC = { tw_1: ['art/map/tw_1.jpg', +(Q.get('cy') || .52), 0xb0a8b8], tw_2: ['art/map/tw_2.jpg', +(Q.get('cy') || .62), 0xa8a4c0], tw_3: ['art/map/tw_3.jpg', +(Q.get('cy') || .5), 0xa0a8b8] }, BG = {};
+const bgOf = () => run.map === 'taiwan' ? (run.floor <= 4 ? 'tw_1' : run.floor <= 8 ? 'tw_2' : 'tw_3') : null;
+function stageBackdrop() { const k = bgOf(), src = BGSRC[k]; if (!src) return arena.setBackdrop(null); if (BG[k]) return arena.setBackdrop(BG[k], src[2], src[1]); arena.setBackdrop(null); loadImg(src[0]).then(im => { BG[k] = im; if (bgOf() === k && phase !== 'hub') arena.setBackdrop(im, src[2], src[1]); }).catch(() => {}); }
+function enterStage() { stageBackdrop();
   const st = R.STAGES[R.stageOf(run, run.node)], L = st.boss; todo.length = 0; lastLog = []; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
   if (L && L.hero) mirrorBoss(L.hero); for (const m of R.SLOTS) { const K = R.KINDS[state.kind[m]]; if (K.hero) mirrorMinions(K.hero); }
   for (const u of [bossU, chiefU, auditU, ...Object.values(eliteU), ...Object.values(mirrorBossU)]) if (u) resetUnit(u, false, 'idle');
@@ -985,8 +991,8 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 }
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
-const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.19.0', '加班等級：通關後可以挑更難的版本，一共五級', ''], ['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'], ['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'], ['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'] ];
+const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化；岔路自己選：休息或特訓、福利、救人、找新同事', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
+const CHANGES = [['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'], ['v0.18.0', '第三張地圖「地獄分公司」：十三站、補給站與免費特訓站', '敵人會上護盾、點名列管、下毒；三個新頭目'], ['v0.17.0', '台灣篇換上新美術：三張地圖紙、三個頭目、六種小兵', '休息站可以改成「特訓」把招式升級；十五個新的辦公小物'], ['v0.16.0', '每個人多兩招、一個被動、普攻各有附帶效果；十一組合體技', '新狀態：護盾、再生、中毒、暈眩、攻擊提升；資料卡重排'], ['v0.15.0', '新路線「台灣篇」十二站三條支線；行程表地圖放大、可以拖著看', '六種屬性與弱點、頭目蓄力的屬性鎖；普攻和防禦會回 SP'], ['v0.14.0', '五個新壞人：鸚鵡長官、猴子長官、豬腦長官、大媽同事、臭臭阿北', '第 3、4、6、9 站每一輪會抽不同的對手，各有各的打法'], ['v0.13.1', '「隊伍與道具」重新排版：用滿整個畫面、字放大', '強化直接寫出名字和效果；夥伴名冊收到第二個頁籤'], ['v0.13.0', '敵人頭上會預告下一步；選目標時顯示大約打多少', '戰鬥可以調 1.5／2 倍速；岔路寫明得到與代價；結案報告多了打法與最後幾步'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -997,7 +1003,7 @@ function drawOverlay() {
     if (phase === 'title' && saved === undefined) saved = readSave();
     // 按鈕放右下角、小開關放左下角，中間留給封面上的主角群
     if (phase === 'title' && saved) { const r = saved.run; bigButton('繼續上班', 1660, 846, 420, 108, 'cont'); bigButton('重新開始', 1660, 968, 340, 84, 'new');
-      text(`上次的進度：第 ${r.floor + 1} 站` + (r.map === 'mirror' ? '（鏡像內戰）' : ''), 1870, 744, { px: 22, w: 900, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); text(`${r.roster.slice(0, 4).map(id => DEFS[id].name).join('、')}${r.roster.length > 4 ? ` 等 ${r.roster.length} 人` : ''}`, 1870, 774, { px: 20, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); }
+      text(`上次的進度：第 ${r.floor + 1} 站` + (r.map === 'mirror' ? '（鏡像內戰）' : MAPNAME[r.map] ? `（${MAPNAME[r.map]}）` : ''), 1870, 744, { px: 22, w: 900, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); text(`${r.roster.slice(0, 4).map(id => DEFS[id].name).join('、')}${r.roster.length > 4 ? ` 等 ${r.roster.length} 人` : ''}`, 1870, 774, { px: 20, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); }
     else if (phase === 'title') bigButton('開始上班', 1650, 930, 430, 118); else text(loadMsg + '…', 1650, 940, { px: 30, w: 500, align: 'center', col: COL.dim });
     toggles(28, 1016); toggle('玩法說明', 28, 966, 'help', 150); toggle('更新紀錄', 190, 966, 'log', 170);
     if (titleInfo) { zones = []; zones.push({ x: 0, y: 0, w: W, h: H, opt: 'infoClose' }); c.fillStyle = 'rgba(8,5,4,.72)'; c.fillRect(0, 0, W, H); const help = titleInfo === 'help', rows = help ? HELP : CHANGES, PWd = 1240, PHt = 150 + rows.length * (help ? 60 : 74), PX0 = W / 2 - PWd / 2, PY0 = H / 2 - PHt / 2;

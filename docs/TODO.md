@@ -17,6 +17,7 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [x] 戰鬥 2.0 第一包（v0.15.0，本機已 commit）：六屬性弱點、屬性鎖、普攻回 SP 6%、防禦回 10 SP、再動護欄、整體難度旋鈕 TUNE
 - [x] 戰鬥 2.0 第二包（v0.16.0，本機已 commit）：每人 +2 招（rules.js 的 NEW_SKILLS，效果清單 fx）、被動 PASSIVE、普攻附帶 RIDER；護盾、再生、中毒、暈眩、攻擊提升、吸引攻擊；新招式圖示先借舊的（ic），之後請美術補 32 個
 - [x] 第三包：合體技 11 組（UNITES、doUnite；放在技能選單，金色）；資料卡重排（特性、兩欄招式、合體技）
+- [x] v0.19.1：47 個專屬圖示接好（rules.js 的 ic 都拿掉了）；戰鬥背景機制 arena.setBackdrop()（scene.js）＋ game.js 的 BGSRC：台灣篇先用地圖紙中間那一條；美術排了四張專用背景 art/bg/{tw_1,tw_2,tw_3,hell}.jpg，到了把 BGSRC 的路徑換掉、cy 改 .5，並幫 hell 加一筆
 - [ ] 平衡：TUNE 現在是 hp 1.3／atk 1.5／bhp 1.4／batk 1.5／ult 1.65（一般行程一般玩家約 60～80%、台灣篇約 40%）；全部做完再調一次
 - [x] 第四包前半（v0.17.0）：休息站二選一「休息／特訓」（run.plus，招式名後面加＋）、十五個辦公小物（UPGRADES 後半、UP_TAG 標籤；圖示先借舊的）
 - [x] 加班等級（v0.19.0）：五級累加（rules.js 的 OVERTIME、run.ot；通關後 PREF.ot[地圖] +1，選完路線才問）；測試網址可加 &ot=3
