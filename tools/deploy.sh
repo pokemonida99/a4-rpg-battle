@@ -14,8 +14,9 @@ for d in chars enemy props tex cutin items map; do cp -R art/$d dist/art/; done
 find dist/art -name '*.json' -delete
 cp audio/sfx/*.mp3 audio/sfx/whoosh.wav dist/audio/sfx/ && rm -f dist/audio/sfx/*_alt.mp3
 cp audio/vo/*.mp3 audio/vo/*.json dist/audio/vo/ && cp audio/bgm/*.mp3 dist/audio/bgm/ && cp audio/pick.json dist/audio/
-[ -f out/shots/game_2_command.jpg ] && ffmpeg -y -v error -i out/shots/game_2_command.jpg -vf "scale=1200:-2,crop=1200:630" -q:v 4 dist/og.jpg
-for f in audio/pick.json audio/vo/attack.json audio/bgm/battle.mp3 audio/bgm/boss.mp3 audio/bgm/map.mp3 audio/bgm/victory.mp3 manifest.webmanifest icons/icon-192.png js/skin.js js/rules.js fonts/NotoSansTC.ttf art/map/table.jpg art/map/blueprint.jpg art/map/icons/battle.png art/map/icons/up_raise.png art/map/icons/sk_draft.png art/chars/yan_ready.png art/cutin/bust_xu.png; do [ -s dist/$f ] || { echo "建置少了 $f，停止"; exit 1; }; done
+# 分享縮圖：有標題畫面的截圖（out/shots/title_og.jpg）就用它，沒有就用封面主視覺
+ffmpeg -y -v error -i "$([ -f out/shots/title_og.jpg ] && echo out/shots/title_og.jpg || echo art/map/cover.jpg)" -vf "scale=1200:-2,crop=1200:630" -q:v 4 dist/og.jpg
+for f in audio/pick.json audio/vo/attack.json audio/bgm/battle.mp3 audio/bgm/boss.mp3 audio/bgm/map.mp3 audio/bgm/victory.mp3 manifest.webmanifest icons/icon-192.png js/skin.js js/rules.js fonts/NotoSansTC.ttf art/map/table.jpg art/map/blueprint.jpg art/map/cover.jpg art/map/icons/battle.png art/map/icons/up_raise.png art/map/icons/sk_draft.png art/chars/yan_ready.png art/cutin/bust_xu.png; do [ -s dist/$f ] || { echo "建置少了 $f，停止"; exit 1; }; done
 touch dist/.nojekyll
 find dist -name .DS_Store -delete
 du -sh dist

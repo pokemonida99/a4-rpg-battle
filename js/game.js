@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.11.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.12.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -28,7 +28,7 @@ const ui = makeUI(hudCv, A, S), c = hudCv.getContext('2d');
 for (const id of [...R.ALL]) if (!units[id]) R.ALL.splice(R.ALL.indexOf(id), 1);
 // 大地圖與卡片用的圖（桌面、藍圖、站點圖示、強化與招式的小圖示）。載不到就用程式畫的替代
 const loadImg = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
-A.map = { table: await loadImg('art/map/table.jpg'), blueprint: await loadImg('art/map/blueprint.jpg') }; A.icons = {};
+A.map = { table: await loadImg('art/map/table.jpg'), blueprint: await loadImg('art/map/blueprint.jpg'), cover: await loadImg('art/map/cover.jpg') }; A.icons = {};
 await Promise.all(['battle', 'elite', 'rest', 'gift', 'shop', 'event', 'recruit', 'rescue', 'hunt', 'chief', 'boss', 'clock', ...Object.keys(R.UPGRADES).map(k => 'up_' + k), 'sk_ult', ...Object.values(R.SKILLS).flat().map(k => 'sk_' + k.key)].map(async n => { A.icons[n] = await loadImg(`art/map/icons/${n}.png`); }));
 // 一輪＝走完行程表（肉鴿路線，rules.js 的 MAP）。開局選人選招式之後才真正開新的一輪；這裡先放一個暫時的，讓開始畫面後面有東西可以看
 const RAND = Q.has('seed') ? R.mulberry(+Q.get('seed')) : Math.random;
@@ -776,20 +776,29 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
   { const se = el - 1.9; if (se > 0) skin.stamp(k.win ? '討伐完成' : '未結案', X + PW - 210, Y + 112, -.12, 46, se < .2 ? lerp(2.4, 1, easeOut(se / .2)) : 1); }
   c.restore(); if (phase === 'over') bigButton(k.win ? '再玩一次' : '再挑戰一次', X + PW - 64 - 180, Y + PH - 88, 360, 92);
 }
+// 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
+let titleInfo = null, bootClosed = false;
+const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '手下還在場上的時候頭目不會受傷；把頭目的「底氣」打到歸零，他會理虧', '頭目蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去', '行程表左邊的隊伍可以點開：調順序、看每個人的素質與招式；戰鬥中也能開', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
+const CHANGES = [['v0.12.0', '開啟時有進度條、封面換成主視覺', '玩法說明與更新紀錄改成另外開'], ['v0.11.0', '第二張地圖「鏡像內戰」、行程表只留大地圖', '隊伍選單戰鬥中也能開；立繪可以滑到真人版；招募三選一'], ['v0.9.0', '行程表變十站，事件增加到 12 個', '六位夥伴放輔助招式有專屬動作'], ['v0.8.1', '新夥伴出招會喊聲，老鼠是吱吱聲', ''], ['v0.8.0', '事件站、三種新敵人、菁英考績魔導士', '八個流派強化、教學便條、全員招式圖示'], ['v0.7.2', '角色資料卡；在職進修可以自己挑招式', ''], ['v0.7.0', '11 位新夥伴的出招動畫', ''], ['v0.6.2', '進度自動存檔，標題可以「繼續上班」', '']];
 function drawOverlay() {
-  if (phase === 'title' || phase === 'load') { zones = []; c.fillStyle = 'rgba(10,7,6,.76)'; c.fillRect(0, 0, W, H);
-    text('不 想 上 班 RPG', W / 2, 168, { px: 34, w: 700, align: 'center', col: BRASS, ls: 10 });
-    text('上班旅人', W / 2, 350, { px: 190, w: 900, fam: SERIF, align: 'center', ls: 26, col: CREAM, stroke: 'rgba(20,10,4,.95)', sw: 18 });
-    c.fillStyle = BRASS; c.fillRect(W / 2 - 420, 398, 840, 3); text('討伐奧客總經理', W / 2, 458, { px: 44, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 14 }); skin.paper(W / 2 + 396, 268, 250, 58); skin.stamp(`試玩版 ${VERSION}`, W / 2 + 521, 297, 0, 26);
-    skin.paper(W / 2 - 520, 496, 1040, 262, { clips: [W / 2 - 440, W / 2 + 440] });
-    ['一個人出發，照行程表一站一站走到奧客總經理；路上招募同事，最多四人上場', '打贏戰鬥可以三選一強化；岔路自己選：休息、福利、救人或找新同事', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '小兵還在場上的時候魔王不會受傷；把魔王的「底氣」打到歸零，他會理虧', '魔王蓄力之後下一次行動放大招：用防禦、坦克的招式或奧義撐過去'].forEach((s, i) => { gem(W / 2 - 474, 534 + i * 46, 6, RED); text(s, W / 2 - 452, 544 + i * 46, { px: 26, w: 700, col: INK }); });
+  if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
+    // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
+    if (A.map.cover) c.drawImage(A.map.cover, 0, 0, W, H); else { c.fillStyle = 'rgba(10,7,6,.76)'; c.fillRect(0, 0, W, H); }
+    text('不 想 上 班 RPG', W / 2, 96, { px: 30, w: 700, align: 'center', col: '#f0d48a', ls: 12, stroke: 'rgba(20,10,4,.9)', sw: 6 });
+    text('上班旅人', W / 2, 262, { px: 176, w: 900, fam: SERIF, align: 'center', ls: 26, col: '#fff3d6', stroke: 'rgba(24,10,4,.96)', sw: 22 }); text('上班旅人', W / 2, 262, { px: 176, w: 900, fam: SERIF, align: 'center', ls: 26, col: '#fff3d6', stroke: BRASS, sw: 5 }); text('上班旅人', W / 2, 262, { px: 176, w: 900, fam: SERIF, align: 'center', ls: 26, col: '#fff3d6' });
+    c.fillStyle = 'rgba(20,10,4,.85)'; c.fillRect(W / 2 - 330, 296, 660, 9); c.fillStyle = BRASS; c.fillRect(W / 2 - 328, 298, 656, 5); text('討伐奧客總經理', W / 2, 356, { px: 40, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 14, stroke: 'rgba(20,10,4,.9)', sw: 8 }); skin.stamp(`試玩版 ${VERSION}`, W / 2 + 520, 204, -.08, 24);
     if (phase === 'title' && saved === undefined) saved = readSave();
-    if (phase === 'title' && saved) { const r = saved.run; bigButton('繼續上班', W / 2 - 250, 856, 460, 112, 'cont'); bigButton('重新開始', W / 2 + 250, 856, 380, 96, 'new');
-      text(`上次的進度：第 ${r.floor + 1} 站　${r.roster.slice(0, 4).map(id => DEFS[id].name).join('、')}${r.roster.length > 4 ? ` 等 ${r.roster.length} 人` : ''}　　重新開始會放棄這份進度`, W / 2, 787, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.82)' }); }
-    else if (phase === 'title') bigButton('開始上班', W / 2, 838); else text(loadMsg + '…', W / 2, 848, { px: 30, w: 500, align: 'center', col: COL.dim });
-    toggles(W / 2 - 166, 930);
+    // 按鈕放右下角、小開關放左下角，中間留給封面上的主角群
+    if (phase === 'title' && saved) { const r = saved.run; bigButton('繼續上班', 1660, 846, 420, 108, 'cont'); bigButton('重新開始', 1660, 968, 340, 84, 'new');
+      text(`上次的進度：第 ${r.floor + 1} 站` + (r.map === 'mirror' ? '（鏡像內戰）' : ''), 1870, 744, { px: 22, w: 900, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); text(`${r.roster.slice(0, 4).map(id => DEFS[id].name).join('、')}${r.roster.length > 4 ? ` 等 ${r.roster.length} 人` : ''}`, 1870, 774, { px: 20, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); }
+    else if (phase === 'title') bigButton('開始上班', 1650, 930, 430, 118); else text(loadMsg + '…', 1650, 940, { px: 30, w: 500, align: 'center', col: COL.dim });
+    toggles(28, 1016); toggle('玩法說明', 28, 966, 'help', 150); toggle('更新紀錄', 190, 966, 'log', 170);
+    if (titleInfo) { zones = []; zones.push({ x: 0, y: 0, w: W, h: H, opt: 'infoClose' }); c.fillStyle = 'rgba(8,5,4,.72)'; c.fillRect(0, 0, W, H); const help = titleInfo === 'help', rows = help ? HELP : CHANGES, PWd = 1240, PHt = 150 + rows.length * (help ? 60 : 74), PX0 = W / 2 - PWd / 2, PY0 = H / 2 - PHt / 2;
+      skin.wood(PX0, PY0, PWd, PHt); skin.paper(PX0 + 26, PY0 + 26, PWd - 52, PHt - 52, { clips: [PX0 + 120, PX0 + PWd - 120] }); text(help ? '玩法說明' : '更新紀錄', W / 2, PY0 + 92, { px: 44, w: 900, fam: SERIF, align: 'center', col: INK, ls: 10 }); c.fillStyle = RED; c.fillRect(W / 2 - 70, PY0 + 108, 140, 4);
+      rows.forEach((r, i) => { const y = PY0 + 164 + i * (help ? 60 : 74); if (help) { gem(PX0 + 78, y - 8, 6, RED); text(r, PX0 + 100, y, { px: 26, w: 700, col: INK }); } else { text(r[0], PX0 + 70, y, { px: 24, w: 900, col: RED }); text(fit(r[1], PWd - 300, 24), PX0 + 210, y, { px: 24, w: 900, col: INK }); if (r[2]) text(fit(r[2], PWd - 300, 20), PX0 + 210, y + 30, { px: 20, w: 700, col: INK2 }); } });
+      text('點任何地方關閉', W / 2, PY0 + PHt + 40, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.8)' }); }
     { const tip = a2hs(); if (tip) { const x = 1392, y = 52, w = 492, h = 150, pe = pressed && pressed.opt === 'a2hs' ? 1 : 0; zones.push({ x, y, w, h, opt: 'a2hs' }); c.save(); c.translate(0, pe ? 4 : 0); skin.paper(x, y, w, h, { clips: [x + 60, x + w - 60] });
-        if (iconImg) { c.imageSmoothingEnabled = false; c.drawImage(iconImg, x + 20, y + 22, 106, 106); c.imageSmoothingEnabled = true; } text(tip[0], x + 144, y + 62, { px: 28, w: 900, fam: SERIF, col: INK }); text(tip[1], x + 144, y + 98, { px: 20, w: 700, col: INK2 }); text(installEvt ? '' : '點一下這張紙就不再提醒', x + 144, y + 128, { px: 16, w: 500, col: 'rgba(43,31,24,.55)' }); c.restore(); } } text('滑鼠／觸控點選，或用方向鍵與 Enter', W / 2, 1022, { px: 21, w: 500, align: 'center', col: 'rgba(239,230,207,.7)' }); }
+        if (iconImg) { c.imageSmoothingEnabled = false; c.drawImage(iconImg, x + 20, y + 22, 106, 106); c.imageSmoothingEnabled = true; } text(tip[0], x + 144, y + 62, { px: 28, w: 900, fam: SERIF, col: INK }); text(tip[1], x + 144, y + 98, { px: 20, w: 700, col: INK2 }); text(installEvt ? '' : '點一下這張紙就不再提醒', x + 144, y + 128, { px: 16, w: 500, col: 'rgba(43,31,24,.55)' }); c.restore(); } } text('滑鼠／觸控點選，或用方向鍵與 Enter', 1870, 1060, { px: 18, w: 700, align: 'right', col: 'rgba(239,230,207,.85)', stroke: 'rgba(20,10,4,.8)', sw: 4 }); }
   drawReport();
 }
 
@@ -801,6 +810,7 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (
 function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
   if (z.opt === 'a2hs') { pressed = { opt: 'a2hs', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(r => { if (r && r.outcome === 'accepted') installed = true; }).catch(() => 0); } else { PREF.noA2hs = true; savePref(); } return; }
+  if (z.opt === 'help' || z.opt === 'log' || z.opt === 'infoClose') { pressed = { opt: z.opt, t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; titleInfo = z.opt === 'infoClose' ? null : z.opt; }, PRESS_MS); return; }
   if (z.opt === 'panel') { pressed = { opt: 'panel', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; if (phase === 'command' && menu && !panel) openPanel(); }, PRESS_MS); return; }
   if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.off) { pressed = { i: z.i, t: performance.now() }; uiSound('no'); buzz([8, 40, 8]); setTimeout(() => { pressed = null; }, 260); return; }
