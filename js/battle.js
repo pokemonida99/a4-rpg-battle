@@ -50,7 +50,7 @@ export const WIDE = { x: .65, y: 1.5, z: -.3, d: 12.9, pitch: 10, fov: 28, blur:
 const ULT_T = [0, .13, .28, .44, .51, .58, .92, 1.12], PEAK = .58;      // 大招 8 格各自開始的時間；第 6 格是出手的頂點
 
 // 場景、角色、特效層、狀態軌道：影片（buildBattle）和試玩版（game.js）共用
-export async function setupStage(E) {
+export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版用）：新夥伴的半身像與眼神特寫先不載，回傳的 A.rest 之後在背景補齊（A.restDone／A.restN 是進度）
   const arena = await buildArena(E), g = arena.group;
   // ---------- 載入素材 ----------
   const tryTex = async url => { try { return await loadTex(url); } catch (e) { return null; } };
@@ -66,20 +66,20 @@ export async function setupStage(E) {
     if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
     const s = d.hgt * PPU / f.ready.image.height; f.ult.k = ult.every(Boolean) ? f.ready.image.height / ult[0].image.height : 1;      // 逐格圖的像素密度可能跟站姿圖不同，用第一格的高度對齊
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: s, tint: 0xf2ecff, phase: PARTY.indexOf(id) * .37 });
-    [A.bust[id], A.eyes[id]] = await Promise.all([img(`art/cutin/bust_${id}.png`), img(`art/cutin/eyes_${id}.jpg`)]);
+    if (!opts.lazy) [A.bust[id], A.eyes[id]] = await Promise.all([img(`art/cutin/bust_${id}.png`), img(`art/cutin/eyes_${id}.jpg`)]); else if (id === 'kui' || id === 'jie') A.bust[id] = await img(`art/cutin/bust_${id}.png`);      // 試玩版：開局選主角要用到的兩張先載，其他的進標題畫面後再補
   }));
   // 新夥伴：所有人、所有圖同時載，載完再照順序放進場景
   const extra = await Promise.all(EXTRA.map(async id => { const opt = p => p.catch(() => null);
   const SUPPORT = ['cha', 'wu', 'you', 'fairy', 'zong', 'xu'];      // 有輔助招式 4 格動作的人（art/chars/anim/<代號>_s1~4.png）
-    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opt(img(`art/cutin/bust_${id}.png`)), opt(img(`art/cutin/eyes_${id}.jpg`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)), ...['s1', 's2', 's3', 's4'].map(i => SUPPORT.includes(id) ? tryTex(`art/chars/anim/${id}_${i}.png`) : null)]);
+    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opts.lazy ? null : opt(img(`art/cutin/bust_${id}.png`)), opts.lazy ? null : opt(img(`art/cutin/eyes_${id}.jpg`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)), ...['s1', 's2', 's3', 's4'].map(i => SUPPORT.includes(id) ? tryTex(`art/chars/anim/${id}_${i}.png`) : null)]);
     return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes, atk: atk.slice(0, 8), sup: atk.slice(8) }; }));
   for (const { id, f, hurt, guard, ko, bust, eyes, atk, sup } of extra) { const d = DEFS[id];
-    if (!f.ready || !f.wind || !f.act || !f.win || !bust) { d.missing = true; continue; }
+    if (!f.ready || !f.wind || !f.act || !f.win || (!bust && !opts.lazy)) { d.missing = true; continue; }
     f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean); if (sup.every(Boolean)) { f.sup = sup; f.sup.k = 1; }      // 輔助招式的 4 格（聊天、跳舞、喝咖啡…，tools/atk.py --sup 切的）；沒有就用出招的動作      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
     if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (ko.every(Boolean)) f.ko = ko;
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
     A.bust[id] = bust; A.eyes[id] = eyes;
-    d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)];      // 頭像：半身像上半部中間偏左（臉朝左）
+    if (bust) d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)];      // 頭像：半身像上半部中間偏左（臉朝左）
   }
   { const d = DEFS.boss, idle = await loadTex('art/enemy/boss_idle.png'), atk = await loadTex('art/enemy/boss_atk.png');
     const seq = await Promise.all([1, 2, 3, 4, 5, 6].map(i => tryTex(`art/enemy/anim/boss_${i}.png`)));
@@ -92,6 +92,8 @@ export async function setupStage(E) {
   // 頭像：隊友從半身像裁臉，敵人從像素圖裁
   const crop = (im, [x, y, s]) => { const c = document.createElement('canvas'); c.width = c.height = 96; const k = c.getContext('2d'); k.imageSmoothingEnabled = false; k.drawImage(im, x, y, s, s, 0, 0, 96, 96); return c; };
   for (const id of [...PARTY, ...EXTRA]) if (A.bust[id]) A.face[id] = crop(A.bust[id], DEFS[id].face);
+  { const later = opts.lazy ? [...PARTY, ...EXTRA].filter(id => units[id] && (!A.bust[id] || !A.eyes[id])) : []; A.restN = later.length; A.restDone = 0; const opt2 = p => p.catch(() => null);
+    A.rest = () => Promise.all(later.map(async id => { const d = DEFS[id], [bust, eyes] = await Promise.all([A.bust[id] || opt2(img(`art/cutin/bust_${id}.png`)), opt2(img(`art/cutin/eyes_${id}.jpg`))]); A.bust[id] = bust; A.eyes[id] = eyes; if (bust && !A.face[id]) { d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)]; A.face[id] = crop(bust, d.face); } A.restDone++; })); }
   A.face.boss = crop(units.boss.frames.idle.image, DEFS.boss.face); A.face.ma = A.face.mb = A.face.mc = A.face.md = crop(units.ma.frames.idle.image, DEFS.ma.face);
 
   // ---------- 特效 ----------

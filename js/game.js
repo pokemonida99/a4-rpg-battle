@@ -22,7 +22,7 @@ let loadMsg = '載入中', booted = false;
 await Promise.all(['500 40px "Noto Sans TC"', '700 40px "Noto Sans TC"', '900 40px "Noto Sans TC"', '700 40px "Songti TC"', '900 40px "Songti TC"'].map(f => document.fonts.load(f, '奧客總經理吐槽一閃').catch(() => 0)));
 // 規則的數值蓋到顯示用的設定上（血條長度、選單上的 SP 消耗）
 for (const id of R.ALL) { DEFS[id].hp = R.STAT[id].hp; DEFS[id].sp = R.STAT[id].sp; DEFS[id].cost = R.STAT[id].cost; if (R.ULTS[id]) DEFS[id].desc = R.ULTS[id][1]; }
-const E = makeEngine(gl), { arena, g: stageGroup, units, A, FXL, SFX, fx, S, cam, num } = await setupStage(E);
+const E = makeEngine(gl), { arena, g: stageGroup, units, A, FXL, SFX, fx, S, cam, num } = await setupStage(E, { lazy: true });
 const ui = makeUI(hudCv, A, S), c = hudCv.getContext('2d');
 // 圖還沒齊的夥伴先不放進招募名單
 for (const id of [...R.ALL]) if (!units[id]) R.ALL.splice(R.ALL.indexOf(id), 1);
@@ -1178,6 +1178,7 @@ function frame(ts) {
 }
 units.md.show(-2, false); cam.to(-1, 0, WIDE); enterStage();
 window.__game = { get state() { return state; }, get mapCam() { return [...mapCam, mapZ]; }, mapLook: (p, snap) => mapLook(p, snap), sheet: id => openSheet(id), get sheetId() { return sheet; }, openPanel: () => openPanel(), tab: t => { panelTab = t; refreshPanel(); }, flip: () => flipSheet(), get panel() { return panel; }, get run() { return run; }, go: i => chooseNode(i), get front() { return R.FRONT.slice(); }, S, units, get phase() { return phase; }, testReport: win => { phase = 'over'; menu = null; if (S.ui.length) S.ui.at(-1).t1 = now; if (!win) SFX.add('black', now, 1e9, { from: .72, to: .72 }); openReport(now, win); }, get saved() { return saved; }, resume: () => press(zones.find(z => z.act === 'cont')), get now() { return now; }, get menu() { return menu; }, get actor() { return actor; }, press: i => { focus = i; menu.items[i].go(); }, tap: i => press({ i, off: !!menu.items[i].off }), start: () => press(zones.find(z => z.big)) };
-booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load'; audioReady.then(() => { if (phase === 'load') phase = 'title'; });
+booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load';      // 標題畫面先出來；聲音與新夥伴的立繪在背景載，載完才能按開始
+{ const rest = A.rest(); const tick = setInterval(() => { loadMsg = A.restN && A.restDone < A.restN ? `夥伴載入中 ${A.restDone}／${A.restN}` : '聲音載入中'; }, 200); Promise.all([audioReady, rest]).then(() => { clearInterval(tick); if (phase === 'load') phase = 'title'; }); }
 // 等聲音太久（網路慢）也讓玩家先開始
 setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
