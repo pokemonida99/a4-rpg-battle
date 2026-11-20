@@ -147,7 +147,7 @@ for (const [k, like, name, move, note] of [['tw_drone', 'drone', '燈彩值班�
 // 台灣篇三種小兵有自己的行為（v0.27）：pack＝同場每多一隻同種的，攻擊多這個比例；late＝被他打中的人「過號」，下一回合排到最後才動；hype＝補血的對象是小兵的話，那隻下一次攻擊 ×1.3
 Object.assign(KINDS.tw_drone, { atk: .9, pack: .2, note: '結伴值班：同場每多一隻值班兵，攻擊多兩成。先打倒一隻，或用全體招式一起清' });
 Object.assign(KINDS.tw_courier, { late: true, note: '動作快，被他打中會扣 25 SP，還會「過號」：下一回合排到最後才動' });
-Object.assign(KINDS.tw_intern, { hype: true, note: '會幫受傷的敵人回血，被補到的小兵下一次攻擊多三成。先解決他' });
+Object.assign(KINDS.tw_intern, { hype: true, note: '會幫受傷的敵人回血，被補到的小兵下一次攻擊傷害 ＋30%。先解決他' });
 export const packN = (s, id) => { const K = KINDS[s.kind[id]]; return K && K.pack ? MINIONS.filter(m => m !== id && alive(s, m) && s.kind[m] === s.kind[id]).length : 0; };
 // 地獄分公司的一般敵人：長得像原本那幾種，行為不一樣。
 // firstWard＝第一次行動先替自己上護盾；hexMark＝打中的人被「列管」（受到的傷害 +30%，到他行動兩次為止）；heavy＝每第幾次行動是 1.6 倍重擊；wardAlly＝每兩次行動有一次改成替同伴上護盾；hexPoison＝打中的人中毒兩回合（每回合扣這個比例的最大 HP）
@@ -394,13 +394,13 @@ Object.assign(EVENTS, {
     { label: '讀完還回信', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋12'], go: run => { run.moStart += 12; return '居然有一段寫得還不錯'; } },
     { label: '已讀不回', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 回復 25%（省下來的時間拿去休息）'], go: run => { hpAll(run, .25); return '標成已讀，去泡了一杯茶'; } }] },
   rec_elevator: { name: '電梯裡的紙箱', recruit: true, text: '電梯門一開，裡面的同事抱著紙箱：「我那組被併掉了，你們還缺人嗎？」', opts: [
-    { label: '還有位子，上來', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '全員 SP －20%（陪他重跑報到流程）'], ok: run => run.roster.length < 6, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; spAll(run, -.2); return `${NAME[id]}抱著紙箱加入了`; } },
+    { label: '我們缺人，一起走', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '全員 SP －20%（陪他重跑報到流程）'], ok: run => run.roster.length < 6, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; spAll(run, -.2); return `${NAME[id]}抱著紙箱加入了`; } },
     { label: '幫他按開門鍵', icon: 'up_coffee', kind: 'item', lines: ['黑咖啡 ＋1（他塞給你的）'], go: run => { run.items.coffee++; return '他說謝謝，順手塞了一罐咖啡給你'; } }] },
   rec_loan: { name: '跨部門借調', recruit: true, text: '隔壁部門的主管攔住你：「人可以借你們，但我們有個案子，你們順便扛一下。」', opts: [
     { label: '成交，借人', icon: 'hunt', kind: 'buff', lines: ['一位同事加入（隨機）', '全員 HP －15%（多扛一個案子）'], ok: run => run.roster.length < 6, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; hpAll(run, -.15); return `${NAME[id]}被借調過來了`; } },
-    { label: '婉拒，自己的事自己做', icon: 'rest', kind: 'heal', lines: ['全員 HP 回復 25%（省下一個案子的力氣）'], go: run => { hpAll(run, .25); return '少扛一個案子，大家鬆了一口氣'; } }] },
+    { label: '婉拒，我們也忙不過來', icon: 'rest', kind: 'heal', lines: ['全員 HP 回復 25%（省下一個案子的力氣）'], go: run => { hpAll(run, .25); return '少扛一個案子，大家鬆了一口氣'; } }] },
   rec_lunch: { name: '午餐併桌', recruit: true, text: '員工餐廳客滿，只好跟不認識的同事併桌。聊著聊著，對方說想換個團隊試試。', opts: [
-    { label: '這頓我請，一起走', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '珍珠奶茶 －1（請客）'], ok: run => run.roster.length < 6 && run.items.tea > 0, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; run.items.tea--; return `${NAME[id]}端著餐盤坐過來，決定跟你們走`; } },
+    { label: '請你喝奶茶，一起走', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '珍珠奶茶 －1（請客）'], ok: run => run.roster.length < 6 && run.items.tea > 0, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; run.items.tea--; return `${NAME[id]}端著餐盤坐過來，決定跟你們走`; } },
     { label: '聊聊就好', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋8（聽到別組更慘）'], go: run => { run.moStart += 8; return '聽完他們那組的事，突然覺得自己還行'; } }] },
   lost: { name: '失物招領', text: '影印機旁邊有一個沒寫名字的紙袋，裡面好像是飲料。', opts: [
     { label: '送去櫃檯', icon: 'up_raise', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
@@ -468,10 +468,10 @@ export const JOBS = {
   fire: ['救火組長', '每場戰鬥第一回合，造成的傷害 ＋30%', '第三回合起，普攻傷害 －15%', '先救，誰點的火晚點再查。'],
   welfare: ['福利委員', '戰鬥中的回復量 ＋30%', '造成的傷害 －8%', '照顧大家也算在工作內容裡。'],
   risk: ['風控專員', '防禦時多回 20 SP，並得到 300 護盾', '每場戰鬥第一回合，造成的傷害 －20%', '風險我先寫進會議紀錄了。'],
-  window: ['專案窗口', '打中弱點傷害再 ＋10%，出手的人 SP ＋6', '沒打中弱點的攻擊，傷害 －10%', '需求麻煩一次講清楚。'],
+  window: ['專案窗口', '打中弱點時傷害再 ＋10%，出手的人回 6 SP', '沒打中弱點的攻擊，傷害 －10%', '需求麻煩一次講清楚。'],
   duty: ['值班主任', '護盾量 ＋35%', '戰鬥中的回復量 －20%', '問題先擋著，明天再說。'],
   edu: ['教育委員', '主角一開始就會全部招式', '過關獎勵從三選一變成二選一', '預算都拿去上課了。'],
-  buyer: ['採購主任', '開局有 60 點報帳額度，之後多拿五成', '休息站回復的 HP 少三成', '省到了，命也快沒了。'],
+  buyer: ['採購主任', '開局有 60 點報帳額度，之後拿到的 ＋50%', '休息站回復的 HP 少三成', '省到了，命也快沒了。'],
   hr: ['人資專員', '開局多一位同事同行（隨機）', '受到的傷害 ＋5%', '人我找來了，剩下的你們自己喬。'],
   host: ['會議主持', '每場戰鬥開場氣勢 ＋20', '招式的 SP 消耗 ＋10%', '大家先 sync 一下，五分鐘就好。'] };
 // 開局給三個職位挑（沒有採買站的地圖不出採購主任）
