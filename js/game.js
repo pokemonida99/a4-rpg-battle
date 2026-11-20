@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.27.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.28.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -676,11 +676,12 @@ function beginRun(id, key) { run = R.newRun(RAND, id, key, mapKey, Q.has('ot') ?
   R.prepare(run); snd(now, 'buff', .8); const hubMsg = () => openHub(`${DEFS[id].name}出發，第一招「${R.SKILLS[id].find(k => k.key === key).name}」` + (run.job ? `　代理${R.JOBS[run.job][0]}` : '') + (run.job === 'hr' && run.roster[1] ? `　${DEFS[run.roster[1]].name}同行` : ''));
   const ST = STORY[run.map], seenIntro = PREF.intro || (PREF.intro = []); if (!ST || (Q.has('map') && !Q.has('intro')) || (seenIntro.includes(run.map) && !Q.has('intro'))) return hubMsg(); seenIntro.push(run.map); savePref();
   openCards({ title: ST.title, sub: '', foot: '', wide: true, items: [{ label: '出發', icon: ST.icon, big: true, lines: ST.intro, go: hubMsg }] }); }
-function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || {})[i] || []; if (!list.length) { R.advance(run); return openHub('名冊已經滿了，這一站沒有人可以帶'); }
-  openCards({ title: nd.name, sub: '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: '選完回到行程表', items: list.map(id => heroCard(id, () => { R.join(run, id); met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍`); })) }); }
+function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || {})[i] || [], out = R.swapOut(run); if (!list.length || out === null) { R.advance(run); return openHub('這一站沒有人可以帶'); }
+  openCards({ title: nd.name, sub: out ? `名冊滿了（六人）。帶新同事走的話，名冊最後一位「${DEFS[out].name}」會回公司；想留他，先回行程表調整順序。` : '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: out ? '選一位，或按「先不帶人」' : '選完回到行程表',
+    items: [...list.map(id => heroCard(id, () => { const gone = R.joinOrSwap(run, id); if (gone === null) return; met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍` + (gone ? `，${DEFS[gone].name}回公司了` : '')); })), ...(out ? [{ label: '先不帶人', tag: '回行程表', icon: 'rest', lines: ['不會前進：可以改走別的站，', '或調整名冊順序再回來'], go: () => openHub('名冊滿了：調整順序後可以再來，或改走別的站') }] : [])] }); }
 // 事件站：抽到的事件攤開成兩張選項卡，代價與好處都寫在卡上；選不了的（東西不夠）是舊紙
 function openEvent() { const key = run.events[run.floor], ev = R.EVENTS[key];
-  openCards({ title: ev.name, sub: ev.text, foot: '選一個，選完回到行程表', items: ev.opts.map((o, j) => ({ label: o.label, icon: o.icon, lines: o.lines, big: true, off: !R.eventOk(run, key, j), go: () => { const msg = R.applyEvent(run, key, j); if (run.reveal) { const L0 = Object.values(R.STAGES).map(st => st.boss).find(b => b && b.id === run.reveal); if (L0) { const W0 = PREF.weak || (PREF.weak = {}), kq = W0[L0.id] || (W0[L0.id] = {}); for (const t of L0.weak) kq[t] = 1; savePref(); } run.reveal = null; } if (msg == null) return; snd(now, 'buff', .8); R.advance(run); openHub(`${ev.name}：${msg}`); } })) }); }
+  openCards({ title: ev.name, sub: ev.text, foot: '選一個，選完回到行程表', items: ev.opts.map((o, j) => ({ label: o.label, icon: o.icon, lines: o.lines, big: true, off: !R.eventOk(run, key, j), go: () => { const msg = R.applyEvent(run, key, j); if (run.reveal) { const L0 = Object.values(R.STAGES).map(st => st.boss).find(b => b && b.id === run.reveal); if (L0) { const W0 = PREF.weak || (PREF.weak = {}), kq = W0[L0.id] || (W0[L0.id] = {}); for (const t of L0.weak) kq[t] = 1; savePref(); } run.reveal = null; } if (msg == null) return; for (const h of run.roster) met(h); snd(now, 'buff', .8); R.advance(run); openHub(`${ev.name}：${msg}`); } })) }); }
 // 休息站二選一：休息（回血、補 SP），或特訓（三個招式挑一個升級成「＋」：傷害與回復量 ＋25%、SP 消耗 －20%，每招一次）
 function openRest(nd, free) { const place = nd.name || '茶水間', tr = R.offerTrain(run), hurt = run.roster.filter(id => id !== 'vivi').reduce((a, id) => a + (R.STAT[id].hp - run.hp[id]), 0);
   const rest = () => { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在${place}休息：全隊共回復 ${v} HP，SP 補滿` : `在${place}休息：SP 補滿（HP 本來就是滿的）`); };
@@ -810,7 +811,7 @@ function drawTable(dim) { if (A.map.table) c.drawImage(A.map.table, 0, 0, W, H);
 // 行程表各站在藍圖上的位置（藍圖原圖 1536×1024 的座標）。一樓三站 → 電梯 → 二樓 → 樓梯 → 三樓 → 塔頂
 function mirrorBlueprint() { if (A.map.mirror || !A.map.blueprint) return A.map.mirror; const im = A.map.blueprint, cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height; const x = cv.getContext('2d');
   x.translate(im.width, 0); x.scale(-1, 1); x.drawImage(im, 0, 0); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = '#8f86cf'; x.fillRect(0, 0, cv.width, cv.height); x.globalCompositeOperation = 'screen'; x.fillStyle = 'rgba(40,24,90,.35)'; x.fillRect(0, 0, cv.width, cv.height); return (A.map.mirror = cv); }
-const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 606]], [[600, 606]], [[440, 318], [440, 418], [250, 368]], [[720, 368]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 606], [200, 368]] }, START = [296, 868];
+const STN = [[[430, 868]], [[760, 868]], [[1090, 868]], [[1090, 512], [1090, 612]], [[845, 512], [845, 612]], [[600, 562]], [[440, 318], [440, 418], [250, 368]], [[720, 318], [720, 418]], [[1000, 318], [1000, 418]], [[768, 190]]], VIA = { 2: [[1347, 868], [1347, 562]], 5: [[200, 562], [200, 368]] }, START = [296, 868];
 // 行程表地圖：畫面＝(世界座標 − 鏡頭) × 倍率。每張地圖有一到三張「地圖紙」並排，各站位置寫在世界座標；可以用手指或滑鼠拖著看，右上角切換「放大／全覽」
 // 台灣篇三張紙（廟埕燈會、不夜城夜市、頂樓加蓋）；三條支線由上到下是 a、b、c
 const ZBIG = 1.5, VIEW = { x0: 328, x1: 1906, y0: 8, y1: 908 }, MAPNAME = { mirror: '鏡像', taiwan: '台灣篇', hell: '地獄分公司' };      // VIEW＝沒被隊伍欄、下方說明蓋住的範圍
@@ -823,7 +824,7 @@ const LAY = { office: { sheets: [['blueprint', 0, 0]], stn: STN, via: VIA, start
   // 地獄分公司：兩張地圖紙（design/hell/README.md 的空位座標）。第 5 站頭目在第一張右邊的電梯，最後三層在第二張右邊打通的大辦公廳
   hell: { sheets: [['hell_1', 0, 0], ['hell_2', 1580, 0]], via: {}, start: [150, 626], titles: ['地下一到三層', '最深處'],
     stn: [[[344, 626]], [[619, 626]], [[897, 358], [897, 626], [897, 891]], [[1176, 358], [1175, 626], [1176, 891]], [[1384, 626]],
-      sx(1, [[357, 382], [371, 605], [359, 814]]), sx(1, [[566, 382], [571, 605], [568, 814]]), sx(1, [[772, 382], [774, 604], [774, 815]]), sx(1, [[979, 382]]), sx(1, [[985, 604]]),
+      sx(1, [[357, 382], [371, 605], [359, 814]]), sx(1, [[566, 382], [571, 605], [568, 814]]), sx(1, [[772, 382], [774, 604], [774, 815]]), sx(1, [[979, 382]]), sx(1, [[985, 604], [983, 814]]),
       sx(1, [[1110, 250], [1110, 430], [1110, 610]]), sx(1, [[1400, 250], [1400, 430], [1400, 610]]), sx(1, [[1260, 830]])] },
   taiwan: { sheets: TWX.map((x, i) => ['tw_' + (i + 1), x, 0]), stn: TW_STN, via: {}, start: [150, 640], titles: ['廟埕燈會', '不夜城夜市', '頂樓加蓋'] } };
 const lay = () => LAY[run.map] || LAY.office, laySize = () => [Math.max(...lay().sheets.map(s => s[1])) + 1536, 1024];
@@ -1083,7 +1084,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'] ];
+const CHANGES = [['v0.28.0', '招募機會變多：多了人力銀行、假日救援戰、三個「有人想加入」的事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻時不用選對象'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

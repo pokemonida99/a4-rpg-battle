@@ -172,6 +172,7 @@ export const MO = { start: 30, max: 100, ult: 40, attack: 14, skill: 14, defend:
 export const STAGES = {
   intro: { name: '遲到的社畜', sub: '第一天上班', minions: ['ma', 'mb'], minion: { hp: 3400, atk: 330 }, boss: null },
   crowd: { name: '加班大隊', sub: '人越來越多了', minions: ['ma', 'mb', 'mc'], kinds: { mc: 'courier' }, minion: { hp: 4200, atk: 340 }, boss: null },
+  holiday: { name: '假日加班場', sub: '說好的補休呢', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'knight', mb: 'smoker', mc: 'intern' }, minion: { hp: 6000, atk: 450 }, boss: null },
   night: { name: '夜班大隊', sub: '燈還亮著', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'knight', mc: 'intern' }, minion: { hp: 5600, atk: 430 }, boss: null },
   // 第三、四站的另外幾種組合（每一輪抽一種，見 MAPS 的 pool）：大媽和阿北第一次登場不同場，阿北不跟重甲兵同場
   crowd_a: { name: '總務櫃檯', sub: '這個我沒經手，你問隔壁看看', minions: ['ma', 'mb', 'mc'], kinds: { mc: 'auntie' }, minion: { hp: 4000, atk: 340 }, boss: null },
@@ -234,6 +235,7 @@ export const STAGES = {
   // ---- 鏡像內戰的關卡：hero＝這個頭目長得像誰（畫面拿那個夥伴的圖翻過來用） ----
   m1: { name: '鏡子裡的同事', sub: '那不是我嗎', minions: ['ma', 'mb'], kinds: { ma: 'm_heilun', mb: 'm_cha' }, minion: { hp: 4000, atk: 400 }, boss: null },
   m2: { name: '鏡像加班', sub: '連加班的樣子都一樣', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'm_qiang', mb: 'm_yan', mc: 'm_xu' }, minion: { hp: 4600, atk: 420 }, boss: null },
+  m4: { name: '鏡像假日班', sub: '連補休都一起沒了', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'm_kevin', mb: 'm_heilun', mc: 'm_mi' }, minion: { hp: 6000, atk: 480 }, boss: null },
   m3: { name: '鏡像夜班', sub: '對面也還沒下班', minions: ['ma', 'mb', 'mc'], kinds: { ma: 'm_zong', mb: 'm_senpai', mc: 'm_wu' }, minion: { hp: 5600, atk: 470 }, boss: null },
   m_kevin: { name: '鏡像 Kevin', sub: '這個，用 AI 擋就好了', minions: ['ma', 'mb'], kinds: { ma: 'm_you', mb: 'm_mi' }, minion: { hp: 3600, atk: 420 },
     boss: { id: 'm_kevin', hero: 'kevin', name: '鏡像 Kevin', hp: 58000, spd: 150, spd2: 0, atk: 1000, shield: 9, cycle: 4, guard: false, pot: false, ult: 1000, text: { charge: '蓄力　鐵壁展開', atk: '盾擊', ult: '奧義　用 AI 壓過去', summon: '召喚　叫鏡像來擋' } } },
@@ -258,10 +260,10 @@ export const MAPS = { office: [
   [{ type: 'recruit', name: '新人報到', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'crowd', pool: ['crowd', 'crowd_a', 'crowd_s'], tag: '戰鬥', icon: 'battle' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'night', pool: ['night', 'night_a', 'night_s'], tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
-  [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
+  [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'recruit', name: '人力銀行', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'chief', pool: ['chief', 'parrot', 'monkey'], tag: '頭目', icon: 'chief' }],
   [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
-  [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
+  [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'battle', stage: 'holiday', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'audit', pool: ['audit', 'pig'], tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'boss', tag: '魔王', icon: 'boss' }],
 ],
@@ -270,10 +272,10 @@ export const MAPS = { office: [
   [{ type: 'recruit', name: '新人報到', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'm2', tag: '戰鬥', icon: 'battle' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm3', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
-  [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
+  [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'recruit', name: '人力銀行', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'm_kevin', tag: '頭目', icon: 'chief' }],
   [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
-  [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }],
+  [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'battle', stage: 'm4', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm_fairy', tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'm_vivi', tag: '魔王', icon: 'boss' }],
 ] };
@@ -308,7 +310,7 @@ MAPS.hell = [
   own([B('hell_loop', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('hell_fridge', '救援', 'rescue', RESCUE), B('hell_sign')]),
   [EVT('加班同意書'), SUP('福委會預算', { bento: 1, coffee: 1 }, '雞排便當 ＋1　黑咖啡 ＋1'), TRAIN('職能小教室')],
   [B('hell_archive', '頭目', 'chief')],
-  [REST('緊急茶水間')],
+  [REST('茶水間'), REC('地下人力仲介')],
   own([B('hell_last', '菁英', 'elite', { bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }), B('hell_vending'), EVT('離職面談')]),
   [GIFT('離職紀念品'), SUP('最後一杯', { tea: 1, coffee: 1, bento: 1 }, '奶茶、咖啡、便當各 ＋1'), TRAIN('最後交接')],
   [B('hell_director', '魔王', 'boss')],
@@ -391,6 +393,15 @@ Object.assign(EVENTS, {
   letter: { name: '老闆的勉勵信', text: '全公司都收到一封主旨是「致每一位夥伴」的長信，一共三千字。', opts: [
     { label: '讀完還回信', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋12'], go: run => { run.moStart += 12; return '居然有一段寫得還不錯'; } },
     { label: '已讀不回', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 回復 25%（省下來的時間拿去休息）'], go: run => { hpAll(run, .25); return '標成已讀，去泡了一杯茶'; } }] },
+  rec_elevator: { name: '電梯裡的紙箱', recruit: true, text: '電梯門一開，裡面的同事抱著紙箱：「我那組被併掉了，你們還缺人嗎？」', opts: [
+    { label: '還有位子，上來', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '全員 SP －20%（陪他重跑報到流程）'], ok: run => run.roster.length < 6, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; spAll(run, -.2); return `${NAME[id]}抱著紙箱加入了`; } },
+    { label: '幫他按開門鍵', icon: 'up_coffee', kind: 'item', lines: ['黑咖啡 ＋1（他塞給你的）'], go: run => { run.items.coffee++; return '他說謝謝，順手塞了一罐咖啡給你'; } }] },
+  rec_loan: { name: '跨部門借調', recruit: true, text: '隔壁部門的主管攔住你：「人可以借你們，但我們有個案子，你們順便扛一下。」', opts: [
+    { label: '成交，借人', icon: 'hunt', kind: 'buff', lines: ['一位同事加入（隨機）', '全員 HP －15%（多扛一個案子）'], ok: run => run.roster.length < 6, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; hpAll(run, -.15); return `${NAME[id]}被借調過來了`; } },
+    { label: '婉拒，自己的事自己做', icon: 'rest', kind: 'heal', lines: ['全員 HP 回復 25%（省下一個案子的力氣）'], go: run => { hpAll(run, .25); return '少扛一個案子，大家鬆了一口氣'; } }] },
+  rec_lunch: { name: '午餐併桌', recruit: true, text: '員工餐廳客滿，只好跟不認識的同事併桌。聊著聊著，對方說想換個團隊試試。', opts: [
+    { label: '這頓我請，一起走', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '珍珠奶茶 －1（請客）'], ok: run => run.roster.length < 6 && run.items.tea > 0, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; run.items.tea--; return `${NAME[id]}端著餐盤坐過來，決定跟你們走`; } },
+    { label: '聊聊就好', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋8（聽到別組更慘）'], go: run => { run.moStart += 8; return '聽完他們那組的事，突然覺得自己還行'; } }] },
   lost: { name: '失物招領', text: '影印機旁邊有一個沒寫名字的紙袋，裡面好像是飲料。', opts: [
     { label: '送去櫃檯', icon: 'up_raise', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
     { label: '自己留著', icon: 'gift', kind: 'item', lines: ['一半機會：黑咖啡 ＋2', '一半機會：珍珠奶茶 ＋2'], go: run => { if (run.rand() < .5) { run.items.coffee += 2; return '是兩杯黑咖啡'; } run.items.tea += 2; return '是兩杯珍珠奶茶'; } }] },
@@ -492,6 +503,11 @@ export function newRun(rand = Math.random, starter = null, skill = null, map = '
 }
 // 加入名冊（滿血滿 SP、會全部招式）
 export function join(run, id) { if (run.roster.includes(id) || run.roster.length >= 6) return false; run.roster.push(id); run.hp[id] = STAT[id].hp; run.sp[id] = STAT[id].sp; run.skills[id] = SKILLS[id].map(k => k.key); return true; }
+// 名冊滿了還要帶人：換掉名冊最後一位（主角不會被換掉）。回傳被換掉的人（沒滿就是 ''）；帶不了回傳 null
+export const swapOut = run => run.roster.length < 6 ? '' : [...run.roster].reverse().find(h => h !== run.starter) || null;
+export function joinOrSwap(run, id) { if (run.roster.includes(id)) return null; const out = swapOut(run); if (out === null) return null; if (out) { run.roster.splice(run.roster.indexOf(out), 1); delete run.hp[out]; delete run.sp[out]; delete run.skills[out]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(out + ':')); } return join(run, id) ? out : null; }
+// 事件裡「有人想加入」：隨機帶一位還沒同行的同事（名冊滿了就沒有）
+export function joinRandom(run) { const p = ALL.filter(id => !run.roster.includes(id)); if (!p.length || run.roster.length >= 6) return null; const id = p[Math.floor(run.rand() * p.length)]; return join(run, id) ? id : null; }
 // 上場的人：名冊前四個（至少要有一個不是 Vivi 的人）
 export function active(run) { const a = run.roster.slice(0, 4); if (!a.some(id => id !== 'vivi')) { const f = run.roster.find(id => id !== 'vivi'); if (f) a[a.length - 1] = f; } return a; }
 // 名冊裡把第 i 個往前（d=-1）或往後（d=1）移
@@ -503,9 +519,9 @@ export const isFinal = run => run.floor >= MAP.length - 1;
 // 這一層的站有沒有要先決定的人選（招募的兩個候選、救援戰救誰）；到這一層時抽好，玩家選之前就看得到
 export function prepare(run) { const fl = MAP[run.floor]; if (!fl || run.offers[run.floor]) return; const o = run.offers[run.floor] = {};
   if (fl.some(nd => nd.tag === '菁英') && !(run.affix || (run.affix = {}))[run.floor]) { const ks = Object.keys(AFFIX); run.affix[run.floor] = ks[Math.floor(run.rand() * ks.length)]; }
-  if (fl.some(nd => nd.type === 'event') && !run.events[run.floor]) { const used = Object.values(run.events), pool = Object.keys(EVENTS).filter(k => !used.includes(k) && (!EVENTS[k].map || EVENTS[k].map === run.map)); run.events[run.floor] = pool[Math.floor(run.rand() * pool.length)]; }
+  if (fl.some(nd => nd.type === 'event') && !run.events[run.floor]) { const used = Object.values(run.events), pool = Object.keys(EVENTS).filter(k => !used.includes(k) && (!EVENTS[k].map || EVENTS[k].map === run.map)); { const rec = pool.filter(k => EVENTS[k].recruit), from = rec.length && run.roster.length < 5 && run.rand() < .5 ? rec : pool; run.events[run.floor] = from[Math.floor(run.rand() * from.length)]; } }
   const pool = () => { const p = ALL.filter(id => !run.roster.includes(id) && !Object.values(o).flat().includes(id)); for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
-  fl.forEach((nd, k) => { if (run.roster.length >= 6) return;
+  fl.forEach((nd, k) => { if (run.roster.length >= 6 && nd.type !== 'recruit') return;      // 名冊滿了：救援戰不會多救人；招募站還是有人選（要帶就換掉名冊最後一位）
     if (nd.type === 'recruit') { const p = pool(), needs = !run.roster.some(id => ROLE[id] === '坦' || ROLE[id] === '補'), first = needs ? p.find(id => ROLE[id] === '坦' || ROLE[id] === '補') : p[0], second = p.find(id => id !== first && (!needs || ROLE[id] !== ROLE[first])); o[k] = [first, second, p.find(id => id !== first && id !== second)].filter(Boolean); }      // 招募盡量三選一（人不夠就少一點）
     else if (nd.rescue) { const p = pool(); if (p.length) o[k] = [p[0]]; } }); }
 export const advance = run => { run.floor++; prepare(run); return run; };
