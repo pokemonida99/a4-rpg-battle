@@ -16,6 +16,15 @@ console.log('有值班兵的關卡', stagesWith('tw_drone').join(' '), '｜叫�
 // 打氣：補給生補小兵，那隻下次攻擊 ×1.3；補頭目不算
 { const st = stagesWith('tw_intern')[0], s = mk(st), it = R.MINIONS.find(m => s.kind[m] === 'tw_intern'), other = R.MINIONS.find(m => m !== it && R.alive(s, m)); ok(!!it && !!other, st + ' 有補給生和另一隻小兵');
   if (it && other) { s.hp[other] = Math.round(R.STAT[other].hp * .4); if (s.hp.boss > 0) s.hp.boss = R.STAT.boss.hp; ok(R.intent(s, it).kind === 'heal' && R.intent(s, it).hype, '意圖：補血＋打氣'); const r = R.enemyTurn(s, it); ok(r.kind === 'foeHeal' && r.hype && s.fup[other], '補到小兵 → 打氣'); ok(R.intent(s, other).hyped || R.intent(s, other).kind !== 'atk', '被打氣的意圖帶 hyped'); s.rand = () => .5; const r2 = R.enemyTurn(s, other); ok(r2.kind !== 'foeAtk' || (r2.hyped && !s.fup[other]), '打氣用掉一次'); } }
+// 檔案衛：攻擊完自己上護盾；斬屬性無視護盾
+{ const st = stagesWith('tw_knight')[0], s = mk(st), kn = R.MINIONS.find(m => s.kind[m] === 'tw_knight'); ok(!!kn, st + ' 有檔案衛'); if (kn) { ok(R.intent(s, kn).then === '打完自己上護盾', '意圖寫打完上護盾'); s.rand = () => .5; const r = R.enemyTurn(s, kn); ok(r.kind === 'foeAtk' && r.selfWard > 0 && s.fward[kn] === r.selfWard, `攻擊完上護盾 ${r.selfWard}`);
+    const hp0 = s.hp[kn], h1 = R.doSkill(s, 'kui', 'draft', kn).hits[0]; ok(h1.combo === 'slash' && !h1.fab && s.hp[kn] < hp0, '斬屬性招式無視護盾（破盾）'); } }
+// 帳房姑：被招式打中記一筆（最多兩筆），下一次攻擊每筆 +25%，打完歸零；普攻不記
+{ const st = stagesWith('tw_auntie')[0], s = mk(st), au = R.MINIONS.find(m => s.kind[m] === 'tw_auntie'); ok(!!au, st + ' 有帳房姑'); if (au) { s.hp[au] = 99999; R.doAttack(s, 'kui', au); ok(!s.grudge[au], '普攻不會被記'); const h = R.doSkill(s, 'kui', 'draft', au).hits[0]; ok(h.dull && h.grudge === 1 && s.grudge[au] === 1, '招式打中記一筆'); R.doSkill(s, 'kui', 'draft', au); s.sp.kui = 999; R.doSkill(s, 'kui', 'draft', au); ok(s.grudge[au] === 2, '最多兩筆');
+    ok(R.intent(s, au).grudge === 2, '意圖帶 grudge'); s.rand = () => .5; const r = R.enemyTurn(s, au); ok(r.kind === 'foeAtk' && r.grudge === 2 && !s.grudge[au], '攻擊帶兩筆、打完歸零'); } }
+// 巡樓伯：煙多嗆一個人
+{ const st = stagesWith('tw_smoker')[0], s = mk(st), sm = R.MINIONS.find(m => s.kind[m] === 'tw_smoker'); ok(!!sm, st + ' 有巡樓伯'); if (sm) { s.rand = () => .5; const r = R.enemyTurn(s, sm), h = r.hits.find(x => x.v > 0); if (h) { ok(h.smoke && h.smoke2 && h.smoke2 !== h.dst && s.smoke[h.smoke2] === sm && s.smoke[h.dst] === sm, `煙嗆到兩個人（${h.dst}、${h.smoke2}）`); } else ok(false, '巡樓伯沒打中人'); } }
+ok(!R.KINDS.knight.selfWard && !R.KINDS.auntie.grudge && !R.KINDS.smoker.smoke2, '原版三種沒有新行為');
 // 一般行程的社畜小兵不受影響
 { ok(!R.KINDS.drone.pack && !R.KINDS.courier.late && !R.KINDS.intern.hype, '原版小兵沒有新行為'); ok(R.KINDS.tw_drone.atk === .9, '值班兵單隻攻擊 0.9'); }
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過'); process.exit(bad ? 1 : 0);
