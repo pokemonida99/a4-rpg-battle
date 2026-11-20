@@ -11,6 +11,8 @@ for (const m of Object.keys(R.MAPS)) for (const fl of R.MAPS[m]) for (const nd o
   run.roster = ['kevin', 'mi', 'jie', 'qiang', 'yan', 'kui']; ok(R.swapOut(run) === 'yan', '主角排最後也不會被換掉'); ok(R.joinOrSwap(run, 'kevin') === null, '已經在隊上的人不能再帶');
   const back = R.loadRun(R.saveRun(run), R.mulberry(1)); ok(back && back.run.roster.join() === run.roster.join(), '換人後存檔讀得回來'); }
 { const run = R.newRun(R.mulberry(3), 'kui', 'draft', 'office'); ok(R.swapOut(run) === '' && R.joinOrSwap(run, 'mi') === '' && run.roster.length === 2, '沒滿就直接加入'); }
+// 指定誰離隊
+{ const run = R.newRun(R.mulberry(3), 'kui', 'draft', 'office'); for (const h of ['kevin', 'mi', 'jie', 'qiang', 'xu']) R.join(run, h); ok(R.joinOrSwap(run, 'yan', 'mi') === 'mi' && run.roster.join() === 'kui,kevin,jie,qiang,xu,yan', '指定小米離隊'); ok(R.joinOrSwap(run, 'cha', 'kui') === 'yan', '指定主角離隊不算數，改換最後一位'); ok(R.joinOrSwap(run, 'mi', 'nobody') === 'cha', '亂指定也改換最後一位'); }
 // 名冊滿了，招募站還是有人選
 { const run = R.newRun(R.mulberry(4), 'kui', 'draft', 'office'); for (const h of ['kevin', 'mi', 'jie', 'qiang', 'xu']) R.join(run, h); run.floor = 4; R.prepare(run); const i = R.MAP[4].findIndex(nd => nd.type === 'recruit'); ok(i >= 0 && (run.offers[4][i] || []).length === 3 && run.offers[4][i].every(id => !run.roster.includes(id)), '滿編時人力銀行還是給三個人選'); }
 // 招募事件

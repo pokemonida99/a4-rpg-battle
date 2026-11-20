@@ -26,6 +26,7 @@ const POLICY = {
     const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s, smartMinion);
     const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
     if (dead.length && s.items.bento) return doItem(s, id, 'bento', dead[0]);
+    if (me < .4 && id !== 'vivi' && s.swapRound !== s.round && bench(s).some(h => s.run.hp[h] / STAT[h].hp > .7)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 這回合還沒換過人（不用掉行動）：血剩四成以下就換滿血的候補上來
     if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
     if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
     else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);

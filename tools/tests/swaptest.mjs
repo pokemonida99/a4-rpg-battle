@@ -14,4 +14,10 @@ R.startRound(s); ok(s.queue.includes('qiang') && !s.queue.includes('kui'), '下�
 s.over = 'win'; R.endStage(s, run); ok(run.hp.kui === 300 && run.hp.qiang > 0 && R.active(run).includes('qiang') && !R.active(run).includes('kui'), '打完：小葵留在候補、血沒有被動到');
 const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run)))); ok(back && back.run.roster[0] === 'qiang', '存檔照新的順序');
 ok(R.doSwap(s, 'vivi', 'kui') === null, 'Vivi 不能換');
+// v0.30：每回合第一次換人不用掉行動（換上來的人排到最前面接著動）；同一回合第二次才用掉行動
+{ const run2 = R.newRun(R.mulberry(8), 'kui', 'draft', 'office'); for (const h of ['kevin', 'mi', 'jie', 'qiang', 'xu']) R.join(run2, h); R.prepare(run2); run2.floor = 5; run2.node = R.MAP[5][0]; const s2 = R.newState(run2); R.startRound(s2);
+  const first = s2.queue.find(q => R.FRONT.includes(q)); s2.queue = s2.queue.filter(q => q !== first); R.beginTurn(s2, first); const mo0 = s2.mo, a = R.doSwap(s2, first, 'qiang');
+  ok(a && a.free && s2.queue[0] === 'qiang' && s2.mo === mo0, `第一次換人免費：阿強排最前面（${s2.queue.slice(0, 3)}）`);
+  const nx = s2.queue.shift(); R.beginTurn(s2, nx); const b = R.doSwap(s2, 'qiang', 'xu'); ok(b && !b.free && !s2.queue.includes('xu'), '同一回合第二次換人要用掉行動');
+  R.startRound(s2); const who = s2.queue.find(q => R.FRONT.includes(q)); s2.queue = s2.queue.filter(q => q !== who); R.beginTurn(s2, who); const c = R.doSwap(s2, who, R.bench(s2)[0]); ok(c && c.free, '下一回合又可以免費換一次'); }
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過');

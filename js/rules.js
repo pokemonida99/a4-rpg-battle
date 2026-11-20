@@ -507,9 +507,9 @@ export function newRun(rand = Math.random, starter = null, skill = null, map = '
 }
 // 加入名冊（滿血滿 SP、會全部招式）
 export function join(run, id) { if (run.roster.includes(id) || run.roster.length >= 6) return false; run.roster.push(id); run.hp[id] = STAT[id].hp; run.sp[id] = STAT[id].sp; run.skills[id] = SKILLS[id].map(k => k.key); return true; }
-// 名冊滿了還要帶人：換掉名冊最後一位（主角不會被換掉）。回傳被換掉的人（沒滿就是 ''）；帶不了回傳 null
+// 名冊滿了還要帶人：joinOrSwap 的 who＝玩家指定誰離隊；沒指定就換掉名冊最後一位（主角不會被換掉）。回傳被換掉的人（沒滿就是 ''）；帶不了回傳 null
 export const swapOut = run => run.roster.length < 6 ? '' : [...run.roster].reverse().find(h => h !== run.starter) || null;
-export function joinOrSwap(run, id) { if (run.roster.includes(id)) return null; const out = swapOut(run); if (out === null) return null; if (out) { run.roster.splice(run.roster.indexOf(out), 1); delete run.hp[out]; delete run.sp[out]; delete run.skills[out]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(out + ':')); } return join(run, id) ? out : null; }
+export function joinOrSwap(run, id, who) { if (run.roster.includes(id)) return null; const out = run.roster.length >= 6 && who && who !== run.starter && run.roster.includes(who) ? who : swapOut(run); if (out === null) return null; if (out) { run.roster.splice(run.roster.indexOf(out), 1); delete run.hp[out]; delete run.sp[out]; delete run.skills[out]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(out + ':')); } return join(run, id) ? out : null; }
 // 事件裡「有人想加入」：隨機帶一位還沒同行的同事（名冊滿了就沒有）
 export function joinRandom(run) { const p = ALL.filter(id => !run.roster.includes(id)); if (!p.length || run.roster.length >= 6) return null; const id = p[Math.floor(run.rand() * p.length)]; return join(run, id) ? id : null; }
 // 上場的人：名冊前四個（至少要有一個不是 Vivi 的人）
@@ -802,7 +802,8 @@ export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.ind
   if (id === 'kevin') { s.taunt = false; s.aegis = false; } if (id === 'qiang') { s.carry = false; s.bulwark = false; } if (id === 'cha') { s.friends = false; s.dodge = false; } if (s.cover === id) s.cover = null; if (s.guardian === id) s.guardian = null;
   if (s.wok === id) s.wok = sub; if (s.noticeT === id) s.noticeT = sub; for (const f in s.plan) if (s.plan[f] === id) s.plan[f] = sub;      // 敵人原本瞄準他的，改瞄準換上來的人
   s.queue = s.queue.filter(q => q !== id); s.fairyBuff = HEROES.includes('fairy');
-  return { kind: 'swap', id, sub, hp: s.hp[sub], sp: s.sp[sub], mo: gain(s, MO.item) }; }
+  const free = s.swapRound !== s.round; s.swapRound = s.round; if (free) s.queue.unshift(sub);      // 每回合第一次換人不用掉行動：換上來的人接著行動（第二次起才用掉行動）
+  return { kind: 'swap', id, sub, free, hp: s.hp[sub], sp: s.sp[sub], mo: free ? s.mo : gain(s, MO.item) }; }
 // 招式現在能不能用：SP 夠、而且有對象（補血要有人受傷、代擋要有別的同伴）
 const allyPool = (s, id, sk) => { const a = sk.ally || 'hurt', f = FRONT.filter(h => alive(s, h)); return a === 'hurt' ? f.filter(h => s.hp[h] < STAT[h].hp) : a === 'other' ? f.filter(h => h !== id) : a === 'sp' ? f.filter(h => h !== id && s.sp[h] < STAT[h].sp) : f; };
 // 「再動一次」的護欄：被送行動的那一次不能再送給別人；全隊一回合最多多動 3 次

@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.29.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.30.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -222,7 +222,7 @@ function playAttack(r, t0) {
 }
 function playDefend(r, t0) { units[r.id].pose(t0, 'guard'); num(t0 + .1, r.id, '防禦', 'text', { col: '#bfd0ff', px: 32, y: r.id === 'vivi' ? 1.0 : 1.2, dx: r.id === 'vivi' ? -110 : 0 }); snd(t0 + .05, 'shield_up', .5); fx('impacts/parry', t0 + .05, r.id, { scale: 1.0, y: .5, palette: 'cyber' }); if (r.spGain) { S.sp[r.id].push({ t: t0 + .35, v: r.sp }); num(t0 + .4, r.id, r.spGain, 'sp', { dy: -60 }); } at(t0 + .3, () => syncBars(now)); return t0 + .75; }
 // 換人：下場的人退到畫面外，上場的人站到同一個位置（隊伍列、血條一起換）
-function playSwap(r, t0) { const out = units[r.id], inn = units[r.sub], pos = DEFS[r.id].pos.slice(); box(t0, 1.6, `換人　${DEFS[r.sub].name}上場`); snd(t0 + .05, 'whoosh', .6); num(t0 + .05, r.id, '交給你了', 'text', { col: '#bfeaff', px: 30, y: 1.3 });
+function playSwap(r, t0) { const out = units[r.id], inn = units[r.sub], pos = DEFS[r.id].pos.slice(); box(t0, 1.6, `換人　${DEFS[r.sub].name}上場` + (r.free ? '　接著行動' : '')); snd(t0 + .05, 'whoosh', .6); num(t0 + .05, r.id, '交給你了', 'text', { col: '#bfeaff', px: 30, y: 1.3 });
   out.move(t0 + .1, pos[0] + 5.5, pos[1], .4); DEFS[r.sub].pos = pos; DEFS[r.sub].hp = R.STAT[r.sub].hp; ko[r.sub] = false; S.hp[r.sub] = [{ t: -1, v: r.hp }]; S.sp[r.sub] = [{ t: -1, v: r.sp }]; S.mo.push({ t: t0 + .3, v: r.mo });
   at(t0 + .5, () => { resetUnit(out, false, 'ready'); out.home = pos.slice(); inn.home = pos.slice(); resetUnit(inn, true, 'ready'); inn.group.position.set(pos[0] + 5.5, inn.group.position.y, pos[1]); inn.move(now, pos[0], pos[1], .35, easeOut); S.party = R.HEROES.slice(); snd(now, 'buff', .5); });
   fx('spawn/poof', t0 + .8, pos, { scale: 1.3, y: .3 }); num(t0 + .95, r.sub, '換我上！', 'text', { col: '#ffe27a', px: 32, y: 1.35 }); at(t0 + 1.0, () => inn.hop(now, .24, .32)); return t0 + 1.6; }
@@ -509,7 +509,7 @@ const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方
   guard: ['護衛中', '小兵還在場上時，打頭目沒有傷害。', '先把小兵清掉。'], pot: ['甩鍋', '課長每回合第一次被打，會甩給小兵承受。', '先用小招騙掉這一下，再放大招。'], audit: ['考績魔導士', '她的大招除了打全體，還會扣 40 氣勢。', '奧義亮了就放，不要存。'],
   parrot: ['鸚鵡長官', '他自己不出主意，只會「附議」一隻小兵，照抄那隻的行動。', '先打倒被附議的小兵，他那一次行動就落空。'], monkey: ['猴子長官', '他蓄力時會把大招丟給一隻小兵當「臨時專案」。', '在他放大招之前打倒那隻小兵，大招就落空。'],
   pig: ['豬腦長官', '他的大招威力看底氣：底氣全滿是 150%。', '蓄力之後多打他幾下，削到理虧只剩 50%。'],
-  swap: ['換人', '名冊排在第五、六位的是候補。輪到前排的人時可以「換人」，把候補換上來。', '換人會用掉這次行動；換下去的人保留現在的 HP 和 SP。'],
+  swap: ['換人', '名冊排在第五、六位的是候補。輪到前排的人時可以「換人」，把候補換上來。', '每回合第一次換人不用掉行動，換上來的人接著行動；換下去的人保留 HP 和 SP。'],
   combo: ['連攜', '對有異常狀態的敵人用對的屬性，會有額外效果。六種屬性各一個：', '冰打灼燒中、火打中毒中、打屬性打暈眩中、光打攻擊下降中、暗打被標記的、斬打有護盾的。'],
   unite: ['合體技', '特定的夥伴一起上場，技能選單裡會多一招金色的合體技。', '輪到其中一人、夥伴這回合還沒動時才能放；放了之後兩個人的行動都用掉。'],
   weak: ['弱點', '敵人頭上的兩格是弱點，一開始是「？」，用對屬性打中才會揭曉，之後永遠記得。', '打中弱點：傷害多三成、氣勢 ＋6，打頭目多削 1 點底氣。'], locks: ['屬性鎖', '頭目蓄力時頭上會出現三個屬性鎖。用那個屬性打中他一下，拆一個。', '每拆一個，大招弱 25%；三個全拆，大招取消、頭目理虧。'],
@@ -566,7 +566,7 @@ function openMenu(kind, arg) {
       { label: '技能', sub: anySk ? skills.map(k => k.name).join('、') : skills.length ? '現在用不了' : '還沒學會', off: !anySk, go: () => openMenu('skills'), hint: '各自的招式：只花 SP，不用氣勢。' },
       { label: '奧義', sub: needBp ? `氣勢 ${state.mo}／${R.ultMo(run)}` : needSp ? 'SP 不足' : `${d.skill}　SP ${R.STAT[id].cost}`, off: needBp || needSp, go: () => act(R.doUlt(state, id)), hint: d.desc, gold: !needBp && !needSp },
       { label: '道具', sub: anyItem ? '補血、補 SP、復活' : '現在用不到', off: !anyItem, go: () => openMenu('items'), hint: '珍珠奶茶補 HP，黑咖啡補 SP，雞排便當讓倒下的同伴復活。' },
-      ...(id !== 'vivi' && R.bench(state).length ? [{ label: '換人', sub: `候補：${R.bench(state).map(h => DEFS[h].name).join('、')}`, go: () => openMenu('swap'), hint: '把自己換下去、換一位候補上來，用掉這次行動；換上來的人下一回合開始行動。' }] : []),
+      ...(id !== 'vivi' && R.bench(state).length ? [{ label: '換人', sub: `候補：${R.bench(state).map(h => DEFS[h].name).join('、')}`, go: () => openMenu('swap'), hint: state.swapRound === state.round ? '這回合已經換過一次了：再換會用掉這次行動，換上來的人下一回合才行動。' : '把自己換下去、換一位候補上來。每回合第一次換人不用掉行動：換上來的人接著行動。' }] : []),
       { label: '防禦', sub: '受傷減半', go: () => act(R.doDefend(state, id)), hint: `到下次行動前受傷減半，回 10 SP、氣勢 ＋${R.MO.defend}，下回合速度 ＋20%。` }];
   } else if (kind === 'swap') { items = R.bench(state).map(h => ({ label: DEFS[h].name, sub: `HP ${run.hp[h]}　SP ${run.sp[h]}`, hint: `換${DEFS[h].name}上場：${R.SKILLS[h].map(k => k.name).slice(0, 3).join('、')}…`, go: () => act(R.doSwap(state, id, h)) })); items.push(back);
   } else if (kind === 'target') { const sk = arg, bk = sk ? { ...back, go: () => openMenu('skills') } : back, blocked = R.guarded(state) && !(sk && sk.pierce), pot = S.pot() && !(sk && sk.pierce);      // arg＝招式（沒有就是普通攻擊）
@@ -633,6 +633,7 @@ function resume() { const sv = saved; saved = null; if (!sv) return start(); AC.
 let mapKey = 'office';
 const recLine = (map, first) => { const r0 = (PREF.rec || {})[map], ot = (PREF.ot || {})[map] || 0; return r0 && r0.n ? `通關 ${r0.n} 次　最快 ${r0.best} 回合` + (ot ? `　加班解鎖到 ${Math.min(ot, R.OT_MAX)} 級` : '') : first; };
 function start() { AC.resume(); playMusic('bgm/map'); saved = null; if (Q.has('map')) { mapKey = R.MAPS[Q.get('map')] ? Q.get('map') : 'office'; return pickStarter(); }
+  if (!(PREF.seen || []).length && !PREF.rec && !Q.has('routes')) { mapKey = 'office'; otKey = 0; return pickStarter(); }      // 第一次玩：不用選路線，直接走一般行程（打過一場之後才會出現四條路線可以選；&routes 可以強制顯示）
   openCards({ title: '今天走哪一條路線？', sub: '招募、休息、事件每條路線都有；差別在對手、站數和岔路。', foot: '選一條路線', items: [
     { label: '一般行程', tag: '討伐奧客總經理', icon: 'boss', big: true, lines: ['十站', '社畜小兵、甩鍋課長、奧客總經理', recLine('office', '第一次玩選這個')], go: () => { mapKey = 'office'; pickOt(); } },
     { label: '台灣篇', tag: '颱風天，照常上班', icon: 'chief', big: true, lines: ['十二站，三條支線', '廟埕燈會、不夜城夜市、頂樓加蓋', recLine('taiwan', '比一般行程難一點')], go: () => { mapKey = 'taiwan'; pickOt(); } },
@@ -679,8 +680,9 @@ function beginRun(id, key) { run = R.newRun(RAND, id, key, mapKey, Q.has('ot') ?
   const ST = STORY[run.map], seenIntro = PREF.intro || (PREF.intro = []); if (!ST || (Q.has('map') && !Q.has('intro')) || (seenIntro.includes(run.map) && !Q.has('intro'))) return hubMsg(); seenIntro.push(run.map); savePref();
   openCards({ title: ST.title, sub: '', foot: '', wide: true, items: [{ label: '出發', icon: ST.icon, big: true, lines: ST.intro, go: hubMsg }] }); }
 function openRecruit(i) { const nd = run.node, list = (run.offers[run.floor] || {})[i] || [], out = R.swapOut(run); if (!list.length || out === null) { R.advance(run); return openHub('這一站沒有人可以帶'); }
-  openCards({ title: nd.name, sub: out ? `名冊滿了（6 人）。帶新同事走，最後一位「${DEFS[out].name}」會回公司；想留他，先回行程表調整順序。` : '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: out ? '選一位，或按「先不帶人」' : '選完回到行程表',
-    items: [...list.map(id => heroCard(id, () => { const gone = R.joinOrSwap(run, id); if (gone === null) return; met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍` + (gone ? `，${DEFS[gone].name}回公司了` : '')); })), ...(out ? [{ label: '先不帶人', tag: '回行程表', icon: 'rest', lines: ['不會前進：可以改走別的站，', '或調整名冊順序再回來'], go: () => openHub('名冊滿了：調整順序後可以再來，或改走別的站') }] : [])] }); }
+  openCards({ title: nd.name, sub: out ? '名冊滿了（6 人）。要帶新同事的話，下一步選一位回公司；不想換就按「先不帶人」。' : '選一位同事同行。' + (run.roster.length >= 4 ? '出戰最多四人，多的人當候補，可以在行程表調整順序。' : ''), foot: out ? '選一位（下一步選誰回公司），或按「先不帶人」' : '選完回到行程表',
+    items: [...list.map(id => heroCard(id, () => { const take = who => { const gone = R.joinOrSwap(run, id, who); if (gone === null) return; met(id); snd(now, 'buff', .8); R.advance(run); openHub(`${DEFS[id].name}加入隊伍` + (gone ? `，${DEFS[gone].name}回公司了` : '')); }; if (!out) return take();
+      openCards({ title: '誰回公司？', sub: `${DEFS[id].name}要加入，名冊只能六個人。選一位回公司（他的特訓不會保留）。`, foot: '選一位，或按「還是不換」', items: [...run.roster.filter(h => h !== run.starter).map(h => ({ label: DEFS[h].name, tag: `${DEFS[h].job}　${R.ROLE[h]}`, bust: h, big: false, lines: [`HP ${run.hp[h]}／${R.STAT[h].hp}`, `SP ${run.sp[h]}／${R.STAT[h].sp}`, R.active(run).includes(h) ? '出戰中' : '候補', (run.plus || []).filter(p => String(p).startsWith(h + ':')).length ? `特訓過 ${(run.plus || []).filter(p => String(p).startsWith(h + ':')).length} 招` : ''], go: () => take(h) })), { label: '還是不換', tag: '回上一步', icon: 'rest', lines: ['重新選要帶誰'], go: () => openRecruit(i) }] }); })), ...(out ? [{ label: '先不帶人', tag: '回行程表', icon: 'rest', lines: ['不會前進：可以改走別的站，', '或調整名冊順序再回來'], go: () => openHub('名冊滿了：調整順序後可以再來，或改走別的站') }] : [])] }); }
 // 事件站：抽到的事件攤開成兩張選項卡，代價與好處都寫在卡上；選不了的（東西不夠）是舊紙
 function openEvent() { const key = run.events[run.floor], ev = R.EVENTS[key];
   openCards({ title: ev.name, sub: ev.text, foot: '選一個，選完回到行程表', items: ev.opts.map((o, j) => ({ label: o.label, icon: o.icon, lines: o.lines, big: true, off: !R.eventOk(run, key, j), go: () => { const msg = R.applyEvent(run, key, j); if (run.reveal) { const L0 = Object.values(R.STAGES).map(st => st.boss).find(b => b && b.id === run.reveal); if (L0) { const W0 = PREF.weak || (PREF.weak = {}), kq = W0[L0.id] || (W0[L0.id] = {}); for (const t of L0.weak) kq[t] = 1; savePref(); } run.reveal = null; } if (msg == null) return; for (const h of run.roster) met(h); snd(now, 'buff', .8); R.advance(run); openHub(`${ev.name}：${msg}`); } })) }); }
@@ -905,7 +907,7 @@ function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgb
 // 每一種站「得到什麼／代價是什麼」，給行程表下方的說明用
 const affixAt = nd => { const fl = R.MAP.findIndex(f => f.includes(nd)); return nd.tag === '菁英' && fl >= 0 ? R.AFFIX[(run.affix || {})[fl]] : null; };
 const nodeTrade = nd => nd.type === 'shop' ? [`小物 ${R.PRICE.relic} 點、補給包 ${R.PRICE.supply} 點、特訓 ${R.PRICE.train} 點`, `現在有 ${run.coin || 0} 點報帳額度；不買也可以`] : affixAt(nd) ? [`贏了三選一強化，${affixAt(nd)[2]}` + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), `詞綴「${affixAt(nd)[0]}」：${affixAt(nd)[1]}`] : nd.type === 'supply' ? [nd.sub, '這一站沒有強化'] : nd.type === 'train' ? ['免費把一個招式升級成＋', '不補血、不補 SP'] : nd.type === 'battle' ? ['贏了三選一強化' + (nd.rescue ? (run.roster.length >= 6 ? '（名冊滿了，這次救不了人）' : '，並救出一位夥伴') : '') + (nd.bonus ? '，多拿奶茶、咖啡、便當各一' : ''), ['菁英', '頭目', '魔王'].includes(nd.tag) ? '要打一場硬仗' : '要打一場'] : nd.type === 'rest' ? ['HP 回復一半、SP 補滿', '這一站沒有強化']
-  : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? [run.roster.length >= 6 ? `三位選一位（名冊滿了，會換掉最後一位「${DEFS[R.swapOut(run)]?.name || ''}」）` : '多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
+  : nd.type === 'gift' ? ['直接三選一強化', '不補血、不補 SP'] : nd.type === 'recruit' ? [run.roster.length >= 6 ? '三位選一位（名冊滿了，要選一位回公司）' : '多一位夥伴（三位選一位）', '這一站沒有強化'] : ['兩個選項挑一個', '各有代價，到了才知道是什麼事'];
 const nextStops = () => R.MAP.slice(run.floor + 1, run.floor + 4).map(fl => [...new Set(fl.map(nd => nd.tag))].join('或')).join(' → ');
 function drawHub() {
   if (sheet) return drawSheet();
@@ -1025,7 +1027,7 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
 // 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
 const EYE = { kui: .40, jie: .45, kevin: .31, mi: .39, vivi: .33, yan: .37, heilun: .35, cha: .35, qiang: .30, senpai: .39, wu: .42, you: .30, fairy: .43, zong: .44, hui: .43, xu: .39 };
 function drawPick() {
-  drawTable(.62); const n = menu.items.length, CWd = menu.wide ? 1000 : n <= 2 ? 520 : 450, CH = 640, gap = 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
+  drawTable(.62); const n = menu.items.length, CWd = menu.wide ? 1000 : n <= 2 ? 520 : n >= 6 ? 300 : n === 5 ? 356 : 450, CH = 640, gap = n >= 5 ? 16 : 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
   skin.wood(x0 - 46, 64, CWd * n + gap * (n - 1) + 92, 930); text(menu.title, W / 2, 158, { px: 62, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 }); wrap(menu.sub || '', CWd * n + gap * (n - 1) - 40, 25).slice(0, 2).forEach((s, i) => text(s, W / 2, 212 + i * 34, { px: 25, w: 700, align: 'center', col: 'rgba(239,230,207,.9)' }));
   menu.items.forEach((it, i) => { const x = x0 + i * (CWd + gap), off = !!it.off, on = i === focus && !off, pe = pressK(i), dn = pe >= 0 && !off; zones.push({ x, y, w: CWd, h: CH, i, off });
     c.save(); c.translate(pe >= 0 && off ? Math.sin(pe * 22) * 7 * (1 - Math.min(1, pe)) : 0, (on && !dn ? -12 : 0) + (dn ? 6 : 0)); skin.paper(x, y, CWd, CH, { clips: [x + CWd / 2], old: off });
@@ -1104,7 +1106,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多帶六人、四人上場。地圖可以拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上（戰鬥打到一半也會存），下次打開可以「繼續上班」'];
-const CHANGES = [['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''] ];
+const CHANGES = [['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
