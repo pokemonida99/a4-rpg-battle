@@ -20,6 +20,7 @@ GPT 的完整討論在 `design/gpt_discussion.md`。
 - [x] v0.19.1：47 個專屬圖示接好（rules.js 的 ic 都拿掉了）；戰鬥背景機制 arena.setBackdrop()（scene.js）＋ game.js 的 BGSRC：台灣篇先用地圖紙中間那一條；美術排了四張專用背景 art/bg/{tw_1,tw_2,tw_3,hell}.jpg，到了把 BGSRC 的路徑換掉、cy 改 .5，並幫 hell 加一筆
 - [x] v0.20.0：GPT 第二輪（gpt_d.md）→ 14 個新事件、菁英詞綴、套裝、防禦加速、拖回合懲罰、減傷與開場氣勢上限
 - [x] v0.25.0（11/21 03:00）：職位九種（JOBS）、四張地圖的開場與結局文字（STORY）、16 個新音效接好、模擬器 MIX=1／JOB=；GPT 第三輪的取捨在 design/combat2/gpt_f_notes.md
+- [x] v0.26.0（11/21 03:15）：考績表 28 項（ACH、BT），標題畫面入口＋右上角小紙條；skillsweep／textfit 兩支檢查
 - [ ] GPT 第三輪還沒做的：小兵新行為（治療、擋刀要有明確預告）、主角奧義分支（特訓時二選一）、夥伴小對話（口吻要使用者看過）、戰鬥中存檔
 - [x] v0.24.0 換人（實機截圖檢查過：六顆指令排兩排、換人動畫、隊伍列與議程都會換）
 - [x] v0.23.0（11/21 02:50）：連攜 COMBO、最終頭目第二階段 PHASE2、小開關與隊伍欄放大；請音效 session 做 16 個音效（到了要把檔名加進 game.js 的 SFX_IDS 並在對應的地方用 sfxOr 播）

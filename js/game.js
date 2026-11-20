@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.25.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.26.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -489,7 +489,7 @@ function nextTurn() {
     if (id === 'kevin' && aegisFx.length) { endFx(aegisFx); goHome(now, 'kevin', .3); num(now + .1, 'kevin', '掩護結束', 'text', { col: '#9af0ff', px: 24, y: 1.2 }); }
     if (id === 'qiang' && bulwarkFx.length) { endFx(bulwarkFx); num(now + .1, 'qiang', '掩護結束', 'text', { col: '#ffc890', px: 24, y: 1.2 }); }
     phase = 'command'; pickTip(id); openMenu('root'); uiSound('move'); }
-  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, now + .9, h.dst); { const v = sumV(r.hits), dn = (r.hits || []).filter(h => h && h.kill).map(h => DEFS[h.dst].name); logStep(`${NAME[id]} ${r.kind === 'bossUlt' ? state.L.text.ult.replace('奧義　', '大招「') + '」' : r.kind === 'charge' ? '蓄力' : r.kind === 'stunned' ? '理虧，沒有行動' : r.kind === 'phase2' ? '進入第二階段' : r.kind === 'foeWard' ? '上護盾' : r.kind === 'bossMark' ? '補件通知（點名）' : r.kind === 'foeStun' ? '暈眩，沒有行動' : r.kind === 'echoMiss' ? '附議落空，沒有行動' : r.kind === 'ultMiss' ? '大招落空' : r.kind === 'foeHeal' ? `幫${NAME[r.dst]}回了 ${r.v}` : '攻擊'}` + (v ? `　我方 −${v}` : '') + (dn.length ? `　${dn.join('、')}倒下` : '')); } at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
+  else { phase = 'anim'; const r = R.enemyTurn(state, id), te = playFoe(r, now + .25); btFoe(r); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, now + .9, h.dst); { const v = sumV(r.hits), dn = (r.hits || []).filter(h => h && h.kill).map(h => DEFS[h.dst].name); logStep(`${NAME[id]} ${r.kind === 'bossUlt' ? state.L.text.ult.replace('奧義　', '大招「') + '」' : r.kind === 'charge' ? '蓄力' : r.kind === 'stunned' ? '理虧，沒有行動' : r.kind === 'phase2' ? '進入第二階段' : r.kind === 'foeWard' ? '上護盾' : r.kind === 'bossMark' ? '補件通知（點名）' : r.kind === 'foeStun' ? '暈眩，沒有行動' : r.kind === 'echoMiss' ? '附議落空，沒有行動' : r.kind === 'ultMiss' ? '大招落空' : r.kind === 'foeHeal' ? `幫${NAME[r.dst]}回了 ${r.v}` : '攻擊'}` + (v ? `　我方 −${v}` : '') + (dn.length ? `　${dn.join('、')}倒下` : '')); } at(te, () => { S.active.push({ t: now, v: null }); nextTurn(); }); }
 }
 // 教學便條：第一次遇到某個狀況，輪到玩家下指令時在左上角貼一張（不擋中間），下完這一步就收起來。看過的記在 PREF.tips，之後不再出現
 const TIPS = { basics: ['怎麼打', '攻擊、招式、防禦都會累積上方的「氣勢」，全隊共用。', '招式只花 SP。氣勢到 40、SP 也夠，「奧義」就會亮。'], ult: ['奧義可以放了', '放奧義會用掉 40 氣勢和自己的 SP。', '氣勢全隊共用，想清楚給誰放。'],
@@ -537,6 +537,7 @@ function drawIntents() { const placed = []; for (const f of R.foes(state)) { con
 let lastLog = [];
 const logStep = s => { lastLog.push(`回合 ${state.round}｜${s}`); if (lastLog.length > 6) lastLog.shift(); }, sumV = hs => (hs || []).reduce((a, h) => a + (h && h.v > 0 ? h.v : 0), 0);
 function act(r) {      // 玩家選完，演出然後換下一個
+  btHero(r);
   { const nm = DEFS[r.id].name, what = r.kind === 'attack' ? '攻擊' : r.kind === 'skill' ? `「${r.name}」` : r.kind === 'unite' ? `合體技「${r.name}」` : r.kind === 'ult' ? `奧義「${DEFS[r.id].skill}」` : r.kind === 'defend' ? '防禦' : r.kind === 'swap' ? `換${DEFS[r.sub].name}上場` : r.kind === 'item' ? `用了${R.ITEMS[r.key].name}` : '應援', v = sumV(r.hits); logStep(`${nm} ${what}` + (v ? `　打 ${v}` : '')); }
   phase = 'anim'; menu = null; tipNow = null; const t0 = now + .12;
   showFx(r.fxs, t0 + .7, r.id); for (const h of r.hits || []) if (h && h.fxs) showFx(h.fxs, t0 + .9, r.id);
@@ -576,7 +577,7 @@ const FORM = { 1: [[2.3, -.2]], 2: [[1.7, -1.0], [3.0, .5]], 3: [[1.4, -1.5], [2
 const BGSRC = { tw_1: ['art/bg/tw_1.jpg', .5, 0x9c98ac], tw_2: ['art/bg/tw_2.jpg', .5, 0xb0acc4], tw_3: ['art/bg/tw_3.jpg', .5, 0xb4b8c8], hell: ['art/bg/hell.jpg', .5, 0xc8b8b8] }, BG = {};
 const bgOf = () => run.map === 'taiwan' ? (run.floor <= 4 ? 'tw_1' : run.floor <= 8 ? 'tw_2' : 'tw_3') : run.map === 'hell' ? 'hell' : null;
 function stageBackdrop() { const k = bgOf(), src = BGSRC[k]; if (!src) return arena.setBackdrop(null); if (BG[k]) return arena.setBackdrop(BG[k], src[2], src[1]); arena.setBackdrop(null); loadImg(src[0]).then(im => { BG[k] = im; if (bgOf() === k && phase !== 'hub') arena.setBackdrop(im, src[2], src[1]); }).catch(() => {}); }
-function enterStage() { stageBackdrop();
+function enterStage() { stageBackdrop(); btReset();
   const st = R.STAGES[R.stageOf(run, run.node)], L = st.boss; todo.length = 0; lastLog = []; for (const f of [...aegisFx, ...bulwarkFx]) f.end = now - f.o.t; aegisFx = []; bulwarkFx = [];
   if (L && L.hero) mirrorBoss(L.hero); for (const m of R.SLOTS) { const K = R.KINDS[state.kind[m]]; if (K.hero) mirrorMinions(K.hero); }
   for (const u of [bossU, chiefU, auditU, ...Object.values(eliteU), ...Object.values(mirrorBossU)]) if (u) resetUnit(u, false, 'idle');
@@ -630,6 +631,23 @@ function pickStarter() {
   openCards({ title: '今天誰先去上班？', sub: '從一個人開始。路上會遇到同事，最多帶四個人上場。', foot: '選一位主角', items: R.STARTERS.map(id => heroCard(id, () => pickSkill(id), true)) }); }
 function pickSkill(id) { openCards({ title: `${DEFS[id].name}的第一招`, sub: '三個招式先帶一個。其他的之後可以靠強化「在職進修」學會。', foot: '選一個招式就出發', items: R.SKILLS[id].map(k => ({ label: k.name, tag: `SP ${k.sp}　${k.note}`, icon: 'sk_' + k.key, lines: [k.desc], go: () => pickJob(id, k.key) })) }); }
 // 職位：整趟有效的一個好處＋一個限制。第一次玩先不出現（已經有路線、主角、招式要選）；測試網址有 ?map= 時也跳過，要看就加 &job=pick，要指定就 &job=fire
+// 考績表：試過各種打法就蓋一個章。只記錄，不給數值。[代號, 名字, 怎麼拿]
+const ACH = [['first', '到職第一天', '打贏第一場戰鬥'], ['weak5', '對症下藥', '一場戰鬥打中弱點 5 次'], ['lock', '全部退件', '頭目蓄力時，把三個屬性鎖全拆掉'], ['combo3', '一搭一唱', '一場戰鬥打出 3 次連攜'], ['unite', '默契十足', '放一次合體技'], ['unite5', '跨部門合作', '用過 5 種不同的合體技'],
+  ['swap', '輪調', '戰鬥中換過人，而且打贏'], ['noitem', '不靠補給', '不用道具打贏一個頭目'], ['brk3', '理虧三連', '一場戰鬥讓頭目理虧 3 次'], ['fast', '速戰速決', '6 回合內打贏一個頭目'], ['ult3', '火力全開', '一場戰鬥放 3 次奧義'], ['healthy', '滿血下班', '打贏頭目時，上場的人 HP 都在八成以上'],
+  ['wok', '這鍋不背', '被剪黏甩鍋課長點名背鍋時，用防禦彈回去'], ['sign', '熄燈', '用普攻把不夜城營運總監的招牌打熄'], ['proj', '專案腰斬', '打倒猴子長官的臨時專案，讓他的大招落空'], ['echo', '沒人附議', '先打倒被附議的小兵，讓鸚鵡長官落空'],
+  ['c_office', '準時下班', '通關一般行程'], ['c_taiwan', '颱風假', '通關台灣篇'], ['c_hell', '離職成功', '通關地獄分公司'], ['c_mirror', '跟自己和解', '通關鏡像內戰'], ['nodown', '全員到齊', '打贏最後的頭目，那一場沒有人倒下'], ['ot3', '加班達人', '加班等級 3 以上通關'],
+  ['job3', '斜槓', '用 3 種不同的職位通關'], ['set', '成套採購', '一趟行程湊齊一組套裝（同標籤三個小物）'], ['full6', '滿編', '帶滿 6 個人通關'], ['plus5', '在職進修', '一趟行程把 5 個招式特訓成「＋」'], ['weak20', '知己知彼', '揭曉 20 個敵人的弱點'], ['met16', '全員認識', '遇過全部 16 位夥伴']];
+const achN = () => ACH.filter(a => (PREF.ach || {})[a[0]]).length, achNew = [];      // achNew：剛拿到、還沒顯示完的（右上角小紙條）
+function ach(k) { const a = PREF.ach || (PREF.ach = {}), A0 = ACH.find(x => x[0] === k); if (!A0 || a[k]) return; a[k] = 1; savePref(); achNew.push({ name: A0[1], t: null }); }
+let BT = {};      // 這一場戰鬥的統計（給考績表用）
+const btReset = () => { BT = { wk: 0, combo: 0, lockAll: 0, unite: 0, swap: 0, item: 0, ult: 0, down: 0 }; };
+function btHero(r) { if (r.kind === 'unite') { BT.unite++; ach('unite'); const u = PREF.achU || (PREF.achU = {}); if (!u[r.key]) { u[r.key] = 1; savePref(); } if (Object.keys(u).length >= 5) ach('unite5'); } else if (r.kind === 'swap') BT.swap++; else if (r.kind === 'item') BT.item++; else if (r.kind === 'ult') BT.ult++;
+  for (const h of r.hits || []) { if (!h) continue; if (h.wk) BT.wk++; if (h.combo) BT.combo++; if (h.lockAll) BT.lockAll++; if (h.sign === 0) ach('sign'); if (h.projDown) ach('proj'); } }
+function btFoe(r) { if (r.kind === 'wokBack') ach('wok'); if (r.kind === 'echoMiss') ach('echo'); for (const h of r.hits || []) if (h && h.kill && !DEFS[h.dst].enemy) BT.down++; }
+function btWin(last) { const boss = state.hasBoss && ['頭目', '魔王'].includes(run.node.tag); ach('first'); if (BT.wk >= 5) ach('weak5'); if (BT.lockAll) ach('lock'); if (BT.combo >= 3) ach('combo3'); if (BT.swap) ach('swap'); if (BT.ult >= 3) ach('ult3'); if (state.tally.brk >= 3) ach('brk3');
+  if (boss) { if (!BT.item) ach('noitem'); if (state.round <= 6) ach('fast'); if (R.FRONT.every(h => state.hp[h] >= R.STAT[h].hp * .8)) ach('healthy'); }
+  if (Object.values(PREF.weak || {}).reduce((n, o) => n + Object.keys(o || {}).length, 0) >= 20) ach('weak20'); if ((PREF.met || []).length >= 16) ach('met16'); if (Object.keys(R.SETS).some(t => R.setOn(run, t))) ach('set'); if ((run.plus || []).length >= 5) ach('plus5');
+  if (last) { ach('c_' + run.map); if (!BT.down) ach('nodown'); if (run.ot >= 3) ach('ot3'); if (run.roster.length >= 6) ach('full6'); if (run.job) { const j = PREF.achJ || (PREF.achJ = {}); j[run.job] = 1; savePref(); if (Object.keys(j).length >= 3) ach('job3'); } } }
 // 每張地圖的開場與結局（旁白，不讓特定角色開口）。開場只在第一次走這張地圖時出現；結局在通關的結案報告上
 const STORY = {
   office: { icon: 'boss', title: '今天的行程', intro: ['早上八點五十九分，打卡鐘還沒響。', '聽說奧客總經理今天又要來「了解一下進度」。', '一個人擋不住，路上能拉幾個同事算幾個。', '目標很簡單：今天，準時下班。'], end: ['奧客總經理收起名片，說他「再回去想想」。', '沒有人加薪，也沒有人被表揚。', '但六點整，辦公室的燈真的關了。'] },
@@ -712,6 +730,7 @@ function chooseNode(i) { if (i < 0) return; const nd = R.enterNode(run, i); menu
 function finish() {
   endFx(aegisFx); endFx(bulwarkFx);      // 護盾罩不要留到結算畫面
   phase = 'end'; menu = null; actor = null; const t0 = now + .2, last = R.isFinal(run), hud = S.ui.at(-1), L = state.L;
+  if (state.over === 'win') btWin(last);
   if (state.over === 'win' && !last) {      // 過關：敵人退場、擺個姿勢，然後選強化
     if (L) { const u = units.boss; if (L.text.down) box(t0 + .1, 2.3, `「${L.text.down}」`, true); u.pose(t0, 'hurt'); for (let i = 0; i < 4; i++) u.hit(t0 + i * .2, .7 - i * .1); u.die(t0 + .9, 1.6); snd(t0 + .9, 'boss_down', .8); for (let i = 0; i < 3; i++) fx('spawn/poof', t0 + 1.2 + i * .3, 'boss', { scale: 1.6, dx: -.6 + i * .6, y: .3 + (i % 2) * .8, seed: i + 2 }); }
     for (const m of R.MINIONS) if (R.alive(state, m)) kill(t0 + .5, m);
@@ -1050,7 +1069,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發，照行程表一站一站走到最後；路上招募同事，最多四人上場。地圖可以按住拖著看', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上，下次打開可以「繼續上班」'];
-const CHANGES = [['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'], ['v0.19.1', '台灣篇的戰鬥換上自己的背景；新招式和小物有專屬圖示', '加班等級：通關後可以挑更難的版本，一共五級'] ];
+const CHANGES = [['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'], ['v0.25.0', '開局選「職位」：九種，各有一個好處和一個限制，整趟有效', '每張地圖有開場與結局文字；十六個新音效（弱點、護盾、拆鎖、合體技等）'], ['v0.24.0', '戰鬥中可以「換人」：把候補的夥伴換上場', ''], ['v0.23.0', '連攜：對有異常狀態的敵人用對屬性有額外效果；最終頭目有第二階段', '戰鬥左上角的按鈕和行程表的隊伍欄放大'], ['v0.22.0', '報帳額度與採買站：打贏拿額度，到報帳處買小物、補給包、特訓', ''], ['v0.21.0', '地獄分公司換上自己的美術：兩張地圖紙、三個頭目、六種小兵', '台灣篇與地獄的戰鬥都有專屬背景；選招式時會標出能拆鎖的'], ['v0.20.1', '敵人圖鑑（記下打過的敵人與弱點）、通關紀錄、合體技的眼神特寫', '敵人打人沒那麼痛、血比較厚'], ['v0.20.0', '十四個新事件（台灣篇、地獄各有專屬的）；菁英戰有詞綴和額外獎勵', '同標籤的小物湊三個有套裝效果；防禦之後下回合提早行動'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (phase === 'title' && !bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -1063,14 +1082,19 @@ function drawOverlay() {
     if (phase === 'title' && saved) { const r = saved.run; bigButton('繼續上班', 1660, 846, 420, 108, 'cont'); bigButton('重新開始', 1660, 968, 340, 84, 'new');
       text(`上次的進度：第 ${r.floor + 1} 站` + (r.map === 'mirror' ? '（鏡像內戰）' : MAPNAME[r.map] ? `（${MAPNAME[r.map]}）` : ''), 1870, 744, { px: 22, w: 900, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); text(`${r.roster.slice(0, 4).map(id => DEFS[id].name).join('、')}${r.roster.length > 4 ? ` 等 ${r.roster.length} 人` : ''}`, 1870, 774, { px: 20, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.9)', sw: 6 }); }
     else if (phase === 'title') bigButton('開始上班', 1650, 930, 430, 118); else text(loadMsg + '…', 1650, 940, { px: 30, w: 500, align: 'center', col: COL.dim });
-    toggles(28, 1016); toggle('玩法說明', 28, 954, 'help', 190); toggle('更新紀錄', 226, 954, 'log', 210);
-    if (titleInfo) { zones = []; zones.push({ x: 0, y: 0, w: W, h: H, opt: 'infoClose' }); c.fillStyle = 'rgba(8,5,4,.72)'; c.fillRect(0, 0, W, H); const help = titleInfo === 'help', rows = help ? HELP : CHANGES, PWd = 1240, PHt = 150 + rows.length * (help ? 60 : 74), PX0 = W / 2 - PWd / 2, PY0 = H / 2 - PHt / 2;
+    toggles(28, 1016); toggle('玩法說明', 28, 954, 'help', 190); toggle('更新紀錄', 226, 954, 'log', 210); toggle(`考績表　${achN()}／${ACH.length}`, 444, 954, 'ach', 280);
+    if (titleInfo) { zones = []; zones.push({ x: 0, y: 0, w: W, h: H, opt: 'infoClose' }); c.fillStyle = 'rgba(8,5,4,.72)'; c.fillRect(0, 0, W, H); if (titleInfo === 'ach') { const PWd = 1840, PHt = 1010, PX0 = 40, PY0 = 26, half = Math.ceil(ACH.length / 2), cw = (PWd - 120) / 2; skin.wood(PX0, PY0, PWd, PHt); skin.paper(PX0 + 22, PY0 + 22, PWd - 44, PHt - 44, { clips: [PX0 + 130, PX0 + PWd - 130] }); text('考績表', PX0 + 64, PY0 + 96, { px: 46, w: 900, fam: SERIF, col: INK, ls: 10 }); text(`${achN()}／${ACH.length}　試過各種打法就蓋一個章；只是紀錄，不影響數值。點任何地方關閉`, PX0 + PWd - 64, PY0 + 92, { px: 26, w: 700, align: 'right', col: INK2 }); c.fillStyle = INK; c.fillRect(PX0 + 60, PY0 + 112, PWd - 120, 3);
+        ACH.forEach((a, i) => { const got = (PREF.ach || {})[a[0]], x = PX0 + 60 + (i >= half ? cw : 0), y = PY0 + 166 + (i % half) * 60; c.strokeStyle = got ? RED : 'rgba(43,31,24,.35)'; c.lineWidth = 3; c.strokeRect(x + 1.5, y - 30.5, 36, 36); if (got) { c.strokeStyle = RED; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.moveTo(x + 8, y - 12); c.lineTo(x + 17, y - 2); c.lineTo(x + 34, y - 28); c.stroke(); }
+          text(a[1], x + 52, y, { px: 30, w: 900, fam: SERIF, col: got ? INK : 'rgba(43,31,24,.6)' }); text(fit(a[2], cw - 250, 26, 700), x + 232, y, { px: 26, w: 700, col: got ? INK2 : 'rgba(43,31,24,.55)' }); }); }
+      else { const help = titleInfo === 'help', rows = help ? HELP : CHANGES, PWd = 1240, PHt = 150 + rows.length * (help ? 60 : 74), PX0 = W / 2 - PWd / 2, PY0 = H / 2 - PHt / 2;
       skin.wood(PX0, PY0, PWd, PHt); skin.paper(PX0 + 26, PY0 + 26, PWd - 52, PHt - 52, { clips: [PX0 + 120, PX0 + PWd - 120] }); text(help ? '玩法說明' : '更新紀錄', W / 2, PY0 + 92, { px: 44, w: 900, fam: SERIF, align: 'center', col: INK, ls: 10 }); c.fillStyle = RED; c.fillRect(W / 2 - 70, PY0 + 108, 140, 4);
       rows.forEach((r, i) => { const y = PY0 + 164 + i * (help ? 60 : 74); if (help) { gem(PX0 + 78, y - 8, 6, RED); text(r, PX0 + 100, y, { px: 26, w: 700, col: INK }); } else { text(r[0], PX0 + 70, y, { px: 24, w: 900, col: RED }); text(fit(r[1], PWd - 300, 24), PX0 + 210, y, { px: 24, w: 900, col: INK }); if (r[2]) text(fit(r[2], PWd - 300, 20), PX0 + 210, y + 30, { px: 20, w: 700, col: INK2 }); } });
-      text('點任何地方關閉', W / 2, PY0 + PHt + 40, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.8)' }); }
+      text('點任何地方關閉', W / 2, PY0 + PHt + 40, { px: 22, w: 700, align: 'center', col: 'rgba(239,230,207,.8)' }); } }
     { const tip = a2hs(); if (tip) { const x = 1392, y = 52, w = 492, h = 150, pe = pressed && pressed.opt === 'a2hs' ? 1 : 0; zones.push({ x, y, w, h, opt: 'a2hs' }); c.save(); c.translate(0, pe ? 4 : 0); skin.paper(x, y, w, h, { clips: [x + 60, x + w - 60] });
         if (iconImg) { c.imageSmoothingEnabled = false; c.drawImage(iconImg, x + 20, y + 22, 106, 106); c.imageSmoothingEnabled = true; } text(tip[0], x + 144, y + 62, { px: 28, w: 900, fam: SERIF, col: INK }); text(tip[1], x + 144, y + 98, { px: 20, w: 700, col: INK2 }); text(installEvt ? '' : '點一下這張紙就不再提醒', x + 144, y + 128, { px: 16, w: 500, col: 'rgba(43,31,24,.55)' }); c.restore(); } } text('滑鼠／觸控點選，或用方向鍵與 Enter', 1870, 1060, { px: 18, w: 700, align: 'right', col: 'rgba(239,230,207,.85)', stroke: 'rgba(20,10,4,.8)', sw: 4 }); }
   drawReport();
+  if (achNew.length && ['pick', 'hub', 'over'].includes(phase)) { while (achNew.length && achNew[0].t != null && now - achNew[0].t > 4.5) achNew.shift();
+    achNew.slice(0, 3).forEach((a, i) => { if (a.t == null) { a.t = now + i * .25; if (i === 0) snd(now, 'card', .6); } const el = now - a.t; if (el < 0) return; const k = easeOut(sat(el / .3)) * sat((4.5 - el) / .4), w = 340, x = W - 20 - w * k, y = 176 + i * 66; c.save(); c.globalAlpha = sat(k * 1.5); skin.paper(x, y, w, 58); c.fillStyle = RED; c.fillRect(x + 14, y + 14, 6, 30); text('考績 ＋1', x + 30, y + 38, { px: 22, w: 900, col: RED }); text(fit(a.name, w - 150, 28, 900, SERIF), x + 130, y + 40, { px: 28, w: 900, fam: SERIF, col: INK }); c.restore(); }); }
 }
 
 // ---------- 操作 ----------
@@ -1081,7 +1105,7 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (
 function press(z) {
   if (!z || (pressed && performance.now() - pressed.t < PRESS_MS)) return;
   if (z.opt === 'a2hs') { pressed = { opt: 'a2hs', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); if (installEvt) { const e = installEvt; installEvt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(r => { if (r && r.outcome === 'accepted') installed = true; }).catch(() => 0); } else { PREF.noA2hs = true; savePref(); } return; }
-  if (z.opt === 'help' || z.opt === 'log' || z.opt === 'infoClose') { pressed = { opt: z.opt, t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; titleInfo = z.opt === 'infoClose' ? null : z.opt; }, PRESS_MS); return; }
+  if (z.opt === 'help' || z.opt === 'log' || z.opt === 'ach' || z.opt === 'infoClose') { pressed = { opt: z.opt, t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; titleInfo = z.opt === 'infoClose' ? null : z.opt; }, PRESS_MS); return; }
   if (z.opt === 'spd') { pressed = { opt: 'spd', t: performance.now() }; PREF.spd = ((PREF.spd || 0) + 1) % SPEEDS.length; savePref(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
   if (z.opt === 'panel') { pressed = { opt: 'panel', t: performance.now() }; uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; if (phase === 'command' && menu && !panel) openPanel(); }, PRESS_MS); return; }
   if (z.opt) { pressed = { opt: z.opt, t: performance.now() }; PREF[z.opt] = !PREF[z.opt]; PREF.set = true; savePref(); if (z.opt === 'mute') master.gain.value = PREF.mute ? 0 : .9; else applyQuality(); uiSound('ok'); buzz(8); setTimeout(() => { pressed = null; }, PRESS_MS); return; }
