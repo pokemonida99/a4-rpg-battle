@@ -1062,9 +1062,9 @@ const STYLE_TAG = { ember: '灼燒', bounty: '標記', riposte: '反擊', dossie
 function loseTips() { const T = [], fr = R.FRONT, st = state, sp = fr.length ? fr.reduce((a, h) => a + st.sp[h] / R.STAT[h].sp, 0) / fr.length : 0, bn = R.bench(state);
   if (BT.ultKill) T.push('頭目蓄力的那一回合，按「防禦」受傷減半；或用對屬性拆掉他頭上的鎖，大招會變弱。');
   if (st.round >= 4 && BT.wk < 3) T.push('這一場很少打中弱點。換不同屬性的招式試試，打中一次就會記進圖鑑。');
-  if (st.items.tea > 0 || st.items.bento > 0) T.push(`還有${st.items.tea > 0 ? ` ${st.items.tea} 杯珍珠奶茶` : ''}${st.items.tea > 0 && st.items.bento > 0 ? '和' : ''}${st.items.bento > 0 ? '雞排便當' : ''}沒用到：快倒的時候別省。`);
+  if ((st.items.tea > 0 || st.items.bento > 0) && R.itemsLeft(st) > 0) T.push(`還有${st.items.tea > 0 ? ` ${st.items.tea} 杯珍珠奶茶` : ''}${st.items.tea > 0 && st.items.bento > 0 ? '和' : ''}${st.items.bento > 0 ? '雞排便當' : ''}沒用到：快倒的時候別省。`);
   if (sp > .5) T.push('倒下時大家的 SP 還剩一半以上：招式可以放得更勤，普通攻擊會把 SP 補回來。');
-  if (st.mo >= R.ultMo(run)) T.push('氣勢已經夠放奧義了卻沒放：夠了就用，放完還會再累積。');
+  if (st.mo >= R.ultMo(run) && fr.some(h => st.sp[h] >= R.STAT[h].cost)) T.push('氣勢已經夠放奧義了卻沒放：夠了就用，放完還會再累積。');
   if (bn.length && !BT.swap) T.push(`候補的${bn.map(h => DEFS[h].name).join('、')}沒有上場：快倒的人可以用「換人」換下去。`);
   if (run.roster.length < 4 && run.floor >= 3) T.push('隊伍不到四個人：行程表上的「招募」「救援」多走幾站，人多很多事好辦。');
   { const U = R.UNITES.find(u => u.who.every(h => fr.includes(h))); if (U && !BT.unite) T.push(`${U.who.map(h => DEFS[h].name).join('和')}同場可以放合體技「${U.name}」，這一場沒用到。`); }
