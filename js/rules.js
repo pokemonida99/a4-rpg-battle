@@ -530,12 +530,14 @@ export const advance = run => { run.floor++; prepare(run); return run; };
 export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.tally.brk += s.tally.brk; run.tally.ult += s.tally.ult; }
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
   addTally(s, run); run.tally.fights++;
+  run.lastLearn = null; if (run.starter && LEARN_AT.includes(run.tally.fights)) { const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); run.lastLearn = u[0]; } }      // 主角邊打邊學：打贏第二、第四場各學會一招（不用等抽到「在職進修」）
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
   run.lastCoin = Math.round(coinFor(run.node) * (run.job === 'buyer' ? 1.5 : 1)); run.coin = (run.coin || 0) + run.lastCoin;
   run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
 export function rest(run) { let sum = 0; for (const id of run.roster) { if (id !== 'vivi') { const v = Math.min(STAT[id].hp - run.hp[id], Math.round(STAT[id].hp * (run.ot >= 4 ? .25 : .5) * (run.job === 'buyer' ? .7 : 1))); run.hp[id] += v; sum += v; } run.sp[id] = STAT[id].sp; } return sum; }
+export const LEARN_AT = [2, 4];
 export const unlearned = run => run.starter ? SKILLS[run.starter].map(k => k.key).filter(k => !run.skills[run.starter].includes(k)) : [];
 export function offerUpgrades(run) { const pool = Object.keys(UPGRADES).filter(k => { const U = UPGRADES[k]; return !(k === 'morale' && run.picks.includes('morale')) && !(k === 'learn' && !unlearned(run).length) && !(U.once && run.picks.includes(k)) && !(U.need && !U.need.some(id => run.roster.includes(id))); }); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(run.rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, run.job === 'edu' ? 2 : 3); }
 // opt：在職進修要學哪一招（沒給就學排在最前面那個還不會的）
