@@ -774,7 +774,7 @@ const mw = (s, px, w = 700, fam = SANS) => { font(px, w, fam); return c.measureT
 const gem = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.fill(); };
 const fit = (str, room, px, w = 700, fam = SANS) => { font(px, w, fam); while (c.measureText(str).width > room && str.length > 5) str = str.slice(0, -2) + '…'; return str; };
 // 中文折行：超過寬度就換行，標點不放行首
-const wrap = (str, room, px, w = 700) => { font(px, w); const out = []; let line = ''; for (const ch of str) { if (line && c.measureText(line + ch).width > room && !'，。、：；！？）」'.includes(ch) && !(/[A-Za-z0-9]/.test(ch) && /[A-Za-z0-9]$/.test(line) && line.length > 6)) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; };
+const wrap = (str, room, px, w = 700) => { font(px, w); const out = []; let line = ''; for (const ch of str) { if (line && c.measureText(line + ch).width > room && !'，。、：；！？）」'.includes(ch) && !(/[A-Za-z0-9]/.test(ch) && /[A-Za-z0-9]$/.test(line) && line.length > 6)) { const open = '「（『'.includes(line.at(-1)) && line.length > 1 ? line.at(-1) : ''; out.push(open ? line.slice(0, -1) : line); line = open + ch; } else line += ch; } if (line) out.push(line); return out; };
 const pix = (im, x, y, w, h) => { if (!im) return; c.imageSmoothingEnabled = false; c.drawImage(im, x, y, w, h); c.imageSmoothingEnabled = true; };
 const pressK = i => pressed && pressed.i === i && !pressed.big && !pressed.opt ? (performance.now() - pressed.t) / PRESS_MS : -1;
 // 指令按鈕＝資料夾的索引標籤：選到的是綠色、往上拉出來一截；按下去會沉、閃一下；不能按的是舊紙，按了會抖
