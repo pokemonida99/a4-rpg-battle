@@ -6,12 +6,13 @@ ok(R.HEROES.join() === 'kui,kevin,mi,jie' && R.bench(s).join() === 'qiang,xu', `
 s.hp.kui = 300; s.ward.kui = 200; s.plan.ma = 'kui'; const q0 = s.queue.filter(x => x === 'kui').length;
 const r = R.doSwap(s, 'kui', 'qiang');
 ok(r && r.kind === 'swap' && R.HEROES.join() === 'qiang,kevin,mi,jie' && R.FRONT[0] === 'qiang', `換人後上場 ${R.HEROES}`);
-ok(run.hp.kui === 300 && s.hp.qiang === 3000 && run.roster.join() === 'qiang,kevin,mi,jie,kui,xu', `小葵帶著 300 HP 下場；名冊 ${run.roster}`);
+const third = id => Math.ceil(R.STAT[id].hp / R.BENCH_ROUNDS), q1 = Math.min(R.STAT.qiang.hp, 3000 + third('qiang'));      // 候補每回合回三分之一：阿強在候補過了第一回合的開頭
+ok(run.hp.kui === 300 && s.hp.qiang === q1 && run.roster.join() === 'qiang,kevin,mi,jie,kui,xu', `小葵帶著 300 HP 下場；名冊 ${run.roster}`);
 ok(s.plan.ma === 'qiang' && !s.ward.kui && !s.queue.includes('kui'), '敵人改瞄準阿強；小葵的護盾清掉、這回合不再行動');
 ok(R.BOSS_ULT.qiang > 0 && R.bench(s).join() === 'kui,xu', `頭目大招對阿強 ${R.BOSS_ULT.qiang}；候補 ${R.bench(s)}`);
 const r2 = R.enemyTurn(s, 'ma'); ok(r2.hits[0].dst === 'qiang', '小兵真的打阿強');
 R.startRound(s); ok(s.queue.includes('qiang') && !s.queue.includes('kui'), '下一回合阿強會行動');
-s.over = 'win'; R.endStage(s, run); ok(run.hp.kui === 300 && run.hp.qiang > 0 && R.active(run).includes('qiang') && !R.active(run).includes('kui'), '打完：小葵留在候補、血沒有被動到');
+s.over = 'win'; R.endStage(s, run); ok(run.hp.kui === 300 + third('kui') && run.hp.qiang > 0 && R.active(run).includes('qiang') && !R.active(run).includes('kui'), '打完：小葵留在候補，只多了候補一回合回的血（過關的回復不算候補）');
 const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run)))); ok(back && back.run.roster[0] === 'qiang', '存檔照新的順序');
 ok(R.doSwap(s, 'vivi', 'kui') === null, 'Vivi 不能換');
 // v0.30：每回合第一次換人不用掉行動（換上來的人排到最前面接著動）；同一回合第二次才用掉行動

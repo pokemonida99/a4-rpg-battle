@@ -4,7 +4,7 @@
 // 目標：會想的打法大多能通關、一般玩家五到七成、只按攻擊過不了頭目。
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
-import { ALL as ALL0, petTurn, isPet, petsOut, newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
+import { fallen, REVIVE_SKILLS, ALL as ALL0, petTurn, isPet, petsOut, newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
   TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain, supply, buy, shopStock, PRICE, bench, doSwap, addGuest } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
@@ -25,7 +25,7 @@ const POLICY = {
   smart(s, id) {
     const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s, smartMinion);
     const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
-    if (dead.length && s.items.bento) return doItem(s, id, 'bento', dead[0]);
+    { const dn = fallen(s), rk = REVIVE_SKILLS[id]; if (dn.length && rk && can(s, id, rk)) return doSkill(s, id, rk, dn[0]); if (dn.length && s.items.bento) return doItem(s, id, 'bento', dn[0]); }      // 有人倒下（場上或候補）：會復活的人先救，不然用便當
     if (me < .4 && id !== 'vivi' && s.swapRound !== s.round && bench(s).some(h => s.run.hp[h] / STAT[h].hp > .7)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 這回合還沒換過人（不用掉行動）：血剩四成以下就換滿血的候補上來
     if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
     if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
@@ -69,6 +69,7 @@ const POLICY = {
     const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4), t = target(s);
     if (s.charging && s.wok === id && s.round % 4) return doDefend(s, id);      // 畫面上寫明「防禦就彈回去」，一般玩家大多會照做
     if (s.charging && !s.wok && canUlt(s, id) && ['kevin', 'qiang', 'an'].includes(id)) return doUlt(s, id);
+    { const dn = fallen(s), rk = REVIVE_SKILLS[id]; if (dn.length && rk && can(s, id, rk) && s.rand() < .7) return doSkill(s, id, rk, dn[0]); }
     if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (can(s, id, 'mend')) return doSkill(s, id, 'mend', lowest(s)); }
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
