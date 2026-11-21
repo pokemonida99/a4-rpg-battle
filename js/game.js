@@ -107,7 +107,7 @@ const bgmLater = (ks = ['battle', 'boss', 'victory']) => Promise.all(ks.map(k =>
 // 戰鬥播放速度：1、1.5、2 倍（左上角的小紙條切換，記在 PREF.spd）。只加快演出，選指令的時候不倒數。看過的頭目開場自動用兩倍帶過（introBoost）
 const SPEEDS = [1, 1.5, 2]; let introBoost = -1;
 const speedNow = () => replay ? 24 : Q.has('fast') ? +Q.get('fast') || 3 : (phase === 'anim' || phase === 'end' || phase === 'command' ? SPEEDS[PREF.spd || 0] * (now < introBoost ? 2 : 1) : 1);
-const snd = (t, id, v = 1) => { const b = buf[id]; if (!b || replay) return; const s = AC.createBufferSource(), g = AC.createGain(), vo = id.startsWith('vo/'); s.buffer = b; g.gain.value = v * (vo ? 1 : .6); s.connect(g).connect(master);
+const snd = (t, id, v = 1) => { if (window.__sndLog && !replay) window.__sndLog.push({ at: performance.now() / 1000 + Math.max(0, t - now) / speedNow(), id, v }); const b = buf[id]; if (!b || replay) return; const s = AC.createBufferSource(), g = AC.createGain(), vo = id.startsWith('vo/'); s.buffer = b; g.gain.value = v * (vo ? 1 : .6); s.connect(g).connect(master);
   const when = AC.currentTime + Math.max(0, t - now) / speedNow(); s.start(when); if (vo) { musicGain.gain.setTargetAtTime(.16, when, .08); musicGain.gain.setTargetAtTime(.42, when + b.duration + .2, .3); } };
 // 配樂的切換：行程表（地圖）播地圖曲；進戰鬥換戰鬥曲、魔王站換魔王曲；戰鬥一結束戰鬥曲就停，回到行程表再換回地圖曲。
 // 地圖曲暫時借用之前沒用到的那首程式合成的結算曲（audio/bgm/map.mp3），之後使用者有自己的再換。
@@ -117,7 +117,7 @@ const MUSIC_VOL = { 'bgm/map': .75 }; let musicId = null;
 const BGM_EXTRA = [], BGM_PRE = { taiwan: 'tw', hell: 'hell', mirror: 'mirror' };
 for (const id of BGM_EXTRA) loadSound('bgm/' + id, `audio/bgm/${id}.mp3`);      // 不擋開機：載好之前先播原本的
 const mus = kind => { const pre = run && BGM_PRE[run.map], id = pre && `bgm/${pre}_${kind}`; return id && buf[id] ? id : 'bgm/' + kind; };
-function playMusic(id) { if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(MUSIC_VOL[id] ?? (id.endsWith('_map') ? .75 : 1), AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
+function playMusic(id) { if (window.__sndLog && id !== musicId) window.__sndLog.push({ at: performance.now() / 1000, music: id || null }); if (id && id === musicId && music) return; musicId = id; if (music) { const m = music; m.g.gain.setTargetAtTime(0, AC.currentTime, .25); setTimeout(() => m.s.stop(), 1200); music = null; } const b = buf[id]; if (!b) return; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(MUSIC_VOL[id] ?? (id.endsWith('_map') ? .75 : 1), AC.currentTime, .5); s.connect(g).connect(musicGain); s.start(); music = { s, g }; }
 musicGain.gain.value = .42;
 // 介面按鍵聲：程式合成的短促木頭聲（使用者嫌原本的音效難聽）。move 游標移動、ok 按下、no 不能按
 function uiSound(kind) { if (AC.state !== 'running') return; const t = AC.currentTime;
