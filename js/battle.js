@@ -45,7 +45,7 @@ export const DEFS = {
 // 道具：n＝持有數；hp／sp＝回復量
 const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000 }, coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150 }, bento: { name: '雞排便當', n: 1, note: '戰鬥不能回復' } };
 // 喊招台詞與錄音長度（秒）
-export const LINES = { kui: ['吐槽一閃！', 1.59], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
+export const LINES = { kui: ['吐槽一閃！', 1.61], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
 export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
 const SFACE = { kui: [.42, .12], jie: [.47, .14], qiang: [.5, .1], you: [.47, .1], senpai: [.48, .12], zhe: [.5, .1], an: [.4, .1] };      // 超級版頭像從半身像切：臉的中心在寬度的幾成、從高度的幾成開始切
