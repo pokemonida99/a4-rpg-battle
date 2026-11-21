@@ -1,8 +1,8 @@
-// 每個招式都用一次：六組隊伍把 16 個夥伴的招式、奧義、合體技、普攻、防禦全部按過，看有沒有錯誤或卡住。
+// 每個招式都用一次：七組隊伍把 18 個夥伴的招式、奧義、合體技、普攻、防禦全部按過，看有沒有錯誤或卡住。
 // 每次輪到人都把 SP、氣勢、HP 補滿，頭目的血也補回去，讓戰鬥不會結束。用法：node skillsweep.mjs [第幾組…]
 import { createRequire } from 'node:module';
 const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core');
-const TEAMS = [[0, 'jie,senpai,you', 'chief'], [0, 'kevin,yan,zong', 'chief'], [0, 'mi,xu,cha', 'chief'], [0, 'cha,qiang,wu', 'chief'], [0, 'zong,hui,fairy', 'chief'], [1, 'vivi,heilun,fairy', 'chief']];
+const TEAMS = [[0, 'jie,senpai,you', 'chief'], [0, 'kevin,yan,zong', 'chief'], [0, 'mi,xu,cha', 'chief'], [0, 'cha,qiang,wu', 'chief'], [0, 'zong,hui,fairy', 'chief'], [1, 'vivi,heilun,fairy', 'chief'], [0, 'zhe,an,kevin', 'chief']];
 const only = process.argv.slice(2).map(Number), FAST = process.env.FAST || 4, wait = ms => new Promise(r => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--window-size=1280,720', '--autoplay-policy=no-user-gesture-required'] });
 let allBad = 0;

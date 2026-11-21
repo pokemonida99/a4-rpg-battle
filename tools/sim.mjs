@@ -29,13 +29,15 @@ const POLICY = {
     if (me < .4 && id !== 'vivi' && s.swapRound !== s.round && bench(s).some(h => s.run.hp[h] / STAT[h].hp > .7)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 這回合還沒換過人（不用掉行動）：血剩四成以下就換滿血的候補上來
     if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
     if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
-    else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha', 'an'].includes(id)) return doUlt(s, id);
     if (s.sign > 0 && boss && !guarded(s) && !['mi', 'xu', 'vivi'].includes(id) && me > .4) return doAttack(s, id, 'boss');      // 不夜城：先用普攻把招牌打熄
     if (id === 'mi') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length >= 2 && can(s, id, 'soothe', keep)) return doSkill(s, id, 'soothe'); if (hurt.length && can(s, id, 'mend', keep)) return doSkill(s, id, 'mend', lowest(s)); }
     if (hurt.length && s.items.tea && (id === 'mi' || id === 'vivi' || me < .4 || FRONT.length === 1)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && boss ? doUlt(s, id) : doCheer(s);
     if (s.charging && !s.wok && !covered && me < .7) return doDefend(s, id);
     if (canUlt(s, id) && ['kui', 'jie', 'heilun'].includes(id) && (boss || nMin >= 2)) return doUlt(s, id);
+    if (canUlt(s, id) && id === 'zhe' && boss && !guarded(s)) return doUlt(s, id);
+    if (id === 'an') { if (s.guardian !== id && can(s, id, 'wetfloor', keep)) return doSkill(s, id, 'wetfloor'); }
     if (canUlt(s, id) && id === 'senpai' && (s.evidence >= 2 || s.broken)) return doUlt(s, id);
     if (t !== 'boss' && KINDS[s.kind[t]].dull && nMin < 2 && !smoked(s, id) && !['mi', 'xu', 'kevin', 'qiang', 'cha'].includes(id)) return doAttack(s, id, t);      // 大媽：招式只有一半，用普攻打
     if (id === 'kui') { if (nMin >= 2 && can(s, id, 'sweep', keep)) return doSkill(s, id, 'sweep'); if (can(s, id, 'draft', keep)) return doSkill(s, id, 'draft', t); if (me < .5 && can(s, id, 'counter', keep)) return doSkill(s, id, 'counter'); }
@@ -66,11 +68,11 @@ const POLICY = {
   casual(s, id) {
     const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4), t = target(s);
     if (s.charging && s.wok === id && s.round % 4) return doDefend(s, id);      // 畫面上寫明「防禦就彈回去」，一般玩家大多會照做
-    if (s.charging && !s.wok && canUlt(s, id) && ['kevin', 'qiang'].includes(id)) return doUlt(s, id);
+    if (s.charging && !s.wok && canUlt(s, id) && ['kevin', 'qiang', 'an'].includes(id)) return doUlt(s, id);
     if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (can(s, id, 'mend')) return doSkill(s, id, 'mend', lowest(s)); }
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
-    if (canUlt(s, id) && !['kevin', 'qiang', 'mi', 'yan', 'cha'].includes(id)) return doUlt(s, id);
+    if (canUlt(s, id) && !['kevin', 'qiang', 'mi', 'yan', 'cha', 'an'].includes(id)) return doUlt(s, id);
     if (s.rand() < .35) { const ks = SKILLS[id].filter(k => knows(s, id, k.key) && s.sp[id] >= k.sp && (k.target === 'foe' || k.target === 'all')), k = ks[Math.floor(s.rand() * ks.length)]; if (k) return doSkill(s, id, k.key, t); }
     return doAttack(s, id, t);
   },

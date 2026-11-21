@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.32.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.33.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -185,7 +185,7 @@ const goHome = (t, id, dur = .28) => units[id].move(t, home(id)[0], home(id)[1],
 const CASTER = { yan: 1, cha: 1, fairy: 1, xu: 1 };
 // 新夥伴出招：有 8 格圖就逐格播（1～4 準備、5 揮出、6 出手的頂點、7 停住、8 收回），第 6 格對在 th 前一點；圖還沒有的人用蓄力／出手兩張
 // 沒有專屬語音的夥伴（黑輪之後的人）：出招時喊一聲共用的「賀！」「哈！」，分男女；兩隻老鼠是吱吱聲。每個人兩種聲音輪流（audio/sfx/shout_m_1～2、shout_f_1～2、squeak_1～2）
-const VOICE = { heilun: 'm', qiang: 'm', you: 'm', yan: 'f', cha: 'f', senpai: 'f', wu: 'f', fairy: 'f', xu: 'f', zong: 'q', hui: 'q' }, shoutN = {};
+const VOICE = { heilun: 'm', qiang: 'm', you: 'm', yan: 'f', cha: 'f', senpai: 'f', wu: 'f', fairy: 'f', xu: 'f', zong: 'q', hui: 'q', zhe: 'm', an: 'f' }, shoutN = {};
 const shout = (t, id, v = 1.15) => { const k = VOICE[id]; if (!k) return; const n = 1 + ((shoutN[id] = (shoutN[id] ?? Object.keys(VOICE).indexOf(id)) + 1) % 2); snd(t, k === 'q' ? 'squeak_' + n : `shout_${k}_${n}`, v); };
 const has8 = id => !!units[id].frames.ult.real, BLADE = { wu: 1, you: 1 };      // BLADE：拿扇子、匕首的人，打中是刀光與斬擊聲
 const reach = (id, big) => (big ? 2.0 : 1.05) + (has8(id) ? .4 : 0);      // 逐格圖出手那格會往前伸很長，站遠一點武器才剛好碰到人
@@ -347,6 +347,8 @@ function playUltNew(r, t0) {
       if (h.revive) { at(tt, () => { ko[h.dst] = false; units[h.dst].pose(now, 'ready'); }); units[h.dst].pose(tt, 'ready'); num(tt + .15, h.dst, '復活', 'text', { col: '#fff3c8', px: 34, y: 1.3 }); } }); snd(tk + .35, 'heal', .9); te = tk + 1.9; }
   else if (id === 'zong') { u.pose(ta + .45, u.frames.guard ? 'guard' : 'act'); snd(tk, 'shield_up', 1.0); SFX.add('flash', tk, .3, { c: [255, 220, 150], a: .45 }); R.FRONT.filter(h => R.alive(state, h)).forEach((h, i) => { fx('impacts/parry', tk + i * .08, h, { scale: 1.1, y: .5, palette: 'gold' }); tag(h, '不會倒下', '#ffe27a', i * .08); units[h].hop(tk + .1 + i * .08, .14, .26); }); te = tk + 1.4; }
   else if (id === 'hui') { SFX.add('speed', tk - .1, 1.4, { a: .3, n: 30 }); hs.forEach((h, i) => { const tt = tk + i * .26; if (has8(id)) u.anim(tt - .2, 'ult', [0, 0, 0, .02, .1, .17, 9, 9]); else u.pose(tt - .12, i % 2 ? 'wind' : 'act'); fx('impacts/blunt-hit', tt - .04, h.dst, { scale: h.dst === 'boss' ? 2.0 : 1.5, y: h.dst === 'boss' ? 1.0 : .5, dx: (i % 2 ? .3 : -.2), palette: 'shadow' }); cam.shake(tt, .12, .35); applyHit(tt, h, { snd: 'hit', dy: i % 2 ? -60 : 0 }); }); te = tk + hs.length * .26 + 1.0; }
+  else if (id === 'zhe') { SFX.add('speed', tk - .1, 1.2, { a: .3, n: 30 }); hs.forEach((h, i) => { const tt = tk + i * .3; if (has8(id)) u.anim(tt - .2, 'ult', [0, 0, 0, .02, .1, .17, 9, 9]); else u.pose(tt - .12, i % 2 ? 'wind' : 'act'); fx('explosions/small-explosion', tt - .06, h.dst, { scale: h.dst === 'boss' ? 1.7 : 1.2, y: h.dst === 'boss' ? 1.0 : .5, dx: (i % 2 ? .3 : -.2), palette: 'fire' }); cam.shake(tt, .12, .35); applyHit(tt, h, { snd: i ? 'hit' : 'explosion', dy: i % 2 ? -60 : 0 }); }); (r.burns || []).forEach(f => tag(f, '灼燒　三回合', '#ff9a5a', hs.length * .3)); te = tk + hs.length * .3 + 1.0; }
+  else if (id === 'an') { u.pose(ta + .45, u.frames.guard ? 'guard' : 'act'); snd(tk, 'shield_up', 1.1); cam.shake(tk, .14, .35); SFX.add('flash', tk, .3, { c: [150, 230, 255], a: .45 }); R.FRONT.filter(h => !ko[h]).forEach((h, i) => { fx('impacts/parry', tk + i * .08, h, { scale: 1.1, y: .5, palette: 'cyber' }); units[h].hop(tk + .1 + i * .08, .14, .26); }); te = tk + 1.5; }
   else if (id === 'xu') { fx('holy/feather-burst', tk, id, { scale: 1.2, y: 1.6, palette: 'heal' }); SFX.add('flash', tk, .4, { c: [170, 240, 180], a: .45 }); snd(tk, 'heal', .9);
     (r.heals || []).forEach((h, i) => { const tt = tk + .25 + i * .1; fx('holy/heal', tt - .1, h.dst, { scale: 1.2 }); S.hp[h.dst].push({ t: tt, v: h.hp }); if (h.v > 0) num(tt, h.dst, h.v, 'heal'); units[h.dst].hop(tt + .1, .16, .3); });
     (r.spGains || []).forEach((h, i) => { S.sp[h.dst].push({ t: tk + .7, v: h.sp }); if (h.v > 0) num(tk + .75 + i * .08, h.dst, h.v, 'sp'); }); if (r.tea) tag(id, '珍珠奶茶 ＋1', '#ffe27a', .9); te = tk + 1.9; }
@@ -739,9 +741,9 @@ function closePanel() { panel = false; if (phase === 'hub') { menu = { kind: 'hu
 const sheetList = () => run.roster.includes(sheet) ? run.roster : DEX.filter(id => (PREF.met || []).includes(id));
 function openSheet(id) { sheet = id; menu = { kind: 'sheet', items: [{ label: '上一位', go: () => stepSheet(-1) }, { label: '下一位', go: () => stepSheet(1) }, { label: '返回', back: true, go: closeSheet }, { label: '換立繪', go: () => flipSheet() }] }; focus = 2; }
 // 立繪左右滑：像素版 ↔ 真人版（重畫的上半身，art/cutin/real_<代號>.jpg，第一次看才下載；兩隻老鼠是寫實版）
-const REAL3D = ['hui', 'zong']; A.real = {};
-function flipSheet(to = !sheetReal) { if (to === sheetReal) return; sheetReal = to; sheetFlipT = performance.now(); uiSound('move'); }
-function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; }
+const REAL3D = ['hui', 'zong'], NOREAL = ['zhe', 'an']; A.real = {};      // NOREAL：原創角色，沒有真人版可以滑
+function flipSheet(to = !sheetReal) { if (to && NOREAL.includes(sheet)) return; if (to === sheetReal) return; sheetReal = to; sheetFlipT = performance.now(); uiSound('move'); }
+function stepSheet(d) { const l = sheetList(); sheet = l[(l.indexOf(sheet) + d + l.length) % l.length]; if (NOREAL.includes(sheet)) sheetReal = false; }
 function closeSheet() { sheet = null; sheetRect = null; if (panel) { menu = { kind: 'panel', items: panelItems() }; focus = menu.items.length - 1; } else { menu = { kind: 'hub', items: hubItems() }; focus = 0; } }
 const refreshHub = () => { const f = focus; menu = { kind: 'hub', items: hubItems() }; focus = Math.min(f, menu.items.length - 1); };
 function openHub(msg) { if (A.prio && run) A.prio([...run.roster, ...Object.values((run.offers || {})[run.floor] || {}).flat()]); playMusic(mus('map')); phase = 'hub'; sheet = null; panel = false; hubMsg = msg ? { text: msg, t: performance.now() } : null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); S.stageCard = null; { const ok = R.reachable(run); hubSel = ok.length === 1 ? ok[0] : -1; menu = { kind: 'hub', items: hubItems() }; focus = ok[0]; mapHome(mapOwner !== run); mapOwner = run; } for (const id of run.roster) met(id); saveGame(); }
@@ -993,15 +995,15 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
   // 左：半身像、名字、職業
   const lx = X + 40, ly = Y + 46, lw = 500, lh = PH - 92; skin.paper(lx, ly, lw, lh, { clips: [lx + lw / 2] });
   { const ax = lx + 18, ay = ly + 22, aw = lw - 36, AH = 440, im = A.bust[id]; c.fillStyle = '#241812'; c.fillRect(ax, ay, aw, AH); c.fillStyle = d.color || '#3a2a1e'; c.globalAlpha = .34; c.fillRect(ax + 4, ay + 4, aw - 8, AH - 8); c.globalAlpha = 1; c.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < AH - 8; k += 6) c.fillRect(ax + 4, ay + 4 + k, aw - 8, 2);
-    { if (!(id in A.real)) { A.real[id] = null; loadImg(`art/cutin/real_${id}.jpg`).then(r => { A.real[id] = r; }); }      // 立繪兩張並排，左右滑：像素版 ↔ 原型
+    { if (!(id in A.real)) { A.real[id] = null; if (!NOREAL.includes(id)) loadImg(`art/cutin/real_${id}.jpg`).then(r => { A.real[id] = r; }); }      // 立繪兩張並排，左右滑：像素版 ↔ 原型
       const k0 = Math.min(1, (performance.now() - sheetFlipT) / 260), e = 1 - (1 - k0) ** 3, k = sheetReal ? e : 1 - e, iw = aw - 8, ih = AH - 8, re = A.real[id]; sheetRect = { x: ax, y: ay, w: aw, h: AH };
       c.save(); c.beginPath(); c.rect(ax + 4, ay + 4, iw, ih); c.clip();
       if (im && k < 1) { const bh = 620, bw = bh * im.width / im.height, by = Math.min(ay + 8, ay + 4 + ih * .43 - (EYE[id] || .38) * bh); pix(im, ax + aw / 2 - bw / 2 - k * iw, by, bw, bh); }
       if (k > 0) { const x0 = ax + 4 + (1 - k) * iw; c.fillStyle = '#e4e1dc'; c.fillRect(x0, ay + 4, iw, ih); if (re) { const sc = Math.max(iw / re.width, ih / re.height), rw = re.width * sc, rh = re.height * sc; c.drawImage(re, x0 + iw / 2 - rw / 2, ay + 4, rw, rh); } else text('載入中', x0 + iw / 2, ay + AH / 2, { px: 22, w: 700, align: 'center', col: INK2 }); }
       c.restore();
-      const tag = sheetReal ? (REAL3D.includes(id) ? '寫實版' : '真人版') : '像素版', tw = mw(tag, 18, 900) + 28; skin.paper(ax + 12, ay + AH - 46, tw, 34); text(tag, ax + 26, ay + AH - 22, { px: 18, w: 900, col: INK });
-      for (const q of [0, 1]) { c.fillStyle = '#1c120c'; c.fillRect(ax + aw / 2 - 19 + q * 24, ay + AH - 30, 14, 14); c.fillStyle = (q === 1) === sheetReal ? CREAM : '#6a5846'; c.fillRect(ax + aw / 2 - 16 + q * 24, ay + AH - 27, 8, 8); }
-      text('左右滑換立繪', ax + aw - 14, ay + AH - 20, { px: 16, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.8)', sw: 4 }); }
+      const tag = sheetReal ? (REAL3D.includes(id) ? '寫實版' : '真人版') : '像素版', tw = mw(tag, 18, 900) + 28; if (!NOREAL.includes(id)) { skin.paper(ax + 12, ay + AH - 46, tw, 34); text(tag, ax + 26, ay + AH - 22, { px: 18, w: 900, col: INK }); }
+      if (!NOREAL.includes(id)) for (const q of [0, 1]) { c.fillStyle = '#1c120c'; c.fillRect(ax + aw / 2 - 19 + q * 24, ay + AH - 30, 14, 14); c.fillStyle = (q === 1) === sheetReal ? CREAM : '#6a5846'; c.fillRect(ax + aw / 2 - 16 + q * 24, ay + AH - 27, 8, 8); }
+      if (!NOREAL.includes(id)) text('左右滑換立繪', ax + aw - 14, ay + AH - 20, { px: 16, w: 700, align: 'right', col: CREAM, stroke: 'rgba(20,10,4,.8)', sw: 4 }); }
     c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
     let ty = ay + AH + 84; text(d.name, lx + lw / 2, ty, { px: 64, w: 900, fam: SERIF, align: 'center', col: INK, ls: 6 }); ty += 44; text(`${viv ? '公主' : d.job}　${R.ROLE[id]}`, lx + lw / 2, ty, { px: 24, w: 900, align: 'center', col: RED, ls: 3 }); c.fillStyle = RED; c.fillRect(lx + lw / 2 - 70, ty + 14, 140, 4); ty += 58;
     text(inRun ? (on ? '出戰中' : '候補（排到前四位才會上場）') : '這一輪沒有同行', lx + lw / 2, ty, { px: 22, w: 900, align: 'center', col: on ? '#1f6a5c' : INK2 }); ty += 26;
@@ -1036,7 +1038,7 @@ function drawSheet() { const id = sheet, d = DEFS[id], st = R.STAT[id], inRun = 
 }
 // 選卡畫面：兩到三張夾在木板上的紙卡，上面是圖（角色半身像或小圖示），下面是說明
 // 半身像裡眼睛的高度（佔整張圖的比例）。卡片上的圖框很扁，要用眼睛對位，戴高帽子或頭上有大蝴蝶結的人臉才不會掉到框的下緣。新角色要補一筆
-const EYE = { kui: .40, jie: .45, kevin: .31, mi: .39, vivi: .33, yan: .37, heilun: .35, cha: .35, qiang: .30, senpai: .39, wu: .42, you: .30, fairy: .43, zong: .44, hui: .43, xu: .39 };
+const EYE = { kui: .40, jie: .45, kevin: .31, mi: .39, vivi: .33, yan: .37, heilun: .35, cha: .35, qiang: .30, senpai: .39, wu: .42, you: .30, fairy: .43, zong: .44, hui: .43, xu: .39, zhe: .34, an: .35 };
 function drawPick() {
   drawTable(.62); const n = menu.items.length, CWd = menu.wide ? 1000 : n <= 2 ? 520 : n >= 6 ? 300 : n === 5 ? 356 : 450, CH = 640, gap = n >= 5 ? 16 : 36, x0 = W / 2 - (CWd * n + gap * (n - 1)) / 2, y = 272, AH = 226;
   skin.wood(x0 - 46, 64, CWd * n + gap * (n - 1) + 92, 930); text(menu.title, W / 2, 158, { px: 62, w: 900, fam: SERIF, align: 'center', col: CREAM, ls: 12, stroke: 'rgba(20,10,4,.8)', sw: 8 }); wrap(menu.sub || '', CWd * n + gap * (n - 1) - 40, 25).slice(0, 2).forEach((s, i) => text(s, W / 2, 212 + i * 34, { px: 25, w: 700, align: 'center', col: 'rgba(239,230,207,.9)' }));
@@ -1118,7 +1120,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發（第一場有人陪），照行程表一站一站走到最後；路上招募同事，最多帶六人，四人站前排、一人在後排支援', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '敵人的弱點和下一步，要有小燕或學姊在場才看得到', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上（戰鬥打到一半也會存），下次打開可以「繼續上班」'];
-const CHANGES = [['v0.32.0', '後排支援位：四人站前排、一人在後排。Vivi 只做應援和奧義；鼠仙女、小蝶、茶茶可以在隊伍頁選站後排', '敵人的弱點和下一步，要小燕或偵探學姊在場才看得到', '合體技變強：威力抵得上三四次行動'], ['v0.31.0', '第一場戰鬥有另一位主角陪打：一開始就能兩人配合、放合體技', '打完第一場他就離隊，之後照常自己找同事'], ['v0.30.1', '更快可以開始玩：立繪、介面圖、戰鬥曲改成在背景載入', '傷害預估會算進職位的加減'], ['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''], ['v0.26.0', '考績表：28 個挑戰，試過各種打法就蓋一個章（標題畫面左下角）', '只是紀錄，不影響數值'] ];
+const CHANGES = [['v0.33.0', '兩位新同事：阿哲（實習槍兵，攻擊）、小安（工安衛士，防禦）', '能力比前輩弱一點：阿哲越往後走攻擊越高，小安行動後會幫最傷的同伴上護盾'], ['v0.32.0', '後排支援位：四人站前排、一人在後排。Vivi 只做應援和奧義；鼠仙女、小蝶、茶茶可以在隊伍頁選站後排', '敵人的弱點和下一步，要小燕或偵探學姊在場才看得到', '合體技變強：威力抵得上三四次行動'], ['v0.31.0', '第一場戰鬥有另一位主角陪打：一開始就能兩人配合、放合體技', '打完第一場他就離隊，之後照常自己找同事'], ['v0.30.1', '更快可以開始玩：立繪、介面圖、戰鬥曲改成在背景載入', '傷害預估會算進職位的加減'], ['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'], ['v0.28.0', '招募機會變多：人力銀行、假日救援戰、三個招募事件；名冊滿了可以換人', '戰鬥打到一半重新整理也接得回來；敵人只剩一隻不用選對象；主角邊打邊學招式'], ['v0.27.0', '台灣篇的小兵有自己的行為：值班兵結伴、叫號使「過號」、補給生打氣', ''] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (!bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }      // 標題畫面畫得出來就收掉開機畫面（聲音與其餘立繪還在背景載，按鈕的位置會寫進度）
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
