@@ -38,7 +38,7 @@ export const ITEMS = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000'
 const JIE_DOWN = .15;      // 阿傑的招式順便讓目標下一次行動的傷害降這麼多（11/21 使用者）
 export const SKILLS = {
   kui: [{ key: 'draft', name: '先出一版', sp: 20, note: '單體二連斬　底氣 -2', target: 'foe', desc: '對一個敵人連砍兩刀，每一刀都削底氣。' },
-    { key: 'counter', name: '這需求我擋', sp: 18, note: '減傷並反擊', target: 'self', desc: '擺好架勢：下一次受到的傷害只剩四成，並且反擊回去。' },
+    { key: 'counter', name: '這需求我擋', sp: 18, note: '減傷並反擊', target: 'self', desc: '擺好架勢：下一次受傷只剩四成，並反擊。' },
     { key: 'sweep', name: '全部一起改', sp: 24, note: '敵方全體', target: 'all', desc: '一刀掃過所有敵人；只剩一個敵人時變成更重的一刀。' }],
   jie: [{ key: 'burn', name: '怒火另存新檔', sp: 40, note: '單體攻擊　灼燒　攻擊力下降', target: 'foe', desc: '火焰魔法，目標接下來兩回合每回合開始再燒一次，下一次行動的傷害減一成五。' },
     { key: 'freeze', name: '這案子先冷凍', sp: 46, note: '單體攻擊　攻擊力下降', target: 'foe', desc: '冰住一個敵人：接下來幾次行動的傷害減三成。' },
@@ -46,25 +46,25 @@ export const SKILLS = {
   kevin: [{ key: 'taunt', name: '這個我來', sp: 16, note: '吸引攻擊　受傷減三成', target: 'self', desc: '到下次行動前，敵人的單體攻擊都打 Kevin，而且他受的傷害減三成。' }, { key: 'bash', name: '盾擊', sp: 20, note: '單體攻擊　自己進入防禦', target: 'foe', desc: '用盾牌撞一個敵人，同時擺好防禦姿勢（受傷減半）。' }],
   mi: [{ key: 'mend', name: '治癒專線', sp: 36, note: '單體回復 1500', target: 'ally', ally: 'hurt', desc: '幫一個同伴回復 1500 HP。' }, { key: 'soothe', name: '安撫話術', sp: 48, note: '全體回復 700', target: 'party', desc: '前排全員各回復 700 HP。' }],
   vivi: [{ key: 'treat', name: '老闆請客', sp: 80, note: '全員 SP ＋60', target: 'party', desc: '請大家喝飲料，前排全員回復 60 SP。' }],
-  yan: [{ key: 'delay', name: '這個時程我再喬', sp: 36, note: '敵人這回合最後才動', target: 'foe', desc: '把一個敵人這回合還沒做的行動排到最後面，並小幅攻擊。' }, { key: 'lock', name: '需求先凍結', sp: 40, note: '敵方全體攻擊力下降', target: 'all', desc: '所有敵人下一次行動的傷害減三成。' }],
+  yan: [{ key: 'delay', name: '這個時程我再喬', sp: 36, note: '敵人這回合最後才動', target: 'foe', desc: '輕擊一個敵人，並把它這回合還沒做的行動排到最後面。' }, { key: 'lock', name: '需求先凍結', sp: 40, note: '敵方全體攻擊力下降', target: 'all', desc: '所有敵人下一次行動的傷害減三成。' }],
   heilun: [{ key: 'mark', name: '這單業績算我的', sp: 22, note: '標記　受傷增三成', target: 'foe', desc: '標記一個敵人兩回合：它受到的傷害多三成；它被打倒時氣勢 ＋20。' }, { key: 'deal', name: '先給你友情價', sp: 18, note: '單體攻擊　氣勢多 ＋15', target: 'foe', desc: '用公事包敲一個敵人，順便多賺 15 點氣勢。' }],
   cha: [{ key: 'push', name: '阿強比較會啦', sp: 26, note: '指定同伴代擋下一擊', target: 'ally', ally: 'other', desc: '下一次單體攻擊改由你指定的同伴承受，而且傷害減半。' }, { key: 'chat', name: '陪我聊一下嘛', sp: 24, note: '下一次單體攻擊落空', target: 'self', desc: '拉住敵人聊天：敵人的下一次單體攻擊會打向茶茶，並且落空。' }],
-  qiang: [{ key: 'carry', name: '這個我來搬', sp: 16, note: '吸引攻擊　累積扛責', target: 'self', desc: '到下次行動前，單體攻擊都打阿強，傷害減四成；每擋一次累積一層「扛責」（最多三層）。' }, { key: 'box', name: '整箱給你', sp: 22, note: '單體重擊　底氣 -2', target: 'foe', desc: '整箱砸下去。每一層扛責讓傷害多三成，砸完扛責歸零。' }],
-  senpai: [{ key: 'probe', name: '這份需求誰簽的', sp: 20, note: '單體攻擊　證據 ＋1', target: 'foe', desc: '邊打邊蒐證，累積一層「證據」（最多三層），給奧義用。' }, { key: 'expose', name: '前後說法不一致', sp: 26, note: '單體攻擊　理虧時加倍', target: 'foe', desc: '抓對方的破綻。目標正在理虧時傷害加倍，並多拿一層證據。' }],
-  wu: [{ key: 'encore', name: '安可，再來一次', sp: 34, note: '同伴立刻再動一次', target: 'ally', ally: 'other', desc: '讓一位同伴馬上再行動一次。' }, { key: 'dance', name: '尾牙熱舞', sp: 40, note: '全隊攻擊力提升兩回合', target: 'party', desc: '跳一段，全隊的傷害多五成，持續兩回合。' }],
+  qiang: [{ key: 'carry', name: '這個我來搬', sp: 16, note: '吸引攻擊　累積扛責', target: 'self', desc: '到下次行動前，單體攻擊都打阿強，傷害減四成；每擋一次累積一層「扛責」（最多三層）。' }, { key: 'box', name: '整箱給你', sp: 22, note: '單體重擊　底氣 -2', target: 'foe', desc: '整箱砸下去。每一層扛責多三成傷害，砸完扛責歸零。' }],
+  senpai: [{ key: 'probe', name: '這份需求誰簽的', sp: 20, note: '單體攻擊　證據 ＋1', target: 'foe', desc: '邊打邊蒐證，累積一層「證據」（最多三層），給奧義用。' }, { key: 'expose', name: '前後說法不一致', sp: 26, note: '單體攻擊　理虧時加倍', target: 'foe', desc: '抓對方的破綻。目標理虧時傷害加倍，並多拿一層證據。' }],
+  wu: [{ key: 'encore', name: '安可，再來一次', sp: 34, note: '同伴立刻再動一次', target: 'ally', ally: 'other', desc: '一位同伴馬上再行動一次。' }, { key: 'dance', name: '尾牙熱舞', sp: 40, note: '全隊攻擊力提升兩回合', target: 'party', desc: '跳一段，全隊的傷害多五成，持續兩回合。' }],
   you: [{ key: 'slack', name: '帶薪摸魚', sp: 0, note: 'SP ＋40　閃過下一擊', target: 'self', desc: '躲去茶水間：回復 40 SP，到下次行動前閃過一次攻擊。' }, { key: 'backdoor', name: '我跟總經理很熟', sp: 26, note: '單體攻擊　無視護衛', target: 'foe', pierce: true, desc: '走後門：小兵護衛和甩鍋都擋不住這一下。' }],
   fairy: [{ key: 'mice', name: '老鼠們，上工', sp: 40, note: '召喚灰鼠、棕鼠　三回合', target: 'self', desc: '叫出灰鼠和棕鼠，在場三回合：棕鼠輪到自己就去擋敵人的單體攻擊，灰鼠每回合送一杯黑咖啡（SP ＋80）、咬敵人一口讓它攻擊下降。牠們不佔上場名額，離場後可以再叫。' }, { key: 'wand', name: '仙女棒點一下', sp: 40, note: '同伴下一擊必爆擊加倍', target: 'ally', ally: 'any', desc: '點一位同伴：他的下一擊一定爆擊，而且傷害加倍。' }],
   zong: [{ key: 'sip', name: '續命咖啡', sp: 14, note: '自己回 900 HP 並防禦', target: 'self', desc: '喝一口：回復 900 HP，並擺好防禦（受傷減半）。' }, { key: 'news', name: '報紙蓋頭', sp: 18, note: '單體攻擊　攻擊力下降', target: 'foe', desc: '用報紙捲敲下去，目標下一次行動的傷害減三成。' }],
   hui: [{ key: 'overtime', name: '今天也加班', sp: 16, note: '單體攻擊　加班 ＋1', target: 'foe', desc: '邊打邊累積「加班」（最多四層）：每一層讓灰鼠之後的傷害多兩成，整場有效。' }, { key: 'allnight', name: '爆肝', sp: 10, note: '扣自己血　單體重擊', target: 'foe', desc: '拿自己一成五的 HP 換一記重擊，削兩點底氣。' }],
   xu: [{ key: 'transfer', name: '幫您轉接', sp: 40, note: '同伴 SP ＋80', target: 'ally', ally: 'sp', desc: '把電話轉過去：一位同伴回復 80 SP。' }, { key: 'mix', name: '特調一杯', sp: 32, note: '回復 1100 並減傷', target: 'ally', ally: 'any', desc: '一位同伴回復 1100 HP，到他下次行動前受傷減半。' }],
   zhe: [{ key: 'eager', name: '這個我可以', sp: 16, type: 'fire', target: 'foe', note: '單體攻擊　灼燒兩回合', desc: '舉手搶著做：火屬性攻擊，目標灼燒兩回合。', fx: [['dmg', 1.2], ['burn', 2]] }, { key: 'copies', name: '影印五十份', sp: 24, type: 'slash', target: 'all', note: '敵方全體', desc: '整疊紙甩出去：斬屬性，打所有敵人。', fx: [['dmg', .6]] },
-    { key: 'retry', name: '我再試一次', sp: 26, type: 'fire', target: 'foe', note: '單體攻擊　底氣 -3', desc: '不死心再來一槍：火屬性，多削兩點底氣。', fx: [['dmg', 1.0, { sh: 3 }]] }, { key: 'errand', name: '我去買咖啡', sp: 24, target: 'party', note: '全員 SP +12　自己閃過下一擊', desc: '跑腿去：前排全員各回 12 SP；人不在位子上，下一次打他的攻擊會落空。', fx: [['sp', 'party', 12], ['evade', 'self']] }],
+    { key: 'retry', name: '我再試一次', sp: 26, type: 'fire', target: 'foe', note: '單體攻擊　底氣 -3', desc: '不死心再來一槍：火屬性，多削兩點底氣。', fx: [['dmg', 1.0, { sh: 3 }]] }, { key: 'errand', name: '我去買咖啡', sp: 24, target: 'party', note: '全員 SP +12　自己閃過下一擊', desc: '跑腿去：前排全員各回 12 SP；自己離開位子，下一次打來的攻擊會落空。', fx: [['sp', 'party', 12], ['evade', 'self']] }],
   an: [{ key: 'wetfloor', name: '小心地滑', sp: 16, target: 'self', note: '吸引攻擊　自己護盾 600', desc: '立牌一放：敵人的單體攻擊改打小安，自己先得到 600 護盾。', fx: [['taunt'], ['ward', 'self', 600]] }, { key: 'spray', name: '先噴再說', sp: 20, type: 'ice', target: 'foe', note: '單體攻擊　攻擊力下降', desc: '滅火器噴下去：冰屬性，目標下一次行動的傷害減兩成。', fx: [['dmg', 1.0], ['down', .2]] },
     { key: 'drill', name: '防災演練', sp: 30, target: 'party', note: '全員護盾 400　解除異常', desc: '大家照演練走：前排全員各得 400 護盾，並解除異常。', fx: [['ward', 'party', 400], ['cleanse', 'party']] }, { key: 'cordon', name: '這區先封鎖', sp: 26, type: 'ice', target: 'foe', note: '單體攻擊　排到最後', desc: '拉封鎖線：冰屬性攻擊，把目標這回合的行動排到最後。', fx: [['dmg', .9], ['delay']] }],
 };
 // 奧義的名字與一句話（新夥伴的；原本五個人的寫在 battle.js 的 DEFS）
-export const ULTS = { zhe: ['第一次獨立提案', '對一個敵人連刺三槍（火屬性），每一槍都削底氣，目標灼燒三回合。'], an: ['全員戴好安全帽', '前排全員得到 1400 護盾並解除異常，敵人的單體攻擊改打小安。'], yan: ['會議改到下週', '敵人這回合還沒做的行動全部排到我方後面，我方這回合受到的傷害減四成。'], heilun: ['VIP 大單，今天簽', '攻擊並標記所有敵人兩回合：受到的傷害多三成。'],
-  cha: ['大家都是好朋友', '到茶茶下一次行動前，全隊受到的傷害減半；並削所有敵人的底氣。'], qiang: ['一個人扛整個部門', '到阿強下一次行動前，同伴受的傷害都由他扛下一半，並對打人的敵人反擊。'], senpai: ['紀錄我都留著', '對一個敵人造成重傷害，每一層證據讓傷害大幅增加，用完證據歸零。'],
+export const ULTS = { zhe: ['第一次獨立提案', '對一個敵人連刺三槍（火屬性），每一槍都削底氣，目標灼燒三回合。'], an: ['全員戴好安全帽', '前排全員得到 1400 護盾並解除異常，敵人的單體攻擊改打小安。'], yan: ['會議改到下週', '敵人這回合還沒做的行動全部排到我方後面，我方這回合受到的傷害減四成。'], heilun: ['VIP 大單，今天簽', '攻擊並標記所有敵人兩回合：敵人受傷多三成。'],
+  cha: ['大家都是好朋友', '到茶茶下一次行動前，全隊受到的傷害減半；並削所有敵人的底氣。'], qiang: ['一個人扛整個部門', '到阿強下一次行動前，他替同伴扛一半傷害，並反擊出手的敵人。'], senpai: ['紀錄我都留著', '重擊一個敵人，每一層證據大幅增加傷害，用完證據歸零。'],
   wu: ['全場跟著我跳', '前排其他同伴這回合各再行動一次。'], you: ['這我十年前就做過', '無視小兵護衛，直接重擊頭目並大幅削底氣。'], fairy: ['午夜前的魔法', '倒下的同伴以三成 HP 站起來，其他人回復兩成 HP。'],
   zong: ['再撐一下就下班', '到下一回合結束前，全隊再怎麼被打都會留下 1 HP。'], hui: ['報表全部交出去', '公事包連砸四下，隨機打向敵人，每一下都削底氣。'], xu: ['全部門下午茶', '前排全員回復四成 HP 與 60 SP，還多一杯珍珠奶茶。'] };
 // ---------- 戰鬥 2.0：新招式（每人兩招）、普攻附帶效果、被動 ----------
@@ -109,7 +109,7 @@ for (const id in NEW_SKILLS) SKILLS[id].push(...NEW_SKILLS[id]);
 // 復活的招式（11/21 使用者：補血的人要能復活人，Vivi 也多一招）。對象 ally:'down'＝倒下的同伴，站在場上的和候補區的都算
 export const REVIVE_SKILLS = { mi: 'recall', xu: 'wakeup', vivi: 'rehire' };
 // 鼠仙女：兩隻老鼠都在場才能用的一招（11/21 使用者同意補上）。兩隻各咬全體一下、全員回 SP、老鼠多留一回合
-SKILLS.fairy.push({ key: 'rally', ic: 'mice', name: '老鼠們，總動員', sp: 50, type: 'blunt', target: 'all', note: '兩隻老鼠咬全體　全員 SP +30　老鼠多留一回合', desc: '兩隻老鼠都在場才能用：牠們各咬所有敵人一口，前排全員回 30 SP，老鼠在場的時間多一回合。', fx: [['petBite', 2.4], ['sp', 'party', 30], ['petStay', 1]] });
+SKILLS.fairy.push({ key: 'rally', ic: 'mice', name: '老鼠們，總動員', sp: 50, type: 'blunt', target: 'all', note: '兩隻老鼠咬全體　全員 SP +30　老鼠多留一回合', desc: '兩隻老鼠都在場才能用：牠們各咬所有敵人一口，前排全員回 30 SP，老鼠多留一回合。', fx: [['petBite', 2.4], ['sp', 'party', 30], ['petStay', 1]] });
 SKILLS.mi.push({ key: 'recall', name: '幫您重新接通', sp: 60, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 40%', desc: '把斷線的同伴接回來：倒下的同伴以四成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .4]] });
 SKILLS.xu.push({ key: 'wakeup', name: '這帖提神的', sp: 45, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 30%', desc: '櫃檯常備的提神藥：倒下的同伴以三成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .3]] });
 SKILLS.vivi.push({ key: 'rehire', name: '誰准你下班的', sp: 300, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 50%', desc: '老闆一句話：倒下的同伴以五成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .5]] });
@@ -122,7 +122,7 @@ export const SENSE = ['yan', 'senpai'], canSense = s => HEROES.some(h => SENSE.i
 export const PASSIVE = { kui: ['交件前再看一眼', '自己的行動打中弱點時，回復 6 SP。'], jie: ['燒完記得存檔', '自己的行動打中灼燒中的敵人時，氣勢 +3。'], kevin: ['站著就是進度', '每次行動結束，自己得到 180 護盾。'], mi: ['值班補貼', '行動結束時，如果有同伴 HP 低於一半，自己回 8 SP。'],
   vivi: ['公主有交代', '每回合開始，氣勢 +3。'], yan: ['行程留白', '在場時看得到敵人的弱點和下一步；成功延後敵人的行動時，自己回 8 SP。'], heilun: ['成交有回饋', '被標記的敵人倒下時，自己回 10 SP。'], cha: ['氣氛不能冷', '行動結束時，前排有三人以上站著，氣勢 +2。'],
   qiang: ['扛久就習慣', '每回合開始，自己每有一層「扛責」就回 100 HP。'], senpai: ['查核有補助', '在場時看得到敵人的弱點和下一步；打中被標記的敵人時，回復 5 SP。'], wu: ['暖場有成', '每回合第一次有同伴用招式時，自己回 5 SP。'], you: ['看破不說破', '每回合第一次閃過攻擊時，氣勢 +5。'],
-  fairy: ['鼠輩互助會', '每回合開始，召喚的老鼠每在場一隻，自己回 6 SP。'], zong: ['老班底撐場', '每回合開始，HP 不到一半時得到 350 護盾。'], hui: ['加班餐費', '自己行動結束時，每有一層「加班」就回 2 SP。'], xu: ['轉接有回音', '用招式或奧義幫同伴回 SP 之後，自己回 6 SP。'],
+  fairy: ['鼠輩互助會', '每回合開始，每有一隻召喚的老鼠在場，自己回 6 SP。'], zong: ['老班底撐場', '每回合開始，HP 不到一半時得到 350 護盾。'], hui: ['加班餐費', '自己行動結束時，每有一層「加班」就回 2 SP。'], xu: ['轉接有回音', '用招式或奧義幫同伴回 SP 之後，自己回 6 SP。'],
   zhe: ['邊做邊學', '行程每往前一站，攻擊力 +3%（最多 +36%）。'], an: ['安全第一', '自己行動結束時，HP 最低的另一位同伴得到 200 護盾。'] };
 // ---------- 合體技（幻想水滸傳式）：指定的兩三個人都在場才有 ----------
 // 輪到其中一人、其他成員這回合都還沒動時可以放：所有成員的行動都用掉、各扣自己的 SP。算招式傷害。
@@ -131,14 +131,14 @@ export const UNITES = [
   { key: 'u_final', who: ['kui', 'jie'], name: '學長，這版真的定了', sp: [32, 72], type: 'fire', target: 'foe', note: '兩人各打一記重的　灼燒', desc: '小葵交稿、學長放火：兩人各打一下（火屬性 2.1 倍），目標灼燒三回合。', fx: [['dmgBy', 0, 2.1], ['dmgBy', 1, 2.1], ['burn', 3]] },
   { key: 'u_sign', who: ['kui', 'senpai'], name: '請先簽名再改', sp: [30, 34], type: 'slash', target: 'foe', note: '兩人各砍一刀重的　底氣 -4', desc: '小葵和學姊各砍一刀（斬屬性 2.2 倍），多削三點底氣，目標下一次行動傷害減三成。', fx: [['dmgBy', 0, 2.2], ['dmgBy', 1, 2.2, { sh: 4 }], ['down', .3]] },
   { key: 'u_shift', who: ['kevin', 'mi'], name: 'AI 先擋，真人後補', sp: [40, 46], type: 'holy', target: 'party', note: '全員護盾 800　回復 700　Kevin 吸引攻擊', desc: 'Kevin 開 AI 護盾擋在前面、小米跟著補：前排全員各得 800 護盾、回 700 HP，敵人的單體攻擊改打 Kevin。', fx: [['ward', 'party', 800], ['heal', 'party', 700], ['tauntBy', 0]] },
-  { key: 'u_delay', who: ['kevin', 'yan'], name: '系統判定要延期', sp: [24, 48], type: 'blunt', target: 'foe', note: '重擊　延到最後　全員護盾', desc: 'Kevin 重擊一個敵人（打屬性 3.6 倍），把它的行動排到最後，前排全員得到 1600 護盾。', fx: [['dmgBy', 0, 3.6], ['delay'], ['ward', 'party', 1600]] },
+  { key: 'u_delay', who: ['kevin', 'yan'], name: '系統判定要延期', sp: [24, 48], type: 'blunt', target: 'foe', note: '重擊　延到最後　全員護盾', desc: 'Kevin 重擊一個敵人（打屬性 3.6 倍），把它排到最後行動，前排全員得到 1600 護盾。', fx: [['dmgBy', 0, 3.6], ['delay'], ['ward', 'party', 1600]] },
   { key: 'u_ticket', who: ['mi', 'xu'], name: '您的問題已轉專人', sp: [64, 48], target: 'party', note: '全員回復 1800　解除異常　SP +40', desc: '前排全員回 1800 HP、解除異常，並各回 40 SP。', fx: [['heal', 'party', 1800], ['cleanse', 'party'], ['sp', 'party', 40]] },
   { key: 'u_carry', who: ['cha', 'qiang'], name: '你先聊，我來扛', sp: [36, 26], type: 'blunt', target: 'foe', note: '重擊　阿強護盾並吸引攻擊', desc: '茶茶拉住敵人聊天，阿強整箱砸下去（打屬性 4.2 倍）；阿強得到 2400 護盾，敵人的單體攻擊改打他。', fx: [['dmgBy', 1, 4.2], ['wardTo', 1, 2400], ['tauntBy', 1]] },
   { key: 'u_stamp', who: ['senpai', 'you'], name: '摸魚也有時間戳', sp: [38, 34], type: 'dark', target: 'foe', note: '先標記　兩人各打一下', desc: '先標記目標（受傷多三成），學姊和老油條再各打一下（暗屬性 2.2 倍），多削三點底氣。', fx: [['mark0'], ['dmgBy', 0, 2.2], ['dmgBy', 1, 2.2, { sh: 4 }]] },
-  { key: 'u_approve', who: ['vivi', 'heilun'], name: '公主核准，業務買單', sp: [100, 36], type: 'holy', target: 'all', note: '敵方全體　標記　氣勢 +30', desc: '黑輪拿著公主的核准打過所有敵人（光屬性 2.4 倍），全部標記，氣勢多 30。', fx: [['dmgBy', 1, 2.4], ['mark'], ['mo', 30]] },
+  { key: 'u_approve', who: ['vivi', 'heilun'], name: '公主核准，業務買單', sp: [100, 36], type: 'holy', target: 'all', note: '敵方全體　標記　氣勢 +30', desc: '黑輪拿著公主的核准打遍所有敵人（光屬性 2.4 倍），全部標記，氣勢多 30。', fx: [['dmgBy', 1, 2.4], ['mark'], ['mo', 30]] },
   { key: 'u_mc', who: ['wu', 'cha'], name: '主持人不要再加碼', sp: [48, 36], target: 'party', note: '其他人攻擊 +25%　SP +50', desc: '兩個人把場子炒熱：其他同伴接下來三次行動攻擊力 +25%，各回 50 SP，氣勢多 25。', fx: [['up', 'others', 3], ['sp', 'others', 50], ['mo', 25]] },
   { key: 'u_extinguish', who: ['zhe', 'an'], name: '滅火器借我一下', sp: [30, 24], type: 'ice', target: 'foe', note: '兩人各打一下　全員護盾', desc: '阿哲搶過滅火器亂噴、小安拿立牌補一下：兩人各打一下（冰屬性 2 倍），前排全員得到 1000 護盾。', fx: [['dmgBy', 0, 2.0], ['dmgBy', 1, 2.0], ['ward', 'party', 1000]] },
-  { key: 'u_rebuild', who: ['jie', 'fairy'], name: '午夜前全部重建', sp: [84, 72], type: 'ice', target: 'all', note: '敵方全體兩下　復活或回復', desc: '阿傑和鼠仙女各打全體一下（冰屬性 1.7 倍）；有同伴倒下就以一半 HP 站起來，沒有就幫最傷的人回一半。', fx: [['dmgBy', 0, 1.7], ['dmgBy', 1, 1.7], ['reviveOrHeal', .5]] },
+  { key: 'u_rebuild', who: ['jie', 'fairy'], name: '午夜前全部重建', sp: [84, 72], type: 'ice', target: 'all', note: '敵方全體兩下　復活或回復', desc: '阿傑和鼠仙女各打全體一下（冰屬性 1.7 倍）；有同伴倒下就以一半 HP 復活，沒有就替傷最重的回一半。', fx: [['dmgBy', 0, 1.7], ['dmgBy', 1, 1.7], ['reviveOrHeal', .5]] },
 ];
 // ---------- 戰鬥 2.0：屬性與弱點 ----------
 // 六種屬性。每個人的普攻、每個攻擊招式、每個攻擊奧義各有一個屬性；每種敵人有兩個弱點（KINDS 的 weak、頭目的 weak）。
@@ -169,7 +169,7 @@ Object.assign(KINDS.tw_courier, { late: true, note: '動作快，被他打中會
 Object.assign(KINDS.tw_intern, { hype: true, note: '會幫受傷的敵人回血，被補到的小兵下一次攻擊傷害 ＋30%。先解決他' });
 // 另外三種（v0.29）：selfWard＝每次攻擊完替自己上這麼多護盾（斬屬性的攻擊無視護盾）；grudge＝被「招式」打中就記一筆，下一次攻擊每筆多這個比例（最多兩筆）；smoke2＝煙會多嗆到旁邊一個人
 Object.assign(KINDS.tw_knight, { selfWard: 450, note: '普通攻擊打他只有一半傷害；他每次攻擊完會替自己上 450 護盾。斬屬性的攻擊無視護盾' });
-Object.assign(KINDS.tw_auntie, { grudge: .25, note: '用招式打她只有一半傷害，還會被她記一筆：下一次攻擊每筆多兩成五（最多兩筆）。改用普通攻擊' });
+Object.assign(KINDS.tw_auntie, { grudge: .25, note: '招式打她只有一半傷害，還會被記一筆：她下一次攻擊每筆多兩成五（最多兩筆）。改用普通攻擊' });
 Object.assign(KINDS.tw_smoker, { smoke2: true, note: '二手煙會多嗆到旁邊一個人：被嗆到的人下一次普通攻擊傷害減半。改用招式，或先打倒他' });
 export const packN = (s, id) => { const K = KINDS[s.kind[id]]; return K && K.pack ? MINIONS.filter(m => m !== id && alive(s, m) && s.kind[m] === s.kind[id]).length : 0; };
 // 地獄分公司的一般敵人：長得像原本那幾種，行為不一樣。
@@ -346,7 +346,7 @@ export const stageOf = (run, nd) => (nd && run && run.alt && run.alt[nd.stage]) 
 export const nodeName = (nd, run) => nd.name || STAGES[stageOf(run, nd)].name;
 // 過關強化（三選一）
 export const UPGRADES = {
-  raise: { name: '加薪', desc: '全員攻擊力 ＋15%' }, leave: { name: '特休', desc: '全員 HP 上限 ＋20%，並且補滿' }, chair: { name: '人體工學椅', desc: '受到的傷害 －15%' },
+  raise: { name: '加薪', desc: '全員攻擊力 ＋15%' }, leave: { name: '特休', desc: '全員 HP 上限 ＋20%，並補滿' }, chair: { name: '人體工學椅', desc: '受到的傷害 －15%' },
   drinks: { name: '手搖飲團購', desc: '珍珠奶茶 ＋2' }, coffee: { name: '新咖啡機', desc: '黑咖啡 ＋2，全員 SP 補滿' }, morale: { name: '士氣大振', desc: '每場戰鬥開始時氣勢 ＋30' }, bento: { name: '加菜金', desc: '雞排便當 ＋1' },
   learn: { name: '在職進修', desc: '主角學會一個還不會的招式，自己挑' },
   // 流派強化：跟夥伴的招式互動。need＝隊上有其中一個人才會出現；once＝只能拿一次
@@ -360,7 +360,7 @@ export const UPGRADES = {
   firstaid: { name: '急救箱', desc: '每場戰鬥第一次有人要倒下時，改成留下三成 HP', once: true },
   // 辦公小物（v0.17）：每個只能拿一次；有些是雙面的，有好處也有代價。圖示 art/map/icons/up_<代號>.png
   redpen: { name: '主管紅筆', desc: '招式和合體技的傷害 ＋20%，但 SP 消耗 ＋20%', once: true }, cutter: { name: '裁紙刀', desc: '普通攻擊的傷害 ＋25%', once: true }, thermos: { name: '保溫怒氣瓶', desc: '奧義的傷害 ＋25%', once: true },
-  partition: { name: '桌上隔板', desc: '每回合開始，前排全員得到 150 護盾', once: true }, blanket: { name: '午睡重力毯', desc: '全員 HP 上限 ＋20% 並補滿，但速度 －10%', once: true }, cheatsheet: { name: '急救小抄', desc: '防禦的時候順便回復 8% HP', once: true },
+  partition: { name: '桌上隔板', desc: '每回合開始，前排全員得到 150 護盾', once: true }, blanket: { name: '午睡重力毯', desc: '全員 HP 上限 ＋20% 並補滿，但速度 －10%', once: true }, cheatsheet: { name: '急救小抄', desc: '防禦時順便回復 8% HP', once: true },
   mug: { name: '超大馬克杯', desc: '普通攻擊回的 SP 加倍，但黑咖啡 －1', once: true }, snackdrawer: { name: '抽屜零食庫', desc: '每場戰鬥開始，全員回復 10% HP', once: true }, fridge: { name: '公用冰箱', desc: '奶茶、咖啡、便當各 ＋1，但受到的傷害 ＋5%', once: true },
   applause: { name: '掌聲按鈕', desc: '打中弱點加的氣勢從 6 變成 10', once: true }, countdown: { name: '倒數桌曆', desc: '頭目一蓄力，氣勢 ＋15', once: true }, bell: { name: '散會鈴', desc: '放奧義只要 35 氣勢', once: true },
   tabs: { name: '六色索引貼', desc: '打中弱點的傷害從 1.3 倍變成 1.5 倍', once: true }, carbon: { name: '三聯複寫紙', desc: '合體技的 SP 消耗 －30%', once: true }, notebook: { name: '會議紀錄本', desc: '每場戰鬥開始，頭目的底氣先少 2 點', once: true },
@@ -397,7 +397,7 @@ export const EVENTS = {
     { label: '現在吃掉', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 回復 50%'], go: run => { hpAll(run, .5); return '全隊吃了一頓熱的，力氣回來了'; } },
     { label: '留著當存糧', icon: 'up_bento', kind: 'item', lines: ['雞排便當 ＋1'], go: run => { run.items.bento++; return '多帶了一個便當上路'; } }] },
   jam: { name: '影印機卡紙', text: '影印機卡紙，螢幕上的錯誤代碼沒有人看得懂。後面已經排了五個人。', opts: [
-    { label: '自己修', icon: 'up_learn', kind: 'buff', lines: ['主角 HP －25%（手被夾到）', '主角學會一個還不會的招式；都會了就攻擊力 ＋6%'], go: run => { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * .25)); const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); return `修好了，還順便悟出一招「${SKILLS[run.starter].find(k => k.key === u[0]).name}」`; } run.atk *= 1.06; return '修好了。原來只是紙放反'; } },
+    { label: '自己修', icon: 'up_learn', kind: 'buff', lines: ['主角 HP －25%（手被夾到）', '主角學會一個新招式；都會了就攻擊力 ＋6%'], go: run => { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * .25)); const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); return `修好了，還順便悟出一招「${SKILLS[run.starter].find(k => k.key === u[0]).name}」`; } run.atk *= 1.06; return '修好了。原來只是紙放反'; } },
     { label: '交給總務', icon: 'rest', kind: 'rest', lines: ['全員 SP 回復 50%（等的時候休息一下）'], go: run => { spAll(run, .5); return '總務十分鐘就修好了，大家趁機休息'; } }] },
 };
 Object.assign(EVENTS, {
@@ -457,7 +457,7 @@ Object.assign(EVENTS, {
     { label: '用奶茶換一句實話', icon: 'up_dossier', kind: 'buff', lines: ['奶茶 －1', '揭曉下個頭目弱點'], ok: run => run.items.tea >= 1 && !!nextBoss(run), go: run => { run.items.tea -= 1; run.reveal = nextBoss(run); return '用奶茶換一句實話：奶茶 －1、揭曉下個頭目弱點'; } },
     { label: '把所有問題講完', icon: 'up_morale', kind: 'buff', lines: ['全員 SP －30%', '開場氣勢 ＋12'], go: run => { spAll(run, -0.3); run.moStart += 12; return '把所有問題講完：全員 SP －30%、開場氣勢 ＋12'; } }] },
   general_shared_calendar: { name: '共用行事曆撞期', text: '三場會議同時邀請你，主辦人都寫著「務必出席」。你可以花時間重新協調，也可以趁混亂清掉眼前的工作。', opts: [
-    { label: '逐一協調，空出休息', icon: 'up_leave', kind: 'heal', lines: ['全員 SP －15%', '全員 HP ＋30%'], go: run => { spAll(run, -0.15); hpAll(run, 0.3); return '逐一協調，空出休息：全員 SP －15%、全員 HP ＋30%'; } },
+    { label: '逐一協調，空出休息', icon: 'up_leave', kind: 'heal', lines: ['全員 SP －15%', '全員 HP ＋30%'], go: run => { spAll(run, -0.15); hpAll(run, 0.3); return '逐一協調出休息時間：全員 SP －15%、全員 HP ＋30%'; } },
     { label: '邊啃便當邊清急件', icon: 'up_weakpoint', kind: 'buff', lines: ['便當 －1', '下戰敵人HP －18%'], ok: run => run.items.bento >= 1, go: run => { run.items.bento -= 1; nextUp(run, { foeHp: 0.82 }); return '邊啃便當邊清急件：便當 －1、下戰敵人HP －18%'; } }] },
   general_storage_cleanup: { name: '倉庫神祕紙箱', text: '紙箱上寫著「有用，勿丟」，日期卻比你的年資還長。總務答應，願意整理的人可以挑一件帶走。', opts: [
     { label: '搬開整排紙箱', icon: 'gift', kind: 'buff', lines: ['全員 HP －18%', '隨機小物 ＋1'], go: run => { hpAll(run, -0.18); randomRelic(run); return '搬開整排紙箱：全員 HP －18%、隨機小物 ＋1'; } },
@@ -490,7 +490,7 @@ export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
 export const JOBS = {
   fire: ['救火組長', '每場戰鬥第一回合，造成的傷害 ＋30%', '第三回合起，普攻傷害 －15%', '先救，誰點的火晚點再查。'],
   welfare: ['福利委員', '戰鬥中的回復量 ＋30%', '造成的傷害 －8%', '照顧大家也算在工作內容裡。'],
-  risk: ['風控專員', '防禦時多回 20 SP，並得到 300 護盾', '每場戰鬥第一回合，造成的傷害 －20%', '風險我先寫進會議紀錄了。'],
+  risk: ['風控專員', '防禦時多回 20 SP，再拿 300 護盾', '每場戰鬥第一回合，造成的傷害 －20%', '風險我先寫進會議紀錄了。'],
   window: ['專案窗口', '打中弱點時傷害再 ＋10%，出手的人回 6 SP', '沒打中弱點的攻擊，傷害 －10%', '需求麻煩一次講清楚。'],
   duty: ['值班主任', '護盾量 ＋35%', '戰鬥中的回復量 －20%', '問題先擋著，明天再說。'],
   edu: ['教育委員', '主角一開始就會全部招式', '過關獎勵從三選一變成二選一', '預算都拿去上課了。'],
@@ -521,7 +521,7 @@ export function buy(run, what, arg) { const st = shopStock(run); if (st.sold.inc
   if (what === 'relic') { if (!st.relic) return false; applyUpgrade(run, st.relic); } else if (what === 'supply') { for (const k in run.items) run.items[k]++; } else if (what === 'train') { if (!arg || isPlus(run, arg[0], arg[1])) return false; applyTrain(run, arg[0], arg[1]); } else return false;
   run.coin -= PRICE[what]; st.sold.push(what); return true; }
 // 菁英詞綴：每一場菁英戰抽一條（記在 run.affix[樓層]，行程表上先看得到）：[名字, 規則, 打贏多拿什麼]
-export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '小兵的攻擊會讓人中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
+export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '被小兵打中會中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
 export const affixOf = (run, floor = run.floor, nd = run.node) => nd && nd.tag === '菁英' ? (run.affix || {})[floor] || null : null;
 // 加班等級（通關後解鎖的難度，0～5，往上累加）：每一級多一條對我方不利的規則
 export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'], ['先過行政關', '一般敵人開場各有 600 護盾'], ['急件插隊', '每場戰鬥第一回合，最快的小兵最先動'], ['特休打對折', '休息站只回復兩成五 HP'], ['主管已讀不理', '頭目只有第一次理虧會取消行動']];
