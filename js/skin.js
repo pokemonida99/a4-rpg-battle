@@ -11,6 +11,8 @@ const fmt = n => Math.round(n).toLocaleString('en-US');
 const valAt = (keys, t, dur = .5) => { let p = keys[0], q = keys[0]; for (const k of keys) { if (k.t > t) break; p = q; q = k; } return p === q ? q.v : lerp(p.v, q.v, easeOut(sat((t - q.t) / dur))); };
 const lastChange = (keys, t) => { let q = keys[0]; for (const k of keys) { if (k.t > t) break; q = k; } return t - q.t; };
 
+// 精簡版介面（11/21 使用者：字太多，能省的省、能改圖示的改圖示；先用網址 ?hud2 預覽，定案後再變成預設）
+export const HUD = { lean: false };
 export function makeSkin(c, A, S, D) {
   // ---------- 材質 ----------
   const tex = (w, h, paint, k = 3) => { const lo = document.createElement('canvas'); lo.width = w; lo.height = h; paint(lo.getContext('2d'), w, h); const up = document.createElement('canvas'); up.width = w * k; up.height = h * k; const x = up.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(lo, 0, 0, w * k, h * k); return c.createPattern(up, 'repeat'); };
@@ -44,9 +46,9 @@ export function makeSkin(c, A, S, D) {
   // ---------- 左上：議程（行動順序） ----------
   function order(t, a) {
     if (a <= 0) return; let cur = null; for (const k of S.order) { if (k.t > t) break; cur = k; } if (!cur || !cur.v.length) return; const list = cur.v.slice(0, 7), u = easeOut(sat((t - cur.t) / .28));
-    c.save(); c.globalAlpha *= a; const X = 28, Y = 30, PW = Math.min(606, 108 + 84 + Math.max(0, list.length - 1) * 61 + 16), PH = 96; paper(X, Y, PW, PH, { clips: PW > 240 ? [X + 34, X + PW - 34] : [X + 34] });
-    text('議程', X + 20, Y + 58, { px: 30, w: 900, ls: 4 }); c.fillStyle = RED; c.fillRect(X + 20, Y + 68, 66, 3);
-    let x = X + 108; list.forEach((id, i) => { const s = i === 0 ? 70 : 54, y = Y + (PH - s) / 2, ox = i ? (1 - u) * 30 : 0; face(A.face[id], x + ox, y, s, i ? .12 : 0); if (D[id].enemy) { c.strokeStyle = RED; c.lineWidth = 3; c.strokeRect(x + ox - 1.5, y - 1.5, s + 3, s + 3); }
+    c.save(); c.globalAlpha *= a; const X = 28, Y = 30, LB = HUD.lean ? 20 : 108, PW = Math.min(606, LB + 84 + Math.max(0, list.length - 1) * 61 + 16), PH = 96; paper(X, Y, PW, PH, { clips: PW > 240 ? [X + 34, X + PW - 34] : [X + 34] });
+    if (!HUD.lean) { text('議程', X + 20, Y + 58, { px: 30, w: 900, ls: 4 }); c.fillStyle = RED; c.fillRect(X + 20, Y + 68, 66, 3); }
+    let x = X + LB; list.forEach((id, i) => { const s = i === 0 ? 70 : 54, y = Y + (PH - s) / 2, ox = i ? (1 - u) * 30 : 0; face(A.face[id], x + ox, y, s, i ? .12 : 0); if (D[id].enemy) { c.strokeStyle = RED; c.lineWidth = 3; c.strokeRect(x + ox - 1.5, y - 1.5, s + 3, s + 3); }
       if (i === 0) { c.save(); c.translate(x + s / 2, y + s / 2); c.rotate(-.12); c.strokeStyle = TEAL; c.lineWidth = 5; c.beginPath(); c.ellipse(0, 0, (s / 2 + 10) * lerp(1.3, 1, u), (s / 2 + 7) * lerp(1.3, 1, u), 0, .3, 6.5); c.stroke(); c.lineWidth = 2.5; c.beginPath(); c.ellipse(2, 1, s / 2 + 13, s / 2 + 9, .1, 2.2, 5.6); c.stroke(); c.restore(); }
       x += s + (i === 0 ? 14 : 7); });
     c.restore();
@@ -58,11 +60,11 @@ export function makeSkin(c, A, S, D) {
       if (i) { c.fillStyle = '#24130b'; c.fillRect(x - 1, Y + 10, 2, BH - 20); c.fillStyle = 'rgba(255,214,160,.12)'; c.fillRect(x + 1, Y + 10, 1, BH - 20); }
       if (on) paper(x + 7, Y + 7, CW - 14, BH - 14, { clips: [x + CW / 2] });
       const ink = on ? INK : CREAM, dim = on ? INK2 : 'rgba(239,230,207,.62)', sh = on ? null : 'rgba(20,10,4,.7)', tx = x + 22, w = CW - 44; c.globalAlpha = a * (down ? .55 : 1);
-      const nw = text(d.name, tx, Y + 42, { px: 28, w: 900, col: ink, shadow: sh }); text(d.isBack ? '後排' : d.job, tx + nw + 8, Y + 41, { px: 16, w: 700, col: dim, fam: SANS });
+      const nw = text(d.name, tx, Y + 42, { px: 28, w: 900, col: ink, shadow: sh }); if (d.isBack || !HUD.lean) text(d.isBack ? '後排' : d.job, tx + nw + 8, Y + 41, { px: 16, w: 700, col: dim, fam: SANS });
       // 第二行：左邊 HP 數字，右邊 SP。不同手機的字寬不一樣，「／上限」只有放得下才畫（血條本身就看得出比例）
       const spS = String(Math.round(sp)), spW = measure(spS, 20, 900), spL = tx + w - spW - 6 - measure('SP', 12, 700, SANS);
       text('HP', tx, Y + 74, { px: 13, w: 700, col: dim, fam: SANS }); const hw = text(down ? '倒下' : fmt(hp).replace(/,/g, ''), tx + 26 + jit, Y + 77, { px: down ? 24 : 30, w: 900, col: down || low ? (on ? RED : '#ff8a78') : ink, shadow: sh });
-      if (!down && tx + 30 + hw + measure('/' + d.hp, 15, 700, SANS) < spL - 8) text('/' + d.hp, tx + 30 + hw, Y + 76, { px: 15, w: 700, col: dim, fam: SANS });
+      if (!HUD.lean && !down && tx + 30 + hw + measure('/' + d.hp, 15, 700, SANS) < spL - 8) text('/' + d.hp, tx + 30 + hw, Y + 76, { px: 15, w: 700, col: dim, fam: SANS });
       text(spS, tx + w, Y + 77, { px: 20, w: 900, align: 'right', col: on ? '#27507e' : '#bcd8f6', shadow: sh }); text('SP', tx + w - spW - 6, Y + 75, { px: 12, w: 700, col: dim, align: 'right', fam: SANS });
       bar(tx, Y + 88, w - 80, 7, hp / d.hp, low ? '#c8443a' : '#4f9a4a'); bar(tx + w - 68, Y + 88, 68, 7, sp / d.sp, '#4a82c4'); c.globalAlpha = a; });
     c.restore();
@@ -72,8 +74,8 @@ export function makeSkin(c, A, S, D) {
     if (a <= 0) return; c.save(); c.globalAlpha *= a; const X = 648, Y = 142, ok = v >= MO.ult - .5, bx = X + 96, bw = 1247 - 96 - 84; paper(X, Y - 4, 84, 30); text('氣勢', X + 42, Y + 19, { px: 20, w: 900, align: 'center', ls: 3 });
     bar(bx, Y + 4, bw, 14, v / MO.max, ok ? '#d9a62e' : '#9a6a3c', ok ? `rgba(255,244,190,${.35 + .25 * Math.sin(t * 6)})` : 'rgba(255,255,255,.22)');
     for (let m = MO.ult; m < MO.max; m += MO.ult) { const tx = bx + bw * m / MO.max; c.fillStyle = '#1d120b'; c.fillRect(tx - 2, Y, 4, 22); c.fillStyle = BRASS; c.fillRect(tx - 1, Y + 1, 2, 20); }
-    paper(X + 1247 - 74, Y - 4, 74, 30, { tint: ok ? 'rgba(217,166,46,.35)' : null }); text(String(Math.round(v)), X + 1247 - 37, Y + 19, { px: 22, w: 900, align: 'center' });
-    text(ok ? '可以放奧義' : `到 ${MO.ult} 可以放奧義`, bx + bw * MO.ult / MO.max + 10, Y + 42, { px: 15, w: 700, fam: SANS, col: ok ? '#ffd84a' : 'rgba(239,230,207,.7)', shadow: 'rgba(0,0,0,.8)' }); c.restore();
+    paper(X + 1247 - 74, Y - 4, 74, 30, { tint: ok ? 'rgba(217,166,46,.35)' : null }); text(HUD.lean && !ok ? `${Math.round(v)}／${MO.ult}` : String(Math.round(v)), X + 1247 - 37, Y + 19, { px: HUD.lean && !ok ? 18 : 22, w: 900, align: 'center' });
+    if (!HUD.lean) text(ok ? '可以放奧義' : `到 ${MO.ult} 可以放奧義`, bx + bw * MO.ult / MO.max + 10, Y + 42, { px: 15, w: 700, fam: SANS, col: ok ? '#ffd84a' : 'rgba(239,230,207,.7)', shadow: 'rgba(0,0,0,.8)' }); c.restore();
   }
   // ---------- 敵人腳下：底氣條；歸零蓋「理虧」。左下：魔王木牌 ----------
   function enemies(t, a, MAXSH) {
