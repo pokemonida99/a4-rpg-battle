@@ -4,7 +4,7 @@ const A = await open('overview', 'seed=9&routes'), log = async s => console.log(
 const pick = '__game.phase === "pick" && !!__game.menu', hub = '__game.phase === "hub" && !!__game.menu && __game.menu.kind === "hub"', cmd = '(__game.phase === "command" && __game.menu && __game.menu.kind === "root") || !!__game.state.over', talk = '__game.phase === "pick" && __game.menu && !!__game.menu.talk';
 await A.boot('window.__game && __game.phase === "title" && __game.zones.some(z => z.big)'); await A.run(.5, false);
 // 片頭：疊在標題畫面上
-await A.big('上班旅人', ['不想上班的回合制冒險', '一分鐘看完怎麼玩'], 3.4, 'A4不想上班 製作'); await A.run(3.5);
+await A.run(.9); await A.cap('不想上班的回合制冒險\n一分鐘看完怎麼玩', 2.9, 610); await A.run(3.0);      // 標題畫面本身就有片名，不再疊一次大字
 await A.tag('玩法 ②　怎麼玩'); await A.ev(() => { __ov.tagX = 960; __ov.tagY = 18; });
 // 選路線、主角、第一招
 await A.tapZone('z => z.big'); await A.boot(pick); await A.run(.3, false); await log('路線');
@@ -27,10 +27,10 @@ await log('打完'); await A.until(`${pick}`, true, 14); await A.ev(() => { __ov
 if (await A.ev(() => !!(__game.menu && __game.menu.talk))) { await A.run(1.7); await A.tap(960, 500); await A.until(`${pick} && !__game.menu.talk`, true, 5); }
 await A.cap('打贏：三個強化挑一個，還會拿到報帳額度', 4, 880); await A.run(2.4); await A.tapIdx(0); await A.until(hub, true, 6); await log('獎勵後');
 // 招募
-await A.ev(() => { __game.run.coin = 300; }); await A.cap('路上招募同事：最多帶六個人，四人上場', 4.4, 620); await A.run(1.6); await A.tapItem('出發'); await A.until(pick, true, 6); await A.run(1.8); await A.tapIdx(0); await A.until(`${talk} || ${hub}`, true, 5);
+await A.ev(() => { __game.run.coin = 300; }); await A.cap('路上招募同事：最多帶六個人，四人上場', 2.6, 620); await A.run(2.2); await A.tapItem('出發'); await A.until(pick, true, 6); await A.run(2.0); await A.tapIdx(0); await A.until(`${talk} || ${hub}`, true, 5);
 if (await A.ev(() => !!(__game.menu && __game.menu.talk))) { await A.run(1.9); await A.tap(960, 500); await A.until(hub, true, 5); } await log('招募後');
 // 福利社
-await A.cap('錢拿去福利社：買道具、調人、強化全隊', 4.6, 620); await A.run(1.5); await A.tapItem('福利社'); await A.until(pick, true, 4); await A.run(1.6); await A.tapItem('珍珠奶茶'); await A.run(1.5); await A.tapItem('回行程表'); await A.until(hub, true, 4);
+await A.cap('打贏拿到的錢，拿去福利社花', 2.3, 620); await A.run(1.9); await A.tapItem('福利社'); await A.until(pick, true, 4); await A.cap('買道具、調人、強化全隊', 2.6, 900); await A.run(2.0); await A.tapItem('珍珠奶茶'); await A.run(1.5); await A.tapItem('回行程表'); await A.until(hub, true, 4);
 // 隊伍與道具
 await A.cap('隊伍、道具、圖鑑隨時能看；進度會自動存', 4, 940); await A.run(.9); await A.tapItem('隊伍與道具'); await A.run(2.8); await log('隊伍頁');
 // 片尾
