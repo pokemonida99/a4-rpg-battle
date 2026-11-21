@@ -92,7 +92,7 @@ const NEW_SKILLS = {
   senpai: [{ key: 'attach', name: '附件請補齊', sp: 30, type: 'holy', target: 'foe', note: '單體攻擊　標記', desc: '光屬性攻擊並標記目標：它受到的傷害多三成。', fx: [['dmg', 1.0], ['mark']] },
     { key: 'redact', name: '這段先遮起來', sp: 28, type: 'dark', target: 'foe', note: '單體攻擊　攻擊力下降', desc: '暗屬性攻擊，目標下一次行動的傷害減兩成五。', fx: [['dmg', 1.3], ['down', .25]] }],
   wu: [{ key: 'spotlight', name: '主管請看這邊', sp: 24, type: 'holy', target: 'foe', note: '單體攻擊　吸引並閃過一擊', desc: '光屬性攻擊，並把敵人的單體攻擊引到自己身上、閃過下一擊。', fx: [['dmg', 1.0], ['taunt'], ['evade', 'self']] },
-    { key: 'cooldown', name: '中場喝口水', sp: 30, target: 'party', note: '全員回復 400　再生兩回合', desc: '前排全員各回 400 HP，接下來兩回合每回合再回 180。', fx: [['heal', 'party', 400], ['regen', 'party', 180, 2]] }],
+    { key: 'cooldown', name: '中場喝口水', sp: 30, target: 'party', note: '全員回復 400　SP +12　再生', desc: '前排全員各回 400 HP 與 12 SP，接下來兩回合每回合再回 180 HP。', fx: [['heal', 'party', 400], ['sp', 'party', 12], ['regen', 'party', 180, 2]] }],
   you: [{ key: 'spiked', name: '這杯誰放的', sp: 24, type: 'dark', target: 'foe', note: '單體攻擊　中毒三回合', desc: '暗屬性攻擊，目標中毒三回合，每回合開始扣血。', fx: [['dmg', .8], ['poison', 3, .3]] },
     { key: 'outofoffice', name: '系統顯示已離線', sp: 30, target: 'ally', ally: 'other', note: '同伴解除異常　閃過下一擊', desc: '讓一位同伴顯示「已離線」：解除異常，並閃過下一次攻擊。', fx: [['cleanse', 'ally'], ['evade', 'ally']] }],
   fairy: [{ key: 'nightshift', name: '冷氣借開一下', sp: 38, type: 'ice', target: 'foe', note: '單體攻擊　延到最後', desc: '冰屬性重擊，並把目標這回合還沒做的行動排到最後面。', fx: [['dmg', 1.4], ['delay']] },
@@ -820,7 +820,8 @@ function hitHeroes(s, src, list) {
 export function doAttack(s, id, target) { s.cmdLog.push(['a', id, target]); newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
   const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1) * cycSp(s.run)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
 export function doDefend(s, id) { s.cmdLog.push(['d', id]); newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min((s.run.job === 'risk' ? 30 : 10) * cycSp(s.run), STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
-export function doCheer(s, id = s.back || 'vivi') { s.cmdLog.push(['c', id]); return { kind: 'cheer', id, mo: gain(s, MO.cheer) }; }
+export const CHEER_SP = 10;      // 後排的應援：除了加氣勢，前排每個人再回這麼多 SP（11/21 使用者：後排的人也要能幫忙回 SP）
+export function doCheer(s, id = s.back || 'vivi') { s.cmdLog.push(['c', id]); const r = { kind: 'cheer', id, mo: gain(s, MO.cheer) }; for (const h of FRONT) if (alive(s, h)) addFx(r, FX.sp(s, h, CHEER_SP)); return r; }
 export const itemsLeft = s => s.run.ot >= 1 ? Math.max(0, 2 - s.itemUses) : 99;
 export function itemTargets(s, key) { const it = ITEMS[key]; if (itemsLeft(s) <= 0) return []; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
 export function doItem(s, id, key, target) { s.cmdLog.push(['i', id, key, target]);
