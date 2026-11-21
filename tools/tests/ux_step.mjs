@@ -14,7 +14,7 @@ const [cmd, ...args] = process.argv.slice(2), CMD = path.join(OUT, '.cmd'), RES 
 if (cmd !== 'serve') {      // 用戶端：寫指令、等結果
   try { fs.unlinkSync(RES); } catch {} fs.writeFileSync(CMD, JSON.stringify([cmd, args]));
   for (let k = 0; k < 1200; k++) { await wait(100); if (fs.existsSync(RES)) { console.log(fs.readFileSync(RES, 'utf8')); fs.unlinkSync(RES); process.exit(0); } } console.log('逾時'); process.exit(1); }
-const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, userDataDir: '/private/tmp/claude-502/-Users-hermes-Public-0720/fcf5d0bc-7ce1-4303-a506-0258754e9ec2/scratchpad/ux-profile', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 2.3, isMobile: true, hasTouch: true });
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error') errs.push('[console] ' + m.text()); });
 let out = []; const log = (...a) => out.push(a.join(' '));
@@ -26,8 +26,7 @@ if (cmd === 'open') {
   await page.setRequestInterception(true);
   const h = async req => { if (process.env.UXDBG) log('req', req.url()); if (req.url().split('?')[0].endsWith('/js/game.js')) { const r = await fetch(req.url()); let t = await r.text(); t = t.replace('let zones = [], pointer = null;', 'let zones = [], pointer = null; window.__zones = () => zones;'); return req.respond({ status: 200, contentType: 'application/javascript', body: t }); } req.continue(); };
   page.on('request', h);
-  await page.goto(`http://localhost:4630/game.html?${args[0] || ''}&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 });
-  page.off('request', h); await page.setRequestInterception(false); await wait(1500); log(await st());
+  try { await page.goto(`http://localhost:4630/game.html?${args[0] || ''}&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); } finally { page.off('request', h); await page.setRequestInterception(false); } await wait(1500); log(await st());
 } else if (cmd === 'shot') { await page.screenshot({ path: path.join(OUT, args[0] + '.jpg'), type: 'jpeg', quality: 82 }); log(path.join(OUT, args[0] + '.jpg'));
 } else if (cmd === 'zones') { const z = await page.evaluate(() => { const Z = window.__zones ? window.__zones() : null; if (!Z) return null; const hit = p => Z.find(z => !z.soft && p[0] >= z.x && p[0] <= z.x + z.w && p[1] >= z.y && p[1] <= z.y + z.h) || Z.find(z => z.soft && p[0] >= z.x && p[0] <= z.x + z.w && p[1] >= z.y && p[1] <= z.y + z.h); const m = window.__game.menu;
     return Z.map((z, k) => { const c = [z.x + z.w / 2, z.y + z.h / 2], h = hit(c); const lab = z.i != null && m && m.items[z.i] ? (m.items[z.i].label || m.items[z.i].use || m.items[z.i].view || 'node' + m.items[z.i].node) : (z.opt || z.act || ''); return `${k}: i=${z.i ?? '-'} ${lab}${z.off ? '(×)' : ''}${z.soft ? ' soft' : ''} [${Math.round(z.x)},${Math.round(z.y)} ${Math.round(z.w)}×${Math.round(z.h)}]` + (h !== z ? `  ← 中心被 ${Z.indexOf(h)} 蓋住` : '') + (z.w < 110 || z.h < 90 ? '  （小於 110×90）' : ''); }); }); log(z ? z.join('\n') : 'no zones hook');
