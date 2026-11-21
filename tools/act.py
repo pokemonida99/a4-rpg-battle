@@ -13,4 +13,5 @@ for n in sys.argv[1:]:
     for i, s in enumerate(sizes, 1):
         if s >= max(sizes) * .01: keep |= lab == i      # 小碎片丟掉，留人物本體和跟身體分開的大塊（例如伸出來的手）
     ys, xs = np.nonzero(keep); out = np.dstack([a, np.where(keep, 255, 0)]).astype(np.uint8)
-    im = Image.fromarray(out).crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)); im.save(f'art/cutin/act_{n}.png'); print(n, im.size, '塊數', int((sizes >= max(sizes) * .01).sum()))
+    im = Image.fromarray(out).crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)).quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE); im.save(f'art/cutin/act_{n}.png', optimize=True);      # 壓成 256 色，檔案小很多（像素圖看不出差別）
+    print(n, im.size, '塊數', int((sizes >= max(sizes) * .01).sum()))
