@@ -1,0 +1,101 @@
+{
+ "_說明": "2026-11-21 小葵換甜一點的音色（試做兩套，舊檔 kui_1/2、atk_kui_1～4 都保留）。聲音庫現成音色、Eleven v4、穩定度 35%、相似度 75%，沒有複製或建立聲音；文字照原本的，沒改字。後製比照原檔：頭尾靜音裁掉、結尾 30 ms 淡出、峰值 -1 dBFS、單聲道 192k mp3（原本小葵的檔就是用峰值對齊，響度約 -13～-15 LUFS）。whisper medium 逐檔辨識：喊招與看招、這樣不行吧都對；喝 被聽成「哼」（舊的 atk_kui_1 也一樣，短促喊聲 whisper 分不出來），哈 正確。點數 3,261 → 3,037（224 點，超過 200 的上限 24 點：網站的點數顯示會延遲，我照顯示判斷以為還夠，Stacy 的重生送出後才發現，來不及取消）。",
+ "voices": {
+  "A": {
+   "name": "Ellen - Sweet",
+   "accent": "普通話（台灣）",
+   "preview_pitch_hz": 271
+  },
+  "B": {
+   "name": "Stacy - Young, Sweet and Cute",
+   "accent": "標準普通話（聲音庫沒標台灣）",
+   "preview_pitch_hz": 235
+  }
+ },
+ "current_voice_for_reference": {
+  "name": "Yu-Ting - Sweet and Bubbly",
+  "preview_pitch_hz": 203
+ },
+ "files": {
+  "kui_3": {
+   "voice": "Ellen - Sweet",
+   "text": "吐槽——一閃！",
+   "sent": "[sweet, shouting] 吐槽——一閃！",
+   "replaces": "kui_1",
+   "len": 1.59
+  },
+  "atk_kui_5": {
+   "voice": "Ellen - Sweet",
+   "text": "喝！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_1",
+   "len": 0.36,
+   "note": "四個發力聲一次生成連著唸，再從停頓切開"
+  },
+  "atk_kui_6": {
+   "voice": "Ellen - Sweet",
+   "text": "哈！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_2",
+   "len": 0.39,
+   "note": "同上"
+  },
+  "atk_kui_7": {
+   "voice": "Ellen - Sweet",
+   "text": "看招！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_3",
+   "len": 0.63,
+   "note": "同上"
+  },
+  "atk_kui_8": {
+   "voice": "Ellen - Sweet",
+   "text": "這樣不行吧！",
+   "sent": "[exasperated, shouting, teasing] 這樣不行吧！",
+   "replaces": "atk_kui_4",
+   "len": 1.73,
+   "note": "第一次放在連唸裡只標 [teasing]，音太低（約 250 Hz）不像喊，改用原本的標記單獨重生"
+  },
+  "kui_4": {
+   "voice": "Stacy - Young, Sweet and Cute",
+   "text": "吐槽——一閃！",
+   "sent": "[sweet, shouting] 吐槽——一閃！",
+   "replaces": "kui_1",
+   "len": 1.61
+  },
+  "atk_kui_9": {
+   "voice": "Stacy - Young, Sweet and Cute",
+   "text": "喝！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_1",
+   "len": 0.51,
+   "note": "四個發力聲一次生成連著唸，再從停頓切開"
+  },
+  "atk_kui_10": {
+   "voice": "Stacy - Young, Sweet and Cute",
+   "text": "哈！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_2",
+   "len": 0.49,
+   "note": "同上"
+  },
+  "atk_kui_11": {
+   "voice": "Stacy - Young, Sweet and Cute",
+   "text": "看招！",
+   "sent": "[sweet battle cry] 喝！……哈！……看招！……[teasing] 這樣不行吧！",
+   "replaces": "atk_kui_3",
+   "len": 0.69,
+   "note": "同上"
+  },
+  "atk_kui_12": {
+   "voice": "Stacy - Young, Sweet and Cute",
+   "text": "這樣不行吧！",
+   "sent": "[exasperated, shouting, teasing] 這樣不行吧！",
+   "replaces": "atk_kui_4",
+   "len": 1.62,
+   "note": "第一次放在連唸裡只標 [teasing]，音太低（約 250 Hz）不像喊，改用原本的標記單獨重生"
+  }
+ },
+ "recommend": "A",
+ "why": "建議 A（Ellen）：聲音庫標台灣口音、試聽音最高最細；B（Stacy）出來的音量比較大、比較有精神，但標的是標準普通話，口音可能比較不像台灣。注意：喊出來時兩個新音色的音高都沒有比舊的小葵（Yu-Ting 喊到約 400 Hz）更高，「甜」主要是音色差別，要用耳朵判斷。"
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>上班旅人｜討伐奧客總經理（試玩版）</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e3b36">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="上班旅人">
+<meta property="og:title" content="上班旅人｜討伐奧客總經理（試玩版）">
+<meta property="og:description" content="五個社畜組隊打奧客總經理的回合制小遊戲。">
+<meta property="og:image" content="og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  @font-face { font-family: "Noto Sans TC"; src: url(fonts/NotoSansTC.ttf); font-weight: 100 900; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  #stage { position: absolute; left: 50%; top: 50%; width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); transform: translate(-50%, -50%); cursor: pointer; touch-action: none; }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  #rotate { display: none; position: fixed; left: 0; right: 0; bottom: 6vh; text-align: center; color: #e2bf6c; font: 500 16px "Noto Sans TC", sans-serif; letter-spacing: .2em; }
+  @media (orientation: portrait) { #rotate { display: block; } }
+  /* 開啟時的進度條：蓋在畫面上，進到標題畫面才收掉 */
+  #boot { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #140d09; color: #efe6cf; transition: opacity .5s; }
+  #boot p { margin: 0 0 1vh; color: #caa24c; letter-spacing: .5em; font: 700 min(1.9vw, 3.4vh) "Noto Sans TC", sans-serif; }
+  #boot h1 { margin: 0 0 5vh; font: 900 min(9vw, 16vh) "Songti TC", "Noto Serif TC", "PMingLiU", serif; letter-spacing: .14em; text-indent: .14em; }
+  #bar { width: 46%; height: max(22px, min(1.7vw, 3vh)); box-sizing: border-box; padding: 3px; background: #1d120b; border: 3px solid #24130b; outline: 2px solid #caa24c; }
+  #fill { width: 0; height: 100%; background: #3f7f72; box-shadow: inset 0 3px 0 rgba(255, 255, 255, .18); transition: width .25s; }
+  #pct { margin-top: 2vh; color: rgba(239, 230, 207, .8); letter-spacing: .2em; font: 700 min(1.5vw, 2.6vh) "Noto Sans TC", sans-serif; }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <canvas id="hud" width="1920" height="1080"></canvas>
+  <div id="boot"><p>不 想 上 班 RPG</p><h1>上班旅人</h1><div id="bar"><div id="fill"></div></div><div id="pct">載入中　0%</div></div>
+</div>
+<div id="rotate">把手機橫放會比較好玩</div>
+<script>
+// 開啟時的進度條：數「開始下載」與「下載完」的檔案（圖片、聲音）。總數第一次用估的，之後記住上一次實際的數字；顯示的進度只會往前
+(() => { let started = 0, done = 0, shown = 0, closed = false; const EST = 500, fill = document.getElementById('fill'), pct = document.getElementById('pct'); let est = EST; try { est = +localStorage.getItem('a4rpg.files') || EST; } catch (e) { /* 讀不到就用估的 */ }
+  const paint = () => { if (closed) return; shown = Math.max(shown, Math.min(.99, done / Math.max(est, started))); fill.style.width = (shown * 100).toFixed(1) + '%'; pct.textContent = '載入中　' + Math.round(shown * 100) + '%'; };
+  // 一開始在下載遊戲程式本身（數不到檔案數），先讓進度條慢慢走到 8%，不要停在 0 讓人以為當掉
+  const creep = setInterval(() => { if (closed || started) return clearInterval(creep); shown = Math.min(.08, shown + .004); fill.style.width = (shown * 100).toFixed(1) + '%'; pct.textContent = '載入程式中　' + Math.round(shown * 100) + '%'; }, 400);
+  const one = p => { started++; const fin = () => { done++; paint(); }; p.then(fin, fin); paint(); };
+  const f0 = window.fetch; window.fetch = (...a) => { const p = f0(...a); if (!closed) one(p); return p; };
+  const d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+  Object.defineProperty(HTMLImageElement.prototype, 'src', { configurable: true, enumerable: true, get() { return d.get.call(this); }, set(v) { if (!closed) one(new Promise(r => { this.addEventListener('load', r, { once: true }); this.addEventListener('error', r, { once: true }); })); d.set.call(this, v); } });
+  addEventListener('error', () => { if (!closed && !done) pct.textContent = '載入失敗，請重新整理'; });
+  window.__bootDone = () => { if (closed) return; closed = true; try { localStorage.setItem('a4rpg.files', String(started)); } catch (e) { /* 存不了就算了 */ } fill.style.width = '100%'; pct.textContent = '載入完成'; const b = document.getElementById('boot'); b.style.opacity = 0; setTimeout(() => b.remove(), 600); };
+  window.__bootCount = () => [started, done];
+})();
+</script>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
