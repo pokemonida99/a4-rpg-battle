@@ -6,7 +6,7 @@ for (const id of R.ALL) { const n = R.SKILLS[id].length; if (!(n >= (id === 'viv
 ok(new Set(Object.values(R.SKILLS).flat().map(k => k.key)).size === Object.values(R.SKILLS).flat().length, `招式代號不重複，共 ${Object.values(R.SKILLS).flat().length} 招`);
 { const run = R.newRun(R.mulberry(1), 'jie', 'burn'); ok(run.skills.jie.join() === 'burn,sanitize' && R.unlearned(run).length === 3, `阿傑開局兩招 ${run.skills.jie}，還有 ${R.unlearned(run).length} 招可學`); }
 // 每一招都跑得動（對每種目標各放一次），不丟例外
-for (const team of [['kevin', 'mi', 'jie'], ['yan', 'heilun', 'cha'], ['qiang', 'senpai', 'wu'], ['you', 'fairy', 'zong'], ['hui', 'xu', 'vivi']]) for (const id of ['kui', ...team]) for (const k of R.SKILLS[id]) { s = mk('chief', team); for (const h of R.FRONT) { s.hp[h] = Math.round(R.STAT[h].hp * .5); s.sp[h] = Math.round(R.STAT[h].sp * .5); } s.sp[id] = R.STAT[id].sp;
+for (const team of [['kevin', 'mi', 'jie'], ['yan', 'heilun', 'cha'], ['qiang', 'senpai', 'wu'], ['you', 'fairy', 'zhe'], ['an', 'xu', 'vivi']]) for (const id of ['kui', ...team]) for (const k of R.SKILLS[id]) { s = mk('chief', team); for (const h of R.FRONT) { s.hp[h] = Math.round(R.STAT[h].hp * .5); s.sp[h] = Math.round(R.STAT[h].sp * .5); } s.sp[id] = R.STAT[id].sp;
   try { const tg = k.target === 'foe' ? 'boss' : k.target === 'ally' ? R.allyTargets(s, id, k)[0] : undefined; if (k.target === 'ally' && !tg) continue; r = R.doSkill(s, id, k.key, tg); if (!(r.kind === 'skill' && Number.isFinite(s.sp[id]) && Number.isFinite(s.mo) && Object.values(s.hp).every(Number.isFinite))) ok(false, `${id}.${k.key} 結果怪怪的`); } catch (e) { ok(false, `${id}.${k.key} 丟例外：${e.message}`); } }
 ok(true, '80 招各放一次沒有例外');
 // 護盾
@@ -21,5 +21,5 @@ s = mk('chief', ['heilun', 'mi', 'kevin']); r = R.doSkill(s, 'heilun', 'fineprin
 { const sh0 = s.shield; s.potUsed = true; r = R.doSkill(s, 'kevin', 'gavel', 'boss'); ok(sh0 - s.shield >= 3, `暈眩打頭目改成多削底氣（${sh0}→${s.shield}）`); }
 s = mk('intro', ['cha', 'mi']); r = R.doSkill(s, 'cha', 'cheer', 'kui'); ok(s.up.kui === 2, '攻擊提升兩次'); const p0 = R.preview(s, 'kui', 'ma'); r = R.doAttack(s, 'kui', 'ma'); ok(s.up.kui === 1 && r.hits[0].v === Math.round(1250 * 1.25 * 1.3), `提升後普攻 ${r.hits[0].v}（預估 ${p0}，另有弱點）`);
 // 吸引攻擊（小蝶、棕鼠）
-s = mk('intro', ['wu', 'zong']); r = R.doSkill(s, 'zong', 'doorstop', 'ma'); ok(s.guardian === 'zong' && s.ward.zong === 700, '棕鼠吸引＋護盾'); s.plan.mb = 'kui'; ok(R.intent(s, 'mb').target === 'zong', '意圖改指向棕鼠'); r = R.enemyTurn(s, 'mb'); ok(r.hits[0].dst === 'zong' && r.hits.taunted === 'kui', '真的打棕鼠'); R.beginTurn(s, 'zong'); ok(s.guardian === null, '輪到自己就結束');
+s = mk('intro', ['wu', 'an']); r = R.doSkill(s, 'an', 'wetfloor'); ok(s.guardian === 'an' && s.ward.an === 600, '小安吸引＋護盾'); s.plan.mb = 'kui'; ok(R.intent(s, 'mb').target === 'an', '意圖改指向小安'); r = R.enemyTurn(s, 'mb'); ok(r.hits[0].dst === 'an' && r.hits.taunted === 'kui', '真的打小安'); R.beginTurn(s, 'an'); ok(s.guardian === null, '輪到自己就結束');
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過');

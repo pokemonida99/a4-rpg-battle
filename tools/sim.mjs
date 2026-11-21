@@ -4,7 +4,7 @@
 // 目標：會想的打法大多能通關、一般玩家五到七成、只按攻擊過不了頭目。
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
-import { newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
+import { petTurn, isPet, petsOut, newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
   TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain, supply, buy, shopStock, PRICE, bench, doSwap, addGuest } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
@@ -48,7 +48,7 @@ const POLICY = {
     if (id === 'heilun') { if (!(s.mark[t] > 0) && can(s, id, 'mark', keep)) return doSkill(s, id, 'mark', t); if (can(s, id, 'deal', keep)) return doSkill(s, id, 'deal', t); }
     if (id === 'cha') { if (!s.dodge && can(s, id, 'chat', keep)) return doSkill(s, id, 'chat'); }
     if (id === 'senpai') { if (s.broken && boss && can(s, id, 'expose', keep)) return doSkill(s, id, 'expose', 'boss'); if (s.evidence < 3 && can(s, id, 'probe', keep)) return doSkill(s, id, 'probe', t); }
-    if (id === 'fairy') { if (dead.length && canUlt(s, id)) return doUlt(s, id); if (can(s, id, 'mice', keep) && !guarded(s)) return doSkill(s, id, 'mice'); }
+    if (id === 'fairy') { if (dead.length && canUlt(s, id)) return doUlt(s, id); if (!petsOut(s).length && can(s, id, 'mice', 0)) return doSkill(s, id, 'mice'); }
     if (id === 'xu') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length && can(s, id, 'mix', keep)) return doSkill(s, id, 'mix', lowest(s)); const dry = FRONT.filter(h => h !== id && alive(s, h) && s.sp[h] < STAT[h].cost)[0]; if (dry && can(s, id, 'transfer', keep)) return doSkill(s, id, 'transfer', dry); }
     if (id === 'wu') { const best = FRONT.filter(h => h !== id && alive(s, h)).sort((a, b) => STAT[b].atk - STAT[a].atk)[0]; if (canUlt(s, id) && FRONT.filter(h => alive(s, h)).length >= 3) return doUlt(s, id); if (!s.atkUp && can(s, id, 'dance', keep)) return doSkill(s, id, 'dance'); if (best && can(s, id, 'encore', keep)) return doSkill(s, id, 'encore', best); }
     if (id === 'you') { if (canUlt(s, id) && boss) return doUlt(s, id); if (guarded(s) && boss && can(s, id, 'backdoor', keep)) return doSkill(s, id, 'backdoor', 'boss'); if (s.sp[id] < 60 && !s.evade[id]) return doSkill(s, id, 'slack'); }
@@ -82,7 +82,7 @@ const POLICY = {
 const PICK = ['raise', 'weakpoint', 'tabs', 'leave', 'chair', 'cutter', 'redpen', 'thermos', 'firstaid', 'partition', 'bell', 'applause', 'notebook', 'tempo', 'blanket', 'snackdrawer', 'cheatsheet', 'countdown', 'mug', 'carbon', 'fridge', 'ember', 'riposte', 'dossier', 'crunch', 'bounty', 'learn', 'coffee', 'drinks', 'morale', 'bento'];
 function battle(policy, run) {
   const s = newState(run); let guard = 0;
-  while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) { const r = POLICY[policy](s, id), k = r && r.kind || 'none'; MIX[k] = (MIX[k] || 0) + 1; if (id !== 'vivi' && (k === 'attack' || k === 'skill' || k === 'ult' || k === 'unite')) { MIX.spN = (MIX.spN || 0) + 1; MIX.spSum = (MIX.spSum || 0) + s.sp[id] / STAT[id].sp; } } else enemyTurn(s, id); } }
+  while (!s.over && guard++ < 80) { startRound(s); while (s.queue.length && !s.over) { const id = s.queue.shift(); if (!beginTurn(s, id)) continue; if (HEROES.includes(id)) { const r = POLICY[policy](s, id), k = r && r.kind || 'none'; MIX[k] = (MIX[k] || 0) + 1; if (id !== 'vivi' && (k === 'attack' || k === 'skill' || k === 'ult' || k === 'unite')) { MIX.spN = (MIX.spN || 0) + 1; MIX.spSum = (MIX.spSum || 0) + s.sp[id] / STAT[id].sp; } } else if (isPet(id)) petTurn(s, id); else enemyTurn(s, id); } }
   return s;
 }
 function playRun(policy, seed, starter, map = 'office') {
