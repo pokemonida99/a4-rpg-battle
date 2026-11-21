@@ -77,11 +77,13 @@ export function makeSkin(c, A, S, D) {
     paper(X + 1247 - NW, Y - 4, NW, 30, { tint: ok ? 'rgba(217,166,46,.35)' : null }); text(HUD.lean && !ok ? `${Math.round(v)}／${MO.ult}` : String(Math.round(v)), X + 1247 - NW / 2, Y + 19, { px: 22, w: 900, align: 'center' });
     if (!HUD.lean) text(ok ? '可以放奧義' : `到 ${MO.ult} 可以放奧義`, bx + bw * MO.ult / MO.max + 10, Y + 42, { px: 15, w: 700, fam: SANS, col: ok ? '#ffd84a' : 'rgba(239,230,207,.7)', shadow: 'rgba(0,0,0,.8)' }); c.restore();
   }
+  // 底氣的圖示：裂開的盾牌（精簡版；設定裡的圖示說明也用這個）
+  function shieldGlyph(x, y) { c.save(); c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round'; c.beginPath(); c.moveTo(x + 12, y + 7); c.lineTo(x + 34, y + 7); c.lineTo(x + 34, y + 17); c.quadraticCurveTo(x + 33, y + 25, x + 23, y + 29); c.quadraticCurveTo(x + 13, y + 25, x + 12, y + 17); c.closePath(); c.stroke(); c.lineWidth = 2.5; c.beginPath(); c.moveTo(x + 25, y + 8); c.lineTo(x + 21, y + 14); c.lineTo(x + 26, y + 18); c.lineTo(x + 22, y + 27); c.stroke(); c.restore(); }
   // ---------- 敵人腳下：底氣條；歸零蓋「理虧」。左下：魔王木牌 ----------
   function enemies(t, a, MAXSH) {
     if (a <= 0) return; c.save(); c.globalAlpha *= a; const guard = stepAt(S.guard, t, false);
     for (const id of S.foes) { const u = S.units[id]; if (!u.alive) continue; const boss = id === 'boss', [px, py] = S.proj(id, 0), sh = stepAt(S.shield[id], t, 0), mx = boss ? MAXSH : 2, w = boss ? 250 : 176, y = Math.round(py + (boss ? 30 : 22)), x = Math.min(Math.round(px - w / 2 - (boss ? 40 : 0)), !boss && y > 840 ? 742 - w : 9999);      // 前排小兵的底氣條不要壓到下方的指令列
-      const bx0 = HUD.lean ? 44 : 64, bw0 = w - bx0 - 14; paper(x, y, w, 34); if (HUD.lean) { c.save(); c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round'; c.beginPath(); c.moveTo(x + 12, y + 7); c.lineTo(x + 34, y + 7); c.lineTo(x + 34, y + 17); c.quadraticCurveTo(x + 33, y + 25, x + 23, y + 29); c.quadraticCurveTo(x + 13, y + 25, x + 12, y + 17); c.closePath(); c.stroke(); c.lineWidth = 2.5; c.beginPath(); c.moveTo(x + 25, y + 8); c.lineTo(x + 21, y + 14); c.lineTo(x + 26, y + 18); c.lineTo(x + 22, y + 27); c.stroke(); c.restore(); } else text('底氣', x + 12, y + 25, { px: 20, w: 900 }); bar(x + bx0, y + 11, bw0, 12, sh / mx, '#b23a30');
+      const bx0 = HUD.lean ? 44 : 64, bw0 = w - bx0 - 14; paper(x, y, w, 34); if (HUD.lean) shieldGlyph(x, y); else text('底氣', x + 12, y + 25, { px: 20, w: 900 }); bar(x + bx0, y + 11, bw0, 12, sh / mx, '#b23a30');
       for (let k = 1; k < mx; k++) { c.fillStyle = '#1d120b'; c.fillRect(x + bx0 + bw0 * k / mx - 1, y + 9, 2, 16); }
       if (sh <= 0) { const el = lastChange(S.shield[id], t); stamp('理虧', x + w - 46, y + 12, -.2, 30, el < .2 ? lerp(2.2, 1, easeOut(el / .2)) : 1); }
       if (guard && boss) { paper(x, y + 42, w, 30, { tint: 'rgba(178,58,48,.14)' }); text('護衛中　傷害無效', x + w / 2, y + 64, { px: 18, w: 900, align: 'center', col: RED, ls: 1 }); }
@@ -99,6 +101,6 @@ export function makeSkin(c, A, S, D) {
   // 大印章：魔王底氣歸零的那一下，一顆「理虧」蓋在他身上
   function bigStamps(t) { for (const k of S.stamps || []) { const el = t - k.t; if (el < 0 || el > 1.5) continue; const [px, py] = S.proj(k.id, .55), sc = el < .14 ? lerp(3.2, 1, easeOut(el / .14)) : 1, sh = el < .4 ? Math.sin(el * 90) * 7 * (1 - el / .4) : 0;
       c.save(); c.globalAlpha = sat((1.5 - el) / .3); stamp('理虧', px + sh, py, -.16, 130, sc); text('底氣歸零　下次行動取消', px, py + 130, { px: 30, w: 900, align: 'center', col: CREAM, shadow: 'rgba(20,6,6,.9)', ls: 4 }); c.restore(); } }
-  return { wood, paper, clip, stamp, bar, face, text, measure, order, party, momentum, enemies, boxes,
+  return { wood, paper, clip, stamp, bar, face, text, measure, order, party, momentum, enemies, boxes, shieldGlyph,
     hud(t, a, cardOn, mo, MO, maxShield) { enemies(t, a, maxShield); party(t, a); momentum(t, a, mo, MO); order(t, a * (1 - cardOn)); bigStamps(t); } };
 }

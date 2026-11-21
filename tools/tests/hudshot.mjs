@@ -20,5 +20,7 @@ for (const flag of ['&hud1', '']) { const tag = flag ? 'old' : 'new', page = awa
   await page.evaluate(() => { const g = __game; g.press(g.menu.items.findIndex(m => m.back)); }); await wait(400); await page.evaluate(() => { const g = __game; const i = g.menu.items.findIndex(m => m.back); if (i >= 0) g.press(i); }); await wait(400);
   const s0 = await page.evaluate(() => JSON.parse(localStorage.getItem('a4rpg') || '{}').spd || 0); await tapZ(`z => z.opt === 'spd'`); const s1 = await page.evaluate(() => JSON.parse(localStorage.getItem('a4rpg') || '{}').spd || 0);
   await tapZ(`z => z.opt === 'conf'`); const conf = await page.evaluate(() => __game.menu && __game.menu.kind); await shot('5_conf');
+  // 設定 → 玩法說明（戰鬥中先開圖示說明）→ 用手指切到文字說明再切回來
+  await page.evaluate(() => { const g = __game; g.press(g.menu.items.findIndex(m => m.label === '玩法說明')); }); await wait(700); await shot('6_legend'); const lg = await page.evaluate(() => __game.menu.items.map(m => m.label).join('／')); await tapZ(`z => z.i === 1`); await wait(300); const lg2 = await page.evaluate(() => __game.menu.items.map(m => m.label).join('／')); await shot('7_help'); log.push(`${tag}：說明頁按鈕 ${lg} → 點第二顆 → ${lg2}`);
   log.push(`${tag}：點返回 ${ok} → 選單 ${kind}｜速度 ${s0} → ${s1}｜點設定 → ${conf}`); await page.close(); }
 console.log(log.join('\n')); console.log('錯誤：', errors.length ? [...new Set(errors)].slice(0, 6).join(' ／ ') : '無'); await browser.close();
