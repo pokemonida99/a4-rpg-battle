@@ -4,7 +4,7 @@
 // 目標：會想的打法大多能通關、一般玩家五到七成、只按攻擊過不了頭目。
 // 試數值：BOSSHP=70000 CHIEFHP=40000 S1=.34 node tools/sim.mjs
 // 指定某一站打哪一種組合（平常每一輪隨機抽）：ALT=chief:parrot,audit:pig,crowd:crowd_a,night:night_s node tools/sim.mjs
-import { fallen, REVIVE_SKILLS, ALL as ALL0, petTurn, isPet, petsOut, newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
+import { canSuper, doSuper, superOpen, isSuper, SUPERS, SUPER, fallen, REVIVE_SKILLS, ALL as ALL0, petTurn, isPet, petsOut, newRun, newState, endStage, enterNode, advance, prepare, rest, join, offerUpgrades, applyUpgrade, startRound, beginTurn, alive, guarded, canUlt as canUlt0, knows, doAttack, doDefend, doCheer, doItem, doUlt, doSkill, enemyTurn, mulberry, EVENTS, eventOk, applyEvent,
   TUNE, STAT, STAGES, MAP, MAPS, SCALE, SKILLS, ROLE, FRONT, HEROES, MINIONS, KINDS, smoked, reachable, weakOf, allyTargets, skillOk, unitesOf, uniteOk, doUnite, offerTrain, applyTrain, supply, buy, shopStock, PRICE, bench, doSwap, addGuest } from '../js/rules.js';
 
 const E = process.env; for (const k of Object.keys(TUNE)) if (E['T_' + k.toUpperCase()]) TUNE[k] = +E['T_' + k.toUpperCase()];      // 試整體難度：T_HP=1.2 T_ATK=1.1 T_BHP=1.3 T_BATK=1.1 T_ULT=1.2
@@ -18,6 +18,9 @@ const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 
 // 猴子的臨時專案（畫面上寫明「打倒他，大招就落空」）一般玩家也會去打；鸚鵡附議的那隻只有會想的打法會優先處理
 const projT = s => s.charging && s.proj && alive(s, s.proj) ? s.proj : null, echoT = s => !s.charging && !s.broken && s.echo && alive(s, s.echo) ? s.echo : null;
 const target = (s, wm = weakMinion) => (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
+// 超級化（二週目起）：會打的玩家這一場還沒人變身之前，先把氣勢存到滿（進攻型的奧義先不放），變完再照常放
+let HOLD = false; const canUlt = (s, id) => canUlt0(s, id) && !(HOLD && !s.charging && !['mi', 'xu', 'fairy', 'kevin', 'qiang', 'an', 'yan', 'cha'].includes(id));
+const superNow = (s, id) => canSuper(s, id) && (ROLE[id] === '輸出' || !FRONT.some(h => h !== id && alive(s, h) && SUPERS.includes(h) && ROLE[h] === '輸出' && !s.superUsed[h]));
 const can = (s, id, key, keep = 0) => knows(s, id, key) && s.sp[id] - SKILLS[id].find(k => k.key === key).sp >= keep;
 const MIX = {};      // 行動比例統計：每種指令用了幾次（檢查是不是只會一直普攻）
 const POLICY = {
@@ -25,6 +28,7 @@ const POLICY = {
   smart(s, id) {
     const hurt = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .5), dead = FRONT.filter(h => !alive(s, h)), nMin = MINIONS.filter(m => alive(s, m)).length, boss = alive(s, 'boss'), t = target(s, smartMinion);
     const keep = s.mo >= 26 ? STAT[id].cost : 0, covered = s.aegis || s.bulwark || s.meeting || s.friends || s.endure > 0, me = s.hp[id] / STAT[id].hp;
+    HOLD = superOpen(s.run) && s.mo < SUPER.mo && !Object.keys(s.superUsed).length && FRONT.some(h => SUPERS.includes(h) && alive(s, h)); if (superNow(s, id)) return doSuper(s, id);
     { const dn = fallen(s), rk = REVIVE_SKILLS[id]; if (dn.length && rk && can(s, id, rk)) return doSkill(s, id, rk, dn[0]); if (dn.length && s.items.bento) return doItem(s, id, 'bento', dn[0]); }      // 有人倒下（場上或候補）：會復活的人先救，不然用便當
     if (me < .4 && id !== 'vivi' && s.swapRound !== s.round && bench(s).some(h => s.run.hp[h] / STAT[h].hp > .7)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 這回合還沒換過人（不用掉行動）：血剩四成以下就換滿血的候補上來
     if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
@@ -69,6 +73,7 @@ const POLICY = {
     const low = FRONT.filter(h => alive(s, h) && s.hp[h] / STAT[h].hp < .4), t = target(s);
     if (s.charging && s.wok === id && s.round % 4) return doDefend(s, id);      // 畫面上寫明「防禦就彈回去」，一般玩家大多會照做
     if (s.charging && !s.wok && canUlt(s, id) && ['kevin', 'qiang', 'an'].includes(id)) return doUlt(s, id);
+    HOLD = false; if (canSuper(s, id) && s.rand() < .5) return doSuper(s, id);
     { const dn = fallen(s), rk = REVIVE_SKILLS[id]; if (dn.length && rk && can(s, id, rk) && s.rand() < .7) return doSkill(s, id, rk, dn[0]); }
     if (id === 'mi' && low.length) { if (canUlt(s, id) && low.length >= 2) return doUlt(s, id); if (can(s, id, 'mend')) return doSkill(s, id, 'mend', lowest(s)); }
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
