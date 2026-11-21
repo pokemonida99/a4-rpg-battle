@@ -28,7 +28,7 @@ export const DEFS = {
   senpai: { name: '學姊', job: '稽核偵探', tag: '總務', color: '#e2564a', pal: 'blood', skill: '紀錄我都留著', en: 'I KEPT ALL THE RECORDS', cost: 110, eyeY: .52, pos: [2.25, -.5], hgt: 1.56, extra: true, shout: '紀錄，我都留著。' },
   wu: { name: '小蝶', job: '舞孃', tag: '尾牙女王', color: '#ff7fb0', pal: 'candy', skill: '全場跟著我跳', en: 'EVERYBODY DANCE WITH ME', cost: 120, eyeY: .52, pos: [2.25, -.5], hgt: 1.5, extra: true, shout: '全場，跟著我跳！' },
   you: { name: '老油條', job: '盜賊', tag: '資深專員', color: '#4fb8a8', pal: 'cyber', skill: '這我十年前就做過', en: 'DID THIS TEN YEARS AGO', cost: 100, eyeY: .52, pos: [2.25, -.5], hgt: 1.68, extra: true, shout: '這個，我十年前就做過了。' },
-  fairy: { name: '鼠仙女', job: '召喚師', tag: '社畜老鼠的仙女', color: '#bfe0ff', pal: 'holy', skill: '午夜前的魔法', en: 'MAGIC BEFORE MIDNIGHT', cost: 150, eyeY: .52, pos: [2.25, -.5], hgt: 1.52, extra: true, shout: '午夜之前，都給我站起來。' },
+  fairy: { name: '鼠仙女', job: '召喚師', tag: '社畜老鼠的仙女', color: '#bfe0ff', pal: 'holy', skill: '午夜前的魔法', en: 'MAGIC BEFORE MIDNIGHT', cost: 150, eyeY: .52, pos: [2.25, -.5], hgt: 1.52, extra: true, shout: '愛的魔法～啾嚕啾嚕，大家都好起來！' },
   zong: { name: '棕鼠', job: '社畜衛兵', tag: '夜班', color: '#c89a6a', pal: 'gold', skill: '再撐一下就下班', en: 'HANG ON TILL CLOCK-OUT', cost: 55, eyeY: .5, pos: [2.25, -.5], hgt: 1.0, extra: true, shout: '再撐一下……就下班了。' },
   hui: { name: '灰鼠', job: '社畜見習', tag: '業務', color: '#a8b4c4', pal: 'shadow', skill: '報表全部交出去', en: 'ALL REPORTS SUBMITTED', cost: 90, eyeY: .5, pos: [2.25, -.5], hgt: 1.06, extra: true, shout: '報表……全部交出去！' },
   xu: { name: '許許', job: '櫃檯藥師', tag: '櫃檯', color: '#7fd88a', pal: 'heal', skill: '全部門下午茶', en: 'TEA TIME FOR EVERYONE', cost: 130, eyeY: .52, pos: [2.25, -.5], hgt: 1.54, extra: true, shout: '下午茶到了，大家請用。' },
@@ -45,7 +45,7 @@ export const DEFS = {
 // 道具：n＝持有數；hp／sp＝回復量
 const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000 }, coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150 }, bento: { name: '雞排便當', n: 1, note: '戰鬥不能回復' } };
 // 喊招台詞與錄音長度（秒）
-export const LINES = { kui: ['吐槽一閃！', 1.67], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
+export const LINES = { kui: ['吐槽一閃！', 1.59], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
 export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
 const SFACE = { kui: [.42, .12], jie: [.47, .14], qiang: [.5, .1], you: [.47, .1], senpai: [.48, .12], zhe: [.5, .1], an: [.4, .1] };      // 超級版頭像從半身像切：臉的中心在寬度的幾成、從高度的幾成開始切

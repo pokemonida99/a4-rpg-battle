@@ -53,8 +53,47 @@
     2.25,
     2.32
    ],
-   "recommend": 2,
-   "why": "第 2 版起伏較大、較有威嚴"
+   "recommend": 5,
+   "why": "建議音色 B（Kurumin）：音比較高（中位約 350～400 Hz）、句尾往上揚得比較明顯；台詞一用 5、台詞二用 6。A（Unya）比較穩、比較像在說話。",
+   "v1_2_note": "_1、_2 是第一次用 Yui 配的舊版（使用者說聲音不行），保留",
+   "spell_2026-11-21": {
+    "_說明": "台詞改成愛的咒語（舊台詞「午夜之前，都給我站起來。」作廢，用舊台詞生的日本口音版已被覆蓋、不保留）。聲音庫現成的日語母語甜美女聲、Eleven v4 唸中文，沒有複製或建立聲音。為了省點數，每個音色一次生成把兩句連著唸（送出文字：[cheerful magic spell] 愛的魔法～啾嚕啾嚕，大家都好起來！……痛痛、痛痛，飛走吧～愛的咒語，啾！），再從兩句中間的停頓切開；每個音色一次出兩版，每句挑一版。後製：頭尾靜音裁掉、結尾 30 ms 淡出、約 -14 LUFS、峰值 -1 dBFS、單聲道 192k。whisper medium 逐檔辨識四版字都對（含啾嚕啾嚕）。點數 3,379 → 3,261（118 點）。",
+    "tag": "[cheerful magic spell] ",
+    "versions": {
+     "3": {
+      "voice": "Unya - Sweet & Expressive Japanese",
+      "line": 1,
+      "text": "愛的魔法～啾嚕啾嚕，大家都好起來！",
+      "len": 3.29,
+      "from": "生成第 2 版"
+     },
+     "4": {
+      "voice": "Unya - Sweet & Expressive Japanese",
+      "line": 2,
+      "text": "痛痛、痛痛，飛走吧～愛的咒語，啾！",
+      "len": 3.58,
+      "from": "生成第 2 版"
+     },
+     "5": {
+      "voice": "Kurumin - Cute Japanese Anime",
+      "line": 1,
+      "text": "愛的魔法～啾嚕啾嚕，大家都好起來！",
+      "len": 3.31,
+      "from": "生成第 1 版"
+     },
+     "6": {
+      "voice": "Kurumin - Cute Japanese Anime",
+      "line": 2,
+      "text": "痛痛、痛痛，飛走吧～愛的咒語，啾！",
+      "len": 3.76,
+      "from": "生成第 2 版"
+     }
+    }
+   },
+   "recommend_pair": [
+    5,
+    6
+   ]
   },
   "xu": {
    "name": "許許",
