@@ -61,6 +61,7 @@ export function makeScreenFx() {
   };
   return {
     // kind 見上面；t 開始、d 長度；o 參數。座標用 480×270。
+    clear(kind) { for (let i = ev.length - 1; i >= 0; i--) if (!kind || ev[i].kind === kind) ev.splice(i, 1); return this; },      // 拿掉還在排隊或還在演的特效（例如打輸後一直蓋著的黑幕）
     add(kind, t, d, o = {}) { if (!K[kind]) throw new Error('沒有這個畫面特效：' + kind); o._d = d; ev.push({ kind, t, d, o }); return this; },
     draw(c, t) {
       x.clearRect(0, 0, PW, PH); let any = false;
