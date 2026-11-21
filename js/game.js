@@ -268,7 +268,9 @@ const ACT_LIFT = {}, ACT_TOP = ['fairy']; A.act = {}; A.actParts = {};
 // ACT_FLY：會飛的人不貼著畫面底部，而是沿斜線飛進來停在半空（使用者 11/21：鼠仙女會飛，不要被現有的構圖框架卡住；構圖跟 GPT 討論過，見 design/unite_film/）。
 // h／w＝畫出來的高或寬，cx、cy＝停住時中心點（佔畫面的比例，站左邊時 cx 左右對調），from＝從哪裡飛進來（相對停住的位置），rot＝進場時多轉的角度。旁邊的老鼠是另外的圖層（act_<檔名>.json），晚一拍跳進來
 const ACT_FILE = { fairy: 'fairy_a' }, ACT_FLY = { fairy: { h: 1010, cx: .64, cy: .5, from: [500, -430], rot: .1 } };      // 鼠仙女用 a 版「斜向飛近」（使用者 11/21 選的；b 版橫向掠過的原圖留在 art/raw/act_fairy_b.png）
-for (const id of ACT_ART) { const f = ACT_FILE[id] || id; loadImg(`art/cutin/act_${f}.png`).then(im => { if (im) A.act[id] = im; }); if (ACT_FILE[id]) fetch(`art/cutin/act_${f}.json`).then(r => r.ok ? r.json() : null).then(j => j && Promise.all(j.parts.map(q => loadImg('art/cutin/' + q.file).then(im => ({ ...q, im })))).then(ps => { A.actParts[id] = ps.filter(q => q.im); })).catch(() => {}); }
+// ACT_PARTS：旁邊另外的圖層（鼠仙女的兩隻老鼠），位置以本人那張圖的左上角為原點、單位是原圖像素。數字抄自 tools/act.py --layers 寫出來的 art/cutin/act_<檔名>.json（部署時 art 底下的 json 會被刪掉，所以寫在程式裡）
+const ACT_PARTS = { fairy: [{ file: 'act_fairy_a_p1.png', x: 819, y: 121, w: 182, h: 237 }, { file: 'act_fairy_a_p2.png', x: 587, y: 615, w: 263, h: 273 }] };
+for (const id of ACT_ART) { const f = ACT_FILE[id] || id; loadImg(`art/cutin/act_${f}.png`).then(im => { if (im) A.act[id] = im; }); if (ACT_PARTS[id]) Promise.all(ACT_PARTS[id].map(q => loadImg('art/cutin/' + q.file).then(im => ({ ...q, im })))).then(ps => { A.actParts[id] = ps.filter(q => q.im); }); }
 function drawUniteFilm() { const F = uniteFilm; if (!F) return; const el = now - F.t0; if (el < 0) return; if (el > F.dur) { uniteFilm = null; return; }
   const n = F.ids.length, out = sat((F.dur - el) / .22), k = easeOut(sat(el / .16)) * easeOut(out), BAR = (150 + 26 * sat(el / F.dur)) * k, bh0 = n > 2 ? 980 : 1090, xs = n > 2 ? [.2, .52, .82] : [.29, .74], xa = n > 2 ? [.18, .5, .82] : [.26, .675];
   c.save(); c.fillStyle = `rgba(8,5,4,${.42 * k})`; c.fillRect(0, BAR, W, H - BAR * 2);
