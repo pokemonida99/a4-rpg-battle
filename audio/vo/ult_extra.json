@@ -1,0 +1,128 @@
+{
+ "_說明": "2026-11-21 ElevenLabs 文字轉語音 Eleven v4（穩定度 35%、相似度 75%），全部是聲音庫現成的台灣口音音色，沒有複製或建立聲音；台詞未改字，只加英文語氣標記（許許重生版句尾改成！、小安第 2 版逗號改成！）。處理：頭尾靜音裁掉、結尾 30 ms 淡出、響度對齊約 -14 LUFS（kui_1 是 -13.2）、峰值 -1 dBFS、單聲道 192k mp3。我聽不到聲音：讀音用 whisper medium 辨識過 22 檔都對，語氣與多音字聲調（都、著、會、了）請用耳朵確認。點數 4,249 → 3,648（約 601 點）。",
+ "lines": {
+  "yan": {
+   "name": "小燕",
+   "voice": "Kate - Clear & Warm Taiwan Mandarin",
+   "text": "[exhausted but determined, shouting powerfully] 這個會，改到下週！",
+   "len": [
+    2.03,
+    2.07
+   ],
+   "recommend": 1,
+   "why": "第 1 版尾音比較上揚有力"
+  },
+  "cha": {
+   "name": "茶茶",
+   "voice": "Lulu - Cute Little Witch",
+   "text": "[sweet, bubbly, excited, shouting cheerfully] 大家都是好朋友嘛～",
+   "len": [
+    1.91,
+    1.97
+   ],
+   "recommend": 2,
+   "why": "兩版接近；第 2 版音高稍高、比較甜"
+  },
+  "senpai": {
+   "name": "學姊",
+   "voice": "Tiffy - Taiwanese Bilingual Narrator",
+   "text": "[cool, sharp, confident, intense] 紀錄，我都留著。",
+   "len": [
+    1.85,
+    2.02
+   ],
+   "recommend": 1,
+   "why": "冷靜型，音高比其他女生低一些；第 1 版較有力"
+  },
+  "wu": {
+   "name": "小蝶",
+   "voice": "Vivian - Taiwanese Social Media",
+   "text": "[passionate, thrilled, shouting] 全場，跟著我跳！",
+   "len": [
+    1.9,
+    1.86
+   ],
+   "recommend": 2,
+   "why": "兩版都很嗨；第 2 版稍大聲"
+  },
+  "fairy": {
+   "name": "鼠仙女",
+   "voice": "Yui - Delicate, Graceful and Soothing",
+   "text": "[regal, commanding, powerful, shouting] 午夜之前，都給我站起來。",
+   "len": [
+    2.25,
+    2.32
+   ],
+   "recommend": 2,
+   "why": "第 2 版起伏較大、較有威嚴"
+  },
+  "xu": {
+   "name": "許許",
+   "voice": "Lee Ting Ting - Young, Gentle and Sweet",
+   "text": "[cheerful, bright, excited, calling out loudly] 下午茶到了，大家請用！",
+   "len": [
+    2.1,
+    2.11
+   ],
+   "recommend": 2,
+   "why": "聲音本身偏輕柔，原音量最小（拉高約 11 dB），是 11 人裡最不「激昂」的",
+   "note": "第一次生成（[warm, polite, bright, energetic]、句尾「。」）太小聲且一版聽成「茶報」，重生一次，兩版都用重生的"
+  },
+  "an": {
+   "name": "小安",
+   "voice": "Jadestone - Podcast & Storytelling",
+   "text": "_1：[firm, commanding, shouting loudly] 全員，安全帽戴好！／_2：[firm, commanding, shouting loudly, clear articulation] 全員！安全帽戴好！",
+   "len": [
+    1.89,
+    2.1
+   ],
+   "recommend": 2,
+   "why": "第 2 版「全員！」分開喊，最清楚",
+   "note": "這個音色唸「全員」常含糊（辨識成絹緣、學員），生了三次，只留辨識穩定是「全員」的兩版"
+  },
+  "heilun": {
+   "name": "黑輪",
+   "voice": "Bose - Taiwanese Accent",
+   "text": "[smug, slick, confident, shouting] 這單，業績算我的！",
+   "len": [
+    2.13,
+    2.15
+   ],
+   "recommend": 1,
+   "why": "第 1 版較大聲"
+  },
+  "qiang": {
+   "name": "阿強",
+   "voice": "YCHuang - Warm & Storytelling",
+   "text": "[hearty, powerful, shouting] 這個，我來扛！",
+   "len": [
+    1.51,
+    1.48
+   ],
+   "recommend": 1,
+   "why": "第 1 版尾音上衝有力，第 2 版收得較平"
+  },
+  "you": {
+   "name": "老油條",
+   "voice": "Joe Chen - Chill",
+   "text": "[lazy, smug, then shouting] 這個，我十年前就做過了。",
+   "len": [
+    2.97,
+    3.14
+   ],
+   "recommend": 1,
+   "why": "照設定是懶洋洋的老鳥，氣勢比其他人弱、也最長（約 3 秒）；第 1 版較短"
+  },
+  "zhe": {
+   "name": "阿哲",
+   "voice": "Chen - 23 years old Male",
+   "text": "[nervous, then determined, shouting] 這次……讓我自己來！",
+   "len": [
+    1.94,
+    2.03
+   ],
+   "recommend": 2,
+   "why": "第 2 版稍大聲"
+  }
+ }
+}
