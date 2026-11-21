@@ -126,6 +126,9 @@ function uiSound(kind) { if (AC.state !== 'running') return; const t = AC.curren
 // 普攻的發力聲／短台詞：清單在 audio/vo/attack.json，每個人輪流用（發力聲、台詞交錯）
 const ATKVO = await fetch('audio/vo/attack.json').then(r => r.ok ? r.json() : {}).catch(() => ({})), atkIdx = {};
 audioReady.then(() => Promise.all(Object.values(ATKVO).flat().map(n => loadSound('vo/' + n, `audio/vo/${n}.mp3`))));
+// 後來加入的同事放奧義時唸的那一句（audio/vo/<代號>_<版本>.mp3）：VO_ULT 寫每個人用第幾版；沒列的人照舊只有共用的喊聲
+const VO_ULT = {};
+audioReady.then(() => Promise.all(Object.keys(VO_ULT).map(id => loadSound('vo/' + id, `audio/vo/${id}_${VO_ULT[id]}.mp3`))));
 const grunt = (t, id) => { const list = ATKVO[id] || []; if (!list.length) return; const order = [0, 2, 1, 3].filter(i => i < list.length), k = atkIdx[id] = ((atkIdx[id] ?? -1) + 1) % order.length; const b = buf['vo/' + list[order[k]]]; if (!b) return; const src = AC.createBufferSource(), g = AC.createGain(); src.buffer = b; g.gain.value = .8; src.connect(g).connect(master); src.start(AC.currentTime + Math.max(0, t - now)); };
 const say = (t, line, who) => { snd(t, 'vo/' + line, 1.25); const [text, len] = LINES[line]; S.subs.push({ t0: t, len, text, name: DEFS[who].name, color: DEFS[who].enemy ? '#e2463f' : DEFS[who].color }); };
 
@@ -364,7 +367,7 @@ function playSkill(r, t0) {
 // 新夥伴的奧義：斜切眼神（有圖才播）→ 字幕 → 各自的效果。動作用站姿／蓄力／出手三張，之後有逐格動畫再換
 function playUltNew(r, t0) {
   const id = r.id, u = units[id], d = DEFS[id], hs = r.hits || [], tc = t0 + .1, has = !!A.eyes[id], ta = tc + (has ? 1.6 : .45); if (has) { S.cutins.push({ t0: tc, dur: 1.55, id }); snd(tc, 'cutin', 1); }
-  S.subs.push({ t0: tc + .2, len: 1.5, text: d.shout, name: d.name, color: d.color }); S.cards.push({ t0: ta - .12, t1: ta + 2.3, id }); at(tc, () => syncBars(now)); cam.to(t0, .4, { x: lerp(WIDE.x, home(id)[0], .08), d: 12.5, y: 1.48 }).to(tc + 1.35, .35, WIDE);
+  S.subs.push({ t0: tc + .2, len: 1.5, text: d.shout, name: d.name, color: d.color }); if (buf['vo/' + id]) snd(tc + .2, 'vo/' + id, 1.25); S.cards.push({ t0: ta - .12, t1: ta + 2.3, id }); at(tc, () => syncBars(now)); cam.to(t0, .4, { x: lerp(WIDE.x, home(id)[0], .08), d: 12.5, y: 1.48 }).to(tc + 1.35, .35, WIDE);
   const tk = ta + .55; let te = ta + 2.3; swing(id, ta, tk, .45, 1.5); shout(ta + .1, id, 1.3); fx('arcane/magic-circle-cast', ta - .1, id, { palette: d.pal, scale: 1.1, dz: -.05 }); snd(ta, 'buff', .8);
   const tag = (f, s, col, dt = 0) => num(tk + .2 + dt, f, s, 'text', { col, px: 30, y: DEFS[f].enemy ? (f === 'boss' ? .75 : 1.3) : 1.2 });
   if (id === 'yan') { SFX.add('flash', tk, .4, { c: [255, 220, 140], a: .5 }); SFX.add('embers', tk, 2.0, { c: [255, 210, 120], n: 60 }); snd(tk, 'holy_cast', .8); R.foes(state).forEach((f, i) => { fx('arcane/rune-circle', tk - .2 + i * .08, f, { palette: 'gold', scale: f === 'boss' ? 1.9 : 1.2 }); tag(f, '延到最後', '#ffe27a', i * .08); });
