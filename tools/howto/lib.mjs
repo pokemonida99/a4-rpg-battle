@@ -65,6 +65,11 @@ export async function open(name, url, pref = {}) {
     async tap(x, y, rec = true) { await page.evaluate((x, y) => { __ov.taps.push({ x, y, t0: performance.now() / 1000 }); }, x, y); await A.run(.18, rec); await page.mouse.click(x, y); await A.run(.12, rec); },
     // 點選單上某個字的按鈕
     async tapItem(label, rec = true) { const z = await page.evaluate(l => { const g = __game, i = g.menu ? g.menu.items.findIndex(x => x.label === l) : -1, z = g.zones.find(z => z.i === i && !z.big && !z.soft) || g.zones.find(z => z.i === i && !z.big); return z ? [z.x + z.w / 2, z.y + z.h / 2] : null; }, label); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
+    // 點選單第 i 項；點符合條件的可點區域（src＝頁面裡的函式字串 (z, g) => …）
+    async tapIdx(i, rec = true) { const z = await page.evaluate(i => { const g = __game, z = g.zones.find(z => z.i === i && !z.big && !z.soft) || g.zones.find(z => z.i === i && !z.big); return z ? [z.x + z.w / 2, z.y + z.h / 2] : null; }, i); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
+    async tapZone(src, rec = true) { const z = await page.evaluate(s => { const g = __game, f = eval(s), z = g.zones.find(z => f(z, g)); return z ? [z.x + (z.w || 0) / 2, z.y + (z.h || 0) / 2] : null; }, src); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
+    // 現在在哪一頁（除錯用）
+    where: () => page.evaluate(() => { const g = __game, m = g.menu; return `${g.phase}｜${m ? (m.talk ? '對話 ' + m.talk.i : (m.title || m.kind) + '：' + m.items.map(x => x.label + (x.off ? '(×)' : '')).join(' ')) : '沒有選單'}`; }),
     async tapUnit(id, rec = true) { const p = await page.evaluate(id => __game.S.proj(id, .5), id); await A.tap(p[0], p[1], rec); },
     // 收尾：把音效對到影片時間、混音、壓成 mp4
     async finish(out, music = 'bgm/battle') { const log = await page.evaluate(() => window.__sndLog); await browser.close();
