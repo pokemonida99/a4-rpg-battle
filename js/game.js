@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.35.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.36.0';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -659,7 +659,7 @@ const recLine = (map, first) => { const r0 = (PREF.rec || {})[map], ot = (PREF.o
 const cycMax = map => Math.max(1, Math.min(R.CYCLE_MAX, (PREF.cyc || {})[map] || 1)), carryPool = id => ((PREF.team || {})[mapKey] || []).filter(h => R.ALL.includes(h) && h !== 'vivi' && h !== id && units[h]);
 let cycKey = 1, carryKey = null;
 function pickCycle() { const mx = cycMax(mapKey); cycKey = 1; carryKey = null; if (mx < 2) return pickOt();
-  openCards({ title: '這是第幾週目？', sub: '週目越後面敵人越硬，但可以從上一輪通關的隊伍裡帶人一起出發。通關才會開下一個週目。', foot: '選一個', items: Array.from({ length: mx }, (_, i) => i + 1).map(v => ({ label: R.CYCLE_NAME[v - 1], tag: v === 1 ? '正常難度' : `敵人的血與攻擊 ×${R.CYCLE_K[v - 1]}`, icon: v === 1 ? 'rest' : v === 2 ? 'elite' : 'boss', big: true, lines: v === 1 ? ['一個人出發', '第一場有另一位主角陪打'] : v === 2 ? ['開局多帶一位上一輪的同事'] : ['開局多帶一位上一輪的同事', 'Vivi 也一起出發'], go: () => { cycKey = v; pickOt(); } })) }); }
+  openCards({ title: '這是第幾週目？', sub: '週目越後面敵人越硬，但可以從上一輪通關的隊伍裡帶人一起出發。通關才會開下一個週目。', foot: '選一個', items: Array.from({ length: mx }, (_, i) => i + 1).map(v => ({ label: R.CYCLE_NAME[v - 1], tag: v === 1 ? '正常難度' : `敵人的血與攻擊 ×${R.CYCLE_K[v - 1]}`, icon: v === 1 ? 'rest' : v === 2 ? 'elite' : 'boss', big: true, lines: v === 1 ? ['一個人出發', '第一場有另一位主角陪打'] : v === 2 ? ['開局多帶一位上一輪的同事', '普攻、防禦回的 SP 加倍', '開局道具加倍'] : ['多帶一位同事，Vivi 也一起出發', '普攻、防禦回的 SP 加倍', '開局道具加倍'], go: () => { cycKey = v; pickOt(); } })) }); }
 function pickCarry(id, key) { carryKey = null; const pool = cycKey >= 2 ? carryPool(id) : []; if (!pool.length) return pickJob(id, key); if (pool.length === 1) { carryKey = pool[0]; return pickJob(id, key); }
   openCards({ title: '帶誰一起出發？', sub: `${R.CYCLE_NAME[cycKey - 1]}：從上一輪通關的隊伍裡帶一位` + (cycKey >= 3 ? '，Vivi 也會一起來。' : '。'), foot: '選一位', items: pool.slice(0, 5).map(h => heroCard(h, () => { carryKey = h; pickJob(id, key); })) }); }
 function start() { AC.resume(); playMusic('bgm/map'); saved = null; cycKey = 1; carryKey = null; if (Q.has('map')) { mapKey = R.MAPS[Q.get('map')] ? Q.get('map') : 'office'; cycKey = Math.max(1, Math.min(R.CYCLE_MAX, +Q.get('cycle') || 1)); return pickStarter(); }      // 測試用：&cycle=2&carry=kevin
@@ -1142,7 +1142,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發（第一場有人陪），照行程表一站一站走到最後；路上招募同事，最多帶六人，四人站前排、一人在後排支援', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '敵人的弱點和下一步，要有小燕或學姊在場才看得到', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '行程表左邊的隊伍可以點開：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也可以把候補換上場', '進度會自動存在這台裝置上（戰鬥打到一半也會存），下次打開可以「繼續上班」'];
-const CHANGES = [['v0.35.0', '週目：通關後開二週目（敵人 ×1.8，多帶一位上一輪的同事）、三週目（×2.5，多帶一位加 Vivi）', '選完路線可以選週目；每張地圖各自計算', '修正：隊伍頁的「站後排」按鈕用手指點不到'], ['v0.34.0', '灰鼠、棕鼠改成鼠仙女的召喚：「老鼠們，上工」一次叫出兩隻，在場三回合、自己行動', '棕鼠擋單體攻擊，灰鼠送黑咖啡；牠們不佔上場名額，也不再出現在招募名單'], ['v0.33.0', '兩位新同事：阿哲（實習槍兵，攻擊）、小安（工安衛士，防禦）', '能力比前輩弱一點：阿哲越往後走攻擊越高，小安行動後會幫最傷的同伴上護盾'], ['v0.32.0', '後排支援位：四人站前排、一人在後排。Vivi 只做應援和奧義；鼠仙女、小蝶、茶茶可以在隊伍頁選站後排', '敵人的弱點和下一步，要小燕或偵探學姊在場才看得到', '合體技變強：威力抵得上三四次行動'], ['v0.31.0', '第一場戰鬥有另一位主角陪打：一開始就能兩人配合、放合體技', '打完第一場他就離隊，之後照常自己找同事'], ['v0.30.1', '更快可以開始玩：立繪、介面圖、戰鬥曲改成在背景載入', '傷害預估會算進職位的加減'], ['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'], ['v0.29.0', '台灣篇六種小兵都有自己的行為；打輸時會給「下次試試」的建議', '招式選單重排：效果說明不再被截掉；行程表有岔路時自動把選項都留在畫面裡'] ];
+const CHANGES = [['v0.36.0', '二週目起：普攻、防禦回的 SP 加倍，開局道具數量加倍', ''], ['v0.35.0', '週目：通關後開二週目（敵人 ×1.8，多帶一位上一輪的同事）、三週目（×2.5，多帶一位加 Vivi）', '選完路線可以選週目；每張地圖各自計算', '修正：隊伍頁的「站後排」按鈕用手指點不到'], ['v0.34.0', '灰鼠、棕鼠改成鼠仙女的召喚：「老鼠們，上工」一次叫出兩隻，在場三回合、自己行動', '棕鼠擋單體攻擊，灰鼠送黑咖啡；牠們不佔上場名額，也不再出現在招募名單'], ['v0.33.0', '兩位新同事：阿哲（實習槍兵，攻擊）、小安（工安衛士，防禦）', '能力比前輩弱一點：阿哲越往後走攻擊越高，小安行動後會幫最傷的同伴上護盾'], ['v0.32.0', '後排支援位：四人站前排、一人在後排。Vivi 只做應援和奧義；鼠仙女、小蝶、茶茶可以在隊伍頁選站後排', '敵人的弱點和下一步，要小燕或偵探學姊在場才看得到', '合體技變強：威力抵得上三四次行動'], ['v0.31.0', '第一場戰鬥有另一位主角陪打：一開始就能兩人配合、放合體技', '打完第一場他就離隊，之後照常自己找同事'], ['v0.30.1', '更快可以開始玩：立繪、介面圖、戰鬥曲改成在背景載入', '傷害預估會算進職位的加減'], ['v0.30.0', '換人更好用：每回合第一次換人不用掉行動，換上來的人接著動', '名冊滿了可以自己選誰回公司；第一次玩不用選路線；標題畫面更快出來'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (!bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }      // 標題畫面畫得出來就收掉開機畫面（聲音與其餘立繪還在背景載，按鈕的位置會寫進度）
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開

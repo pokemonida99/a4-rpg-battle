@@ -507,12 +507,13 @@ export const OT_MAX = OVERTIME.length;
 // ---------- 一輪遊戲的進度 ----------
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
 // 週目（11/21 使用者定）：二週目敵人的血與攻擊 ×1.8、開局多帶一位上一輪的同事；三週目 ×2.5（原本 2，同一天改的）、多帶一位再加 Vivi。通關一個週目才開下一個（記在 game.js 的 PREF.cyc）
-export const CYCLE_K = [1, 1.8, 2.5], CYCLE_MAX = CYCLE_K.length, cycK = run => CYCLE_K[((run && run.cycle) || 1) - 1] || 1, CYCLE_NAME = ['一週目', '二週目', '三週目'];
+export const CYCLE_K = [1, 1.8, 2.5], CYCLE_MAX = CYCLE_K.length, cycK = run => CYCLE_K[((run && run.cycle) || 1) - 1] || 1, CYCLE_SP = 2, CYCLE_ITEMS = 2, cycSp = run => run && run.cycle >= 2 ? CYCLE_SP : 1,      // 二週目起（11/21 使用者）：普攻、防禦回的 SP 加倍，開局道具數量加倍
+   CYCLE_NAME = ['一週目', '二週目', '三週目'];
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null, cycle = 1, carry = []) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
   const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null, guest: null, back: null, cycle: Math.max(1, Math.min(CYCLE_MAX, cycle | 0 || 1)), carry: [] };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
-  for (const k in ITEMS) run.items[k] = ITEMS[k].n;
+  for (const k in ITEMS) run.items[k] = ITEMS[k].n * (run.cycle >= 2 ? CYCLE_ITEMS : 1);
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
   if (starter && run.job) { const j = run.job; if (j === 'edu') run.skills[starter] = SKILLS[starter].map(k => k.key); else if (j === 'buyer') run.coin = 60; else if (j === 'host') run.moStart += 20; else if (j === 'hr') { run.def *= 1.05; const pool = ALL.filter(id => id !== 'vivi' && !STARTERS.includes(id)); join(run, pool[Math.floor(rand() * pool.length)]); } }
   if (starter && run.cycle >= 2) { const c = (Array.isArray(carry) ? carry : []).find(id => ALL.includes(id) && id !== 'vivi' && id !== starter && !run.roster.includes(id)); if (c && join(run, c)) run.carry.push(c); if (run.cycle >= 3 && join(run, 'vivi')) run.carry.push('vivi'); }
@@ -817,8 +818,8 @@ function hitHeroes(s, src, list) {
 // ---------- 我方指令。都回傳 { kind, id, ... , hits:[…] } ----------
 // 普通攻擊：回復自己 6% 最大 SP（至少 8）。防禦：受傷減半，另外回 10 SP
 export function doAttack(s, id, target) { s.cmdLog.push(['a', id, target]); newCmd(s); const sm = smoked(s, id); s.smoke[id] = null; const hits = [hitFoe(s, id, target, STAT[id].atk * (sm ? .5 : 1), { basic: true, type: ATK_TYPE[id], sh: id === 'senpai' ? 2 : 1 })].filter(Boolean);
-  const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
-export function doDefend(s, id) { s.cmdLog.push(['d', id]); newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(s.run.job === 'risk' ? 30 : 10, STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
+  const spGain = Math.min(STAT[id].sp - s.sp[id], Math.max(8, Math.round(STAT[id].sp * .06)) * (has(s, 'mug') ? 2 : 1) * cycSp(s.run)); s.sp[id] += spGain; const r = { kind: 'attack', id, target, hits, smoked: sm, spGain, mo: gain(s, MO.attack) }; rider(s, id, target, r); r.sp = s.sp[id]; return after(s, id, r); }
+export function doDefend(s, id) { s.cmdLog.push(['d', id]); newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min((s.run.job === 'risk' ? 30 : 10) * cycSp(s.run), STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (s.run.job === 'risk' && FRONT.includes(id)) addFx(r, FX.ward(s, id, 300, '風控專員')); return after(s, id, r); }
 export function doCheer(s, id = s.back || 'vivi') { s.cmdLog.push(['c', id]); return { kind: 'cheer', id, mo: gain(s, MO.cheer) }; }
 export const itemsLeft = s => s.run.ot >= 1 ? Math.max(0, 2 - s.itemUses) : 99;
 export function itemTargets(s, key) { const it = ITEMS[key]; if (itemsLeft(s) <= 0) return []; return HEROES.filter(id => it.revive ? FRONT.includes(id) && !alive(s, id) : alive(s, id) && (it.hp ? s.hp[id] < STAT[id].hp : s.sp[id] < STAT[id].sp)); }
