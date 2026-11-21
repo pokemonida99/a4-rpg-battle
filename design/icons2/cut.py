@@ -22,3 +22,4 @@ def icons(src, names, rows):
 icons('art/raw/icons2_A.png', ['sk_deadline', 'sk_backup', 'sk_escalate', 'sk_sanitize', 'sk_cover', 'sk_gavel', 'sk_followup', 'sk_disinfect', 'sk_budget', 'sk_morale', 'sk_reschedule', 'sk_minutes', 'sk_fineprint', 'sk_insurance', 'sk_cheer', 'sk_rumor'], 4)
 icons('art/raw/icons2_B.png', ['sk_pallet', 'sk_handover', 'sk_attach', 'sk_redact', 'sk_spotlight', 'sk_cooldown', 'sk_spiked', 'sk_outofoffice', 'sk_nightshift', 'sk_snacks', 'sk_doorstop', 'sk_hotpack', 'sk_handoff', 'sk_burnout', 'sk_antidote', 'sk_prescription'], 4)
 icons('art/raw/icons2_C.png', ['up_redpen', 'up_cutter', 'up_thermos', 'up_partition', 'up_blanket', 'up_cheatsheet', 'up_mug', 'up_snackdrawer', 'up_fridge', 'up_applause', 'up_countdown', 'up_bell', 'up_tabs', 'up_carbon', 'up_notebook'], 3)
+# icons2_D.png（阿哲、小安、復活招、福利社強化、福利社招牌，art/raw/jobs23.sh）：有幾顆的零件離太遠（沙漏、光環），照連通塊切會切錯，改成照 4×4 格子切——當時是直接在終端機跑的一次性程式，要重切就照格子切、只把跟外圍連通的洋紅當背景

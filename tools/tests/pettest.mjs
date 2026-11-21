@@ -29,4 +29,11 @@ ok(!R.UNITES.some(u => u.who.includes('zong') || u.who.includes('hui')), '沒有
 // 舊存檔（第 3 版）：名冊裡的老鼠拿掉
 { const run = R.newRun(R.mulberry(6), 'kui', 'draft', 'office'); R.join(run, 'fairy'); R.join(run, 'kevin'); R.prepare(run); const d = R.saveRun(run); d.v = 3; d.roster.push('zong', 'hui'); d.hp.zong = 3900; d.sp.zong = 120; d.skills.zong = ['sip', 'news']; d.hp.hui = 2300; d.sp.hui = 180; d.skills.hui = ['overtime']; d.plus = ['zong:sip']; for (const f in d.offers) for (const k in d.offers[f]) if (d.offers[f][k].length) { d.offers[f][k][0] = 'zong'; break; }
   const b = R.loadRun(d, R.mulberry(1)); ok(b && b.run.roster.join() === 'kui,fairy,kevin' && !Object.values(b.run.offers).some(o => Object.values(o).some(l => l.includes('zong'))), '舊存檔讀得回來，老鼠從名冊和招募名單拿掉'); }
+// 老鼠們，總動員（v0.41.0）：兩隻都在場才能用；各咬全體、全員 SP +30、老鼠多留一回合
+{ const s = fresh(['fairy', 'kevin', 'jie']), rl = R.SKILLS.fairy.find(k => k.key === 'rally'); ok(rl && R.knows(s, 'fairy', 'rally') && !R.skillOk(s, 'fairy', rl), '老鼠不在場時用不了總動員'); R.doSkill(s, 'fairy', 'mice'); s.sp.fairy = R.STAT.fairy.sp; ok(R.skillOk(s, 'fairy', rl), '兩隻都在場：可以用');
+  for (const h of R.FRONT) s.sp[h] = Math.min(s.sp[h], 20); s.sp.fairy = R.STAT.fairy.sp; const left = s.pets.zong.left, foes = R.foes(s).filter(f => !(f === 'boss' && R.guarded(s))), hp0 = Object.fromEntries(foes.map(f => [f, s.hp[f]])), r = R.doSkill(s, 'fairy', 'rally');
+  ok(foes.every(f => s.hp[f] < hp0[f]) && s.pets.zong.left === left + 1 && s.pets.hui.left === left + 1 && R.FRONT.filter(h => h !== 'fairy').every(h => s.sp[h] === 50), '敵人都被咬、老鼠多留一回合、前排 SP +30'); }
+// Kevin＋小米的合體技（v0.41.0）
+{ const s = fresh(['kevin', 'mi', 'jie']), U = R.UNITES.find(u => u.key === 'u_shift'); for (const h of R.FRONT) { s.hp[h] = Math.round(R.STAT[h].hp * .5); s.ward[h] = 0; } ok(U && R.uniteOk(s, 'kevin', U), 'Kevin 和小米都在、都還沒動：可以放'); const hp0 = { ...s.hp }; R.doUnite(s, 'kevin', 'u_shift');
+  ok(R.FRONT.every(h => s.hp[h] > hp0[h] && s.ward[h] >= 800) && s.guardian === 'kevin', '全員回血、護盾 800，敵人改打 Kevin'); }
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過'); process.exit(bad ? 1 : 0);

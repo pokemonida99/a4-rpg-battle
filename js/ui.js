@@ -171,7 +171,7 @@ export function makeUI(cv, A, S) {
   function numbers(t) {
     for (const n of S.nums) { const el = t - n.t, life = n.life ?? (n.kind === 'big' ? 2.2 : n.kind === 'dmg' ? 1.05 : 1.4); if (el < 0 || el > life) continue;
       const [px, py] = n.fixed || S.proj(n.id, n.y ?? .62), s = back(el / .15), a = sat((life - el) / .3), rise = 50 * easeOut(el / life), k = n.kind;
-      const px0 = px + (n.dx || 0), py0 = py + (n.dy || 0) - rise, shake = k === 'big' && el < .5 ? Math.sin(el * 80) * 10 * (1 - el / .5) : 0;
+      const px0 = Math.max(130, Math.min(c.canvas.width - 130, px + (n.dx || 0))), py0 = py + (n.dy || 0) - rise, shake = k === 'big' && el < .5 ? Math.sin(el * 80) * 10 * (1 - el / .5) : 0;
       c.save(); c.globalAlpha = a; c.translate(px0 + shake, py0); c.scale(s, s); c.transform(1, 0, -.16, 1, 0, 0);
       if (k === 'heal') txt('+' + fmt(n.v), 0, 0, { px: 60, w: 900, align: 'center', col: '#8cf09a', stroke: '#0c2a16', sw: 9 });
       else if (k === 'foe') txt('-' + fmt(n.v), 0, 0, { px: n.big ? 78 : 58, w: 900, align: 'center', col: n.big ? '#ff6a58' : '#ff9a88', stroke: '#2a0a0c', sw: n.big ? 11 : 9 });

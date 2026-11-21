@@ -40,7 +40,7 @@ export class Unit {
     const g = this.group, m = this.mesh; let vis = stepAt(this.showK, t, true);
     // 姿勢
     let pk = null; for (const k of this.poseK) { if (k.t > t) break; pk = k; }
-    let tex = this.frames[pk?.v] || this.frames.ready || this.frames.idle;
+    const pv = pk?.v, resting = !pv || pv === 'ready' || pv === 'idle'; let tex = (resting && this.weak && this.frames.hurt) || this.frames[pv] || this.frames.ready || this.frames.idle;
     if (Array.isArray(tex)) { const el = t - pk.t, times = pk.times || tex.map((_, i) => i * .09); let i = 0; while (i + 1 < tex.length && el >= times[i + 1]) i++; tex = tex[i]; }
     if (this.o.rim !== false) tex = rimLit(tex)[0];
     if (m.material.map !== tex) { m.material.map = tex; m.material.needsUpdate = true; this.flash.material.map = tex; this.flash.material.needsUpdate = true; if (m.customDepthMaterial) { m.customDepthMaterial.map = tex; m.customDepthMaterial.needsUpdate = true; } }

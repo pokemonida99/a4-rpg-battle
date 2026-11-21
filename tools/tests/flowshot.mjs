@@ -29,7 +29,7 @@ if (MODE === 'flow') {
   log.push('⑧ ' + (await where()).slice(0, 60)); await shot('5_hub');
   await page.evaluate(() => { __game.run.coin = 600; }); await tapItem(x => x.storeBtn); log.push('⑨ 點福利社 → ' + await where()); await shot('6_store');
   await tapItem(x => x.label === '珍珠奶茶'); log.push('⑩ 買奶茶 → ' + await page.evaluate(() => `奶茶 ${__game.run.items.tea}　剩 ${__game.run.coin} 點`));
-  await page.evaluate(() => { history.replaceState(null, '', location.href); }); await tapItem(x => x.label === '抽同事'); log.push('⑪ 抽同事 → ' + await where()); await shot('7_draw'); if ((await where()).includes('對話：')) await tapXY(960, 500); log.push('   名冊 ' + await page.evaluate(() => __game.run.roster.join()) + '｜' + (await where()).slice(0, 50));
+  await page.evaluate(() => { history.replaceState(null, '', location.href); }); await tapItem(x => x.label === '內部調派'); log.push('⑪ 內部調派 → ' + await where()); await shot('7_draw'); if ((await where()).includes('對話：')) await tapXY(960, 500); log.push('   名冊 ' + await page.evaluate(() => __game.run.roster.join()) + '｜' + (await where()).slice(0, 50));
   await tapItem(x => x.label === '素質強化'); log.push('⑫ 素質強化 → ' + await where()); await shot('8_boost'); await tapItem(x => x.label.startsWith('攻擊')); log.push('   買攻擊 → ' + await page.evaluate(() => `攻擊倍率 ${__game.run.atk.toFixed(3)}　剩 ${__game.run.coin} 點`) + '｜' + (await where()).slice(0, 70));
   await tapItem(x => x.label === '回福利社'); await tapItem(x => x.label === '回行程表'); log.push('⑬ 回行程表 → ' + (await where()).slice(0, 40)); await shot('9_hub_after');
   await done();

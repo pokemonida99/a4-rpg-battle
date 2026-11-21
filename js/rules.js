@@ -57,10 +57,10 @@ export const SKILLS = {
   zong: [{ key: 'sip', name: '續命咖啡', sp: 14, note: '自己回 900 HP 並防禦', target: 'self', desc: '喝一口：回復 900 HP，並擺好防禦（受傷減半）。' }, { key: 'news', name: '報紙蓋頭', sp: 18, note: '單體攻擊　攻擊力下降', target: 'foe', desc: '用報紙捲敲下去，目標下一次行動的傷害減三成。' }],
   hui: [{ key: 'overtime', name: '今天也加班', sp: 16, note: '單體攻擊　加班 ＋1', target: 'foe', desc: '邊打邊累積「加班」（最多四層）：每一層讓灰鼠之後的傷害多兩成，整場有效。' }, { key: 'allnight', name: '爆肝', sp: 10, note: '扣自己血　單體重擊', target: 'foe', desc: '拿自己一成五的 HP 換一記重擊，削兩點底氣。' }],
   xu: [{ key: 'transfer', name: '幫您轉接', sp: 40, note: '同伴 SP ＋80', target: 'ally', ally: 'sp', desc: '把電話轉過去：一位同伴回復 80 SP。' }, { key: 'mix', name: '特調一杯', sp: 32, note: '回復 1100 並減傷', target: 'ally', ally: 'any', desc: '一位同伴回復 1100 HP，到他下次行動前受傷減半。' }],
-  zhe: [{ key: 'eager', ic: 'burn', name: '這個我可以', sp: 16, type: 'fire', target: 'foe', note: '單體攻擊　灼燒兩回合', desc: '舉手搶著做：火屬性攻擊，目標灼燒兩回合。', fx: [['dmg', 1.2], ['burn', 2]] }, { key: 'copies', ic: 'sweep', name: '影印五十份', sp: 24, type: 'slash', target: 'all', note: '敵方全體', desc: '整疊紙甩出去：斬屬性，打所有敵人。', fx: [['dmg', .6]] },
-    { key: 'retry', ic: 'deadline', name: '我再試一次', sp: 26, type: 'fire', target: 'foe', note: '單體攻擊　底氣 -3', desc: '不死心再來一槍：火屬性，多削兩點底氣。', fx: [['dmg', 1.0, { sh: 3 }]] }, { key: 'errand', ic: 'sip', name: '我去買咖啡', sp: 24, target: 'party', note: '全員 SP +12　自己閃過下一擊', desc: '跑腿去：前排全員各回 12 SP；人不在位子上，下一次打他的攻擊會落空。', fx: [['sp', 'party', 12], ['evade', 'self']] }],
-  an: [{ key: 'wetfloor', ic: 'taunt', name: '小心地滑', sp: 16, target: 'self', note: '吸引攻擊　自己護盾 600', desc: '立牌一放：敵人的單體攻擊改打小安，自己先得到 600 護盾。', fx: [['taunt'], ['ward', 'self', 600]] }, { key: 'spray', ic: 'freeze', name: '先噴再說', sp: 20, type: 'ice', target: 'foe', note: '單體攻擊　攻擊力下降', desc: '滅火器噴下去：冰屬性，目標下一次行動的傷害減兩成。', fx: [['dmg', 1.0], ['down', .2]] },
-    { key: 'drill', ic: 'cover', name: '防災演練', sp: 30, target: 'party', note: '全員護盾 400　解除異常', desc: '大家照演練走：前排全員各得 400 護盾，並解除異常。', fx: [['ward', 'party', 400], ['cleanse', 'party']] }, { key: 'cordon', ic: 'delay', name: '這區先封鎖', sp: 26, type: 'ice', target: 'foe', note: '單體攻擊　排到最後', desc: '拉封鎖線：冰屬性攻擊，把目標這回合的行動排到最後。', fx: [['dmg', .9], ['delay']] }],
+  zhe: [{ key: 'eager', name: '這個我可以', sp: 16, type: 'fire', target: 'foe', note: '單體攻擊　灼燒兩回合', desc: '舉手搶著做：火屬性攻擊，目標灼燒兩回合。', fx: [['dmg', 1.2], ['burn', 2]] }, { key: 'copies', name: '影印五十份', sp: 24, type: 'slash', target: 'all', note: '敵方全體', desc: '整疊紙甩出去：斬屬性，打所有敵人。', fx: [['dmg', .6]] },
+    { key: 'retry', name: '我再試一次', sp: 26, type: 'fire', target: 'foe', note: '單體攻擊　底氣 -3', desc: '不死心再來一槍：火屬性，多削兩點底氣。', fx: [['dmg', 1.0, { sh: 3 }]] }, { key: 'errand', name: '我去買咖啡', sp: 24, target: 'party', note: '全員 SP +12　自己閃過下一擊', desc: '跑腿去：前排全員各回 12 SP；人不在位子上，下一次打他的攻擊會落空。', fx: [['sp', 'party', 12], ['evade', 'self']] }],
+  an: [{ key: 'wetfloor', name: '小心地滑', sp: 16, target: 'self', note: '吸引攻擊　自己護盾 600', desc: '立牌一放：敵人的單體攻擊改打小安，自己先得到 600 護盾。', fx: [['taunt'], ['ward', 'self', 600]] }, { key: 'spray', name: '先噴再說', sp: 20, type: 'ice', target: 'foe', note: '單體攻擊　攻擊力下降', desc: '滅火器噴下去：冰屬性，目標下一次行動的傷害減兩成。', fx: [['dmg', 1.0], ['down', .2]] },
+    { key: 'drill', name: '防災演練', sp: 30, target: 'party', note: '全員護盾 400　解除異常', desc: '大家照演練走：前排全員各得 400 護盾，並解除異常。', fx: [['ward', 'party', 400], ['cleanse', 'party']] }, { key: 'cordon', name: '這區先封鎖', sp: 26, type: 'ice', target: 'foe', note: '單體攻擊　排到最後', desc: '拉封鎖線：冰屬性攻擊，把目標這回合的行動排到最後。', fx: [['dmg', .9], ['delay']] }],
 };
 // 奧義的名字與一句話（新夥伴的；原本五個人的寫在 battle.js 的 DEFS）
 export const ULTS = { zhe: ['第一次獨立提案', '對一個敵人連刺三槍（火屬性），每一槍都削底氣，目標灼燒三回合。'], an: ['全員戴好安全帽', '前排全員得到 1400 護盾並解除異常，敵人的單體攻擊改打小安。'], yan: ['會議改到下週', '敵人這回合還沒做的行動全部排到我方後面，我方這回合受到的傷害減四成。'], heilun: ['VIP 大單，今天簽', '攻擊並標記所有敵人兩回合：受到的傷害多三成。'],
@@ -108,9 +108,11 @@ const NEW_SKILLS = {
 for (const id in NEW_SKILLS) SKILLS[id].push(...NEW_SKILLS[id]);
 // 復活的招式（11/21 使用者：補血的人要能復活人，Vivi 也多一招）。對象 ally:'down'＝倒下的同伴，站在場上的和候補區的都算
 export const REVIVE_SKILLS = { mi: 'recall', xu: 'wakeup', vivi: 'rehire' };
-SKILLS.mi.push({ key: 'recall', ic: 'mend', name: '幫您重新接通', sp: 60, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 40%', desc: '把斷線的同伴接回來：倒下的同伴以四成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .4]] });
-SKILLS.xu.push({ key: 'wakeup', ic: 'mix', name: '這帖提神的', sp: 45, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 30%', desc: '櫃檯常備的提神藥：倒下的同伴以三成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .3]] });
-SKILLS.vivi.push({ key: 'rehire', ic: 'budget', name: '誰准你下班的', sp: 300, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 50%', desc: '老闆一句話：倒下的同伴以五成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .5]] });
+// 鼠仙女：兩隻老鼠都在場才能用的一招（11/21 使用者同意補上）。兩隻各咬全體一下、全員回 SP、老鼠多留一回合
+SKILLS.fairy.push({ key: 'rally', ic: 'mice', name: '老鼠們，總動員', sp: 50, type: 'blunt', target: 'all', note: '兩隻老鼠咬全體　全員 SP +30　老鼠多留一回合', desc: '兩隻老鼠都在場才能用：牠們各咬所有敵人一口，前排全員回 30 SP，老鼠在場的時間多一回合。', fx: [['petBite', 2.4], ['sp', 'party', 30], ['petStay', 1]] });
+SKILLS.mi.push({ key: 'recall', name: '幫您重新接通', sp: 60, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 40%', desc: '把斷線的同伴接回來：倒下的同伴以四成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .4]] });
+SKILLS.xu.push({ key: 'wakeup', name: '這帖提神的', sp: 45, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 30%', desc: '櫃檯常備的提神藥：倒下的同伴以三成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .3]] });
+SKILLS.vivi.push({ key: 'rehire', name: '誰准你下班的', sp: 300, target: 'ally', ally: 'down', note: '倒下的同伴復活　HP 50%', desc: '老闆一句話：倒下的同伴以五成 HP 復活。候補區倒下的人也救得到。', fx: [['revive', .5]] });
 export const START2 = { kui: 'deadline', jie: 'sanitize' };      // 主角一開始除了自己挑的那一招，另外會這一招（先有第二種屬性可以用）
 // 普攻附帶效果（每次普通攻擊都有）與被動特質（整場常駐）的說明文字；實際效果在 rider()、passive hooks
 export const RIDER = { kui: '自己得到 180 護盾', jie: '目標下一次行動的傷害減一成', kevin: '自己回復 180 HP', mi: 'HP 最低的同伴回復 180 HP', yan: 'SP 最少的另一位同伴 +6 SP', heilun: '氣勢 +3', cha: 'HP 最低的另一位同伴得到 220 護盾', qiang: '下回合開始時自己回 220 HP',
@@ -128,6 +130,7 @@ export const PASSIVE = { kui: ['交件前再看一眼', '自己的行動打中�
 export const UNITES = [
   { key: 'u_final', who: ['kui', 'jie'], name: '學長，這版真的定了', sp: [32, 72], type: 'fire', target: 'foe', note: '兩人各打一記重的　灼燒', desc: '小葵交稿、學長放火：兩人各打一下（火屬性 2.1 倍），目標灼燒三回合。', fx: [['dmgBy', 0, 2.1], ['dmgBy', 1, 2.1], ['burn', 3]] },
   { key: 'u_sign', who: ['kui', 'senpai'], name: '請先簽名再改', sp: [30, 34], type: 'slash', target: 'foe', note: '兩人各砍一刀重的　底氣 -4', desc: '小葵和學姊各砍一刀（斬屬性 2.2 倍），多削三點底氣，目標下一次行動傷害減三成。', fx: [['dmgBy', 0, 2.2], ['dmgBy', 1, 2.2, { sh: 4 }], ['down', .3]] },
+  { key: 'u_shift', who: ['kevin', 'mi'], name: 'AI 先擋，真人後補', sp: [40, 46], type: 'holy', target: 'party', note: '全員護盾 800　回復 700　Kevin 吸引攻擊', desc: 'Kevin 開 AI 護盾擋在前面、小米跟著補：前排全員各得 800 護盾、回 700 HP，敵人的單體攻擊改打 Kevin。', fx: [['ward', 'party', 800], ['heal', 'party', 700], ['tauntBy', 0]] },
   { key: 'u_delay', who: ['kevin', 'yan'], name: '系統判定要延期', sp: [24, 48], type: 'blunt', target: 'foe', note: '重擊　延到最後　全員護盾', desc: 'Kevin 重擊一個敵人（打屬性 3.6 倍），把它的行動排到最後，前排全員得到 1600 護盾。', fx: [['dmgBy', 0, 3.6], ['delay'], ['ward', 'party', 1600]] },
   { key: 'u_ticket', who: ['mi', 'xu'], name: '您的問題已轉專人', sp: [64, 48], target: 'party', note: '全員回復 1800　解除異常　SP +40', desc: '前排全員回 1800 HP、解除異常，並各回 40 SP。', fx: [['heal', 'party', 1800], ['cleanse', 'party'], ['sp', 'party', 40]] },
   { key: 'u_carry', who: ['cha', 'qiang'], name: '你先聊，我來扛', sp: [36, 26], type: 'blunt', target: 'foe', note: '重擊　阿強護盾並吸引攻擊', desc: '茶茶拉住敵人聊天，阿強整箱砸下去（打屬性 4.2 倍）；阿強得到 2400 護盾，敵人的單體攻擊改打他。', fx: [['dmgBy', 1, 4.2], ['wardTo', 1, 2400], ['tauntBy', 1]] },
@@ -379,7 +382,7 @@ export function randomTrain(run) { const tr = offerTrain(run); if (!tr.length) r
 const nextUp = (run, o) => { run.next = { foeHp: 1, ward: 0, ...(run.next || {}), ...o }; };
 export const EVENTS = {
   lift: { name: '電梯故障', text: '電梯卡在兩層樓中間，門上貼著「維修中，預計完成時間：未定」。', opts: [
-    { label: '爬樓梯', icon: 'up_raise', kind: 'buff', lines: ['全員 HP －15%', '全員攻擊力 ＋8%'], go: run => { hpAll(run, -.15); run.atk *= 1.08; return '爬了十二層樓，腿很痠，但是火氣上來了'; } },
+    { label: '爬樓梯', icon: 'bo_atk', kind: 'buff', lines: ['全員 HP －15%', '全員攻擊力 ＋8%'], go: run => { hpAll(run, -.15); run.atk *= 1.08; return '爬了十二層樓，腿很痠，但是火氣上來了'; } },
     { label: '等維修', icon: 'clock', kind: 'rest', lines: ['全員 SP 補滿', '珍珠奶茶 －1（等太久喝掉了）'], ok: run => run.items.tea > 0, go: run => { spAll(run, 1); run.items.tea--; return '等了四十分鐘，奶茶喝完了，精神倒是補回來了'; } }] },
   box: { name: '匿名意見箱', text: '茶水間門口多了一個意見箱，旁邊寫著「歡迎暢所欲言（本箱完全匿名）」。箱子沒有鎖。', opts: [
     { label: '認真寫一張', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋15'], go: run => { run.moStart += 15; return '把想講的都寫下來，心情好多了'; } },
@@ -399,7 +402,7 @@ export const EVENTS = {
 };
 Object.assign(EVENTS, {
   mentor: { name: '帶新人', text: '人資把一個新人帶到你面前：「他今天報到，先跟著你們。」新人手上只有一本空白筆記本。', opts: [
-    { label: '認真教', icon: 'up_raise', kind: 'buff', lines: ['全員 SP －40%（講到口乾舌燥）', '全員攻擊力 ＋7%'], go: run => { spAll(run, -.4); run.atk *= 1.07; return '教了一輪，自己的觀念也順了一遍'; } },
+    { label: '認真教', icon: 'bo_atk', kind: 'buff', lines: ['全員 SP －40%（講到口乾舌燥）', '全員攻擊力 ＋7%'], go: run => { spAll(run, -.4); run.atk *= 1.07; return '教了一輪，自己的觀念也順了一遍'; } },
     { label: '丟一疊文件給他', icon: 'up_coffee', kind: 'item', lines: ['黑咖啡 ＋1（新人買來孝敬的）'], go: run => { run.items.coffee++; return '新人看不懂，只好跑去買咖啡請大家'; } }] },
   checkup: { name: '年度健檢', text: '健檢車停在樓下，廣播第三次唸到你們部門的名字。', opts: [
     { label: '乖乖去做', icon: 'up_leave', kind: 'heal', lines: ['全員 HP 補滿', '珍珠奶茶 －1（醫生說少喝含糖飲料）'], ok: run => run.items.tea > 0, go: run => { hpAll(run, 1); run.items.tea--; return '抽血、量血壓、被唸了一頓。身體倒是調回來了'; } },
@@ -423,7 +426,7 @@ Object.assign(EVENTS, {
     { label: '請你喝奶茶，一起走', icon: 'recruit', kind: 'buff', lines: ['一位同事加入（隨機）', '珍珠奶茶 －1（請客）'], ok: run => run.roster.length < 6 && run.items.tea > 0, go: run => { const id = joinRandom(run); if (!id) return '名冊已經滿了'; run.items.tea--; return `${NAME[id]}端著餐盤坐過來，決定跟你們走`; } },
     { label: '聊聊就好', icon: 'up_morale', kind: 'buff', lines: ['每場戰鬥開始時氣勢 ＋8（聽到別組更慘）'], go: run => { run.moStart += 8; return '聽完他們那組的事，突然覺得自己還行'; } }] },
   lost: { name: '失物招領', text: '影印機旁邊有一個沒寫名字的紙袋，裡面好像是飲料。', opts: [
-    { label: '送去櫃檯', icon: 'up_raise', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
+    { label: '送去櫃檯', icon: 'bo_atk', kind: 'buff', lines: ['全員攻擊力 ＋5%（做了好事，心情好）'], go: run => { run.atk *= 1.05; return '失主剛好在櫃檯，連聲道謝'; } },
     { label: '自己留著', icon: 'gift', kind: 'item', lines: ['一半機會：黑咖啡 ＋2', '一半機會：珍珠奶茶 ＋2'], go: run => { if (run.rand() < .5) { run.items.coffee += 2; return '是兩杯黑咖啡'; } run.items.tea += 2; return '是兩杯珍珠奶茶'; } }] },
 });
 // 事件第二批（v0.20，GPT 寫的十四個；map＝只在那張地圖出現）。新效果：下一場戰鬥敵人少血／我方先上護盾（nextUp）、隨機特訓、隨機小物、丟小物、揭曉下一個頭目的弱點（run.reveal 交給畫面記進圖鑑）
@@ -449,7 +452,7 @@ Object.assign(EVENTS, {
     { label: '留下來整理安全教材', icon: 'up_chair', kind: 'buff', lines: ['全員 SP －25%', '永久減傷 ＋3%'], go: run => { spAll(run, -0.25); run.def *= 0.97; return '留下來整理安全教材：全員 SP －25%、永久減傷 ＋3%'; } }] },
   hell_performance_shredder: { name: '績效碎紙室', map: 'hell', text: '碎紙機正在吞掉你們的年度成果，卻把缺失紀錄完整吐回來。旁邊有一份尚未送出的敵方人力預算。', opts: [
     { label: '先抽走敵方預算', icon: 'up_weakpoint', kind: 'buff', lines: ['全員 SP －20%', '下戰敵人HP －15%'], go: run => { spAll(run, -0.2); nextUp(run, { foeHp: 0.85 }); return '先抽走敵方預算：全員 SP －20%、下戰敵人HP －15%'; } },
-    { label: '伸手搶救自己的成果', icon: 'up_raise', kind: 'buff', lines: ['主角 HP －25%', '永久攻擊 ＋4%'], go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.25)); } run.atk *= 1.04; return '伸手搶救自己的成果：主角 HP －25%、永久攻擊 ＋4%'; } }] },
+    { label: '伸手搶救自己的成果', icon: 'bo_atk', kind: 'buff', lines: ['主角 HP －25%', '永久攻擊 ＋4%'], go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.25)); } run.atk *= 1.04; return '伸手搶救自己的成果：主角 HP －25%、永久攻擊 ＋4%'; } }] },
   hell_exit_interview: { name: '永不結束的離職面談', map: 'hell', text: '人資問你為什麼想走，表格卻只有「個人因素」可以勾。你發現面談官的抽屜裡塞著頭目評鑑表。', opts: [
     { label: '用奶茶換一句實話', icon: 'up_dossier', kind: 'buff', lines: ['奶茶 －1', '揭曉下個頭目弱點'], ok: run => run.items.tea >= 1 && !!nextBoss(run), go: run => { run.items.tea -= 1; run.reveal = nextBoss(run); return '用奶茶換一句實話：奶茶 －1、揭曉下個頭目弱點'; } },
     { label: '把所有問題講完', icon: 'up_morale', kind: 'buff', lines: ['全員 SP －30%', '開場氣勢 ＋12'], go: run => { spAll(run, -0.3); run.moStart += 12; return '把所有問題講完：全員 SP －30%、開場氣勢 ＋12'; } }] },
@@ -466,7 +469,7 @@ Object.assign(EVENTS, {
     { label: '拆開研究承重結構', icon: 'up_chair', kind: 'buff', lines: ['主角 HP －20%', '永久減傷 ＋3%'], go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.2)); } run.def *= 0.97; return '拆開研究承重結構：主角 HP －20%、永久減傷 ＋3%'; } },
     { label: '熬著把扶手鎖緊', icon: 'up_partition', kind: 'buff', lines: ['全員 SP －15%', '下戰全員護盾300'], go: run => { spAll(run, -0.15); nextUp(run, { ward: 300 }); return '熬著把扶手鎖緊：全員 SP －15%、下戰全員護盾300'; } }] },
   general_lunch_rehearsal: { name: '午休簡報彩排', text: '同事說只借你五分鐘，投影片卻有八十頁。便當已經送到，投影機也已經亮了。', opts: [
-    { label: '陪他練到能講重點', icon: 'up_raise', kind: 'buff', lines: ['全員 SP －25%', '永久攻擊 ＋3%'], go: run => { spAll(run, -0.25); run.atk *= 1.03; return '陪他練到能講重點：全員 SP －25%、永久攻擊 ＋3%'; } },
+    { label: '陪他練到能講重點', icon: 'bo_atk', kind: 'buff', lines: ['全員 SP －25%', '永久攻擊 ＋3%'], go: run => { spAll(run, -0.25); run.atk *= 1.03; return '陪他練到能講重點：全員 SP －25%、永久攻擊 ＋3%'; } },
     { label: '分便當，請他先吃飯', icon: 'up_leave', kind: 'heal', lines: ['便當 －1', '全員 HP ＋50%'], ok: run => run.items.bento >= 1, go: run => { run.items.bento -= 1; hpAll(run, 0.5); return '分便當，請他先吃飯：便當 －1、全員 HP ＋50%'; } }] },
   general_inbox_overflow: { name: '信箱容量已滿', text: '信箱跳出容量警告，最占空間的是主管每天轉寄的勵志圖片。清理附件時，你找到一批忘記領取的補給券。', opts: [
     { label: '整理附件，領補給券', icon: 'up_drinks', kind: 'item', lines: ['全員 SP －20%', '奶茶 ＋1', '咖啡 ＋1'], go: run => { spAll(run, -0.2); run.items.tea += 1; run.items.coffee += 1; return '整理附件，領補給券：全員 SP －20%、奶茶 ＋1、咖啡 ＋1'; } },
@@ -500,14 +503,18 @@ const jobDmg = (s, o, wk, type) => { const j = s.run.job; return j === 'fire' ? 
 const jobHeal = s => s.run.job === 'welfare' ? 1.3 : s.run.job === 'duty' ? .8 : 1, jobWard = s => s.run.job === 'duty' ? 1.35 : 1;
 export const PRICE = { relic: 70, supply: 45, train: 60 };
 // 福利社（11/21 使用者：每關都拿到錢，要有地方花）：行程表上隨時可以開。買單樣道具、抽一位同事、買素質 ＋1（全隊，整趟有效）
-export const STORE = { tea: 25, coffee: 30, bento: 60, draw: 120 }, BOOST = { atk: ['攻擊', '全隊攻擊力 ＋5%'], def: ['防禦', '全隊受到的傷害 －4%'], mo: ['氣勢', '每場開場氣勢 ＋6'] }, BOOST_MAX = 5;
+export const STORE = { tea: 25, coffee: 30, bento: 60, draw: 120 }, BOOST = { atk: ['攻擊', '全隊攻擊力 ＋5%'], def: ['防禦', '全隊受到的傷害 －4%'], hp: ['體力', '全隊 HP 上限 ＋6%'], spd: ['速度', '全隊速度 ＋5%'], mo: ['氣勢', '每場開場氣勢 ＋6'] }, BOOST_MAX = 5;
+// 體力、速度是直接改 STAT（跟「特休」一樣），所以讀檔時要照買過的次數重算（loadRun）
+function boostStat(k) { for (const id of ALL) { if (id === 'vivi') continue; if (k === 'hp') STAT[id].hp = Math.round(STAT[id].hp * 1.06); else if (k === 'spd') STAT[id].spd = Math.round(STAT[id].spd * 1.05); } }
 export const boostLv = (run, k) => (run.boost || {})[k] || 0, boostPrice = (run, k) => 60 + 30 * boostLv(run, k);
 export const drawPool = run => ALL.filter(id => id !== 'vivi' && !run.roster.includes(id) && id !== run.guestLeft);
-export const storeOk = (run, what) => { if (ITEMS[what]) return run.coin >= STORE[what]; if (what === 'draw') return run.coin >= STORE.draw && run.roster.length < 6 && drawPool(run).length > 0; if (BOOST[what]) return boostLv(run, what) < BOOST_MAX && run.coin >= boostPrice(run, what); return false; };
+export const storeOk = (run, what) => { if (ITEMS[what]) return run.coin >= STORE[what]; if (what === 'draw') return run.coin >= STORE.draw && !run.drawPend && drawPool(run).length > 0 && swapOut(run) !== null; if (BOOST[what]) return boostLv(run, what) < BOOST_MAX && run.coin >= boostPrice(run, what); return false; };
 export function storeBuy(run, what) { if (!storeOk(run, what)) return null;
   if (ITEMS[what]) { run.coin -= STORE[what]; run.items[what]++; return { item: what }; }
-  if (what === 'draw') { const pool = drawPool(run), id = pool[Math.floor(run.rand() * pool.length)]; run.coin -= STORE.draw; join(run, id); return { joined: id }; }
-  run.coin -= boostPrice(run, what); (run.boost || (run.boost = {}))[what] = boostLv(run, what) + 1; if (what === 'atk') run.atk *= 1.05; else if (what === 'def') run.def *= .96; else run.moStart += 6; return { boost: what, lv: boostLv(run, what) }; }
+  if (what === 'draw') { const pool = drawPool(run), id = pool[Math.floor(run.rand() * pool.length)]; run.coin -= STORE.draw; if (run.roster.length < 6) { join(run, id); return { joined: id }; } run.drawPend = id; return { pend: id }; }
+  run.coin -= boostPrice(run, what); (run.boost || (run.boost = {}))[what] = boostLv(run, what) + 1; if (what === 'atk') run.atk *= 1.05; else if (what === 'def') run.def *= .96; else if (what === 'hp') { const old = Object.fromEntries(run.roster.map(id => [id, STAT[id].hp])); boostStat('hp'); for (const id of run.roster) if (id !== 'vivi' && run.hp[id] > 0) run.hp[id] += STAT[id].hp - old[id]; } else if (what === 'spd') boostStat('spd'); else run.moStart += 6; return { boost: what, lv: boostLv(run, what) }; }
+// 名冊滿的時候調來的人：who＝要回公司的那位（不能是主角）；不給 who＝讓新來的回去（錢不退）
+export function storeSettle(run, who) { const id = run.drawPend; if (!id) return null; if (!who) { run.drawPend = null; return { declined: id }; } if (who === run.starter || !run.roster.includes(who)) return null; const gone = joinOrSwap(run, id, who); if (gone === null) return null; run.drawPend = null; return { joined: id, gone }; }
 export const coinFor = nd => 40 + (nd.tag === '菁英' ? 30 : 0) + (nd.tag === '頭目' || nd.tag === '魔王' ? 50 : 0);
 export function shopStock(run) { const o = run.shop || (run.shop = {}); if (!o[run.floor]) { const pool = Object.keys(UPGRADES).filter(k => UPGRADES[k].once && k !== 'learn' && !run.picks.includes(k) && !(UPGRADES[k].need && !UPGRADES[k].need.some(id => run.roster.includes(id)))); o[run.floor] = { relic: pool.length ? pool[Math.floor(run.rand() * pool.length)] : null, sold: [] }; } return o[run.floor]; }
 export function buy(run, what, arg) { const st = shopStock(run); if (st.sold.includes(what) || run.coin < PRICE[what]) return false;
@@ -548,7 +555,7 @@ export function joinRandom(run) { const p = ALL.filter(id => !run.roster.include
 // 後排（v0.32）：上場＝前排最多四人＋後排一人。後排不會被打，也不能攻擊。
 // Vivi 只能站後排，而且只有應援和奧義（老闆不做那麼多事）；鼠仙女、小蝶、茶茶可以站前排或後排，站後排時只能應援、用 BACK_SKILLS 裡的輔助招式、道具、奧義。
 // run.back＝玩家指定站後排的人；沒指定而名冊裡有 Vivi，就是 Vivi
-export const BACKERS = ['vivi', 'fairy', 'wu', 'cha'], BACK_SKILLS = { vivi: ['rehire'], fairy: ['mice', 'wand', 'snacks'], wu: ['encore', 'dance', 'cooldown'], cha: ['push', 'cheer'] };
+export const BACKERS = ['vivi', 'fairy', 'wu', 'cha'], BACK_SKILLS = { vivi: ['rehire'], fairy: ['mice', 'wand', 'snacks', 'rally'], wu: ['encore', 'dance', 'cooldown'], cha: ['push', 'cheer'] };
 export const backOf = run => run.back && BACKERS.includes(run.back) && run.roster.includes(run.back) ? run.back : run.roster.includes('vivi') ? 'vivi' : null;
 export function setBack(run, id) { if (id == null) { run.back = null; return true; } if (!BACKERS.includes(id) || !run.roster.includes(id) || id === run.starter) return false; run.back = id; return true; }
 // 上場的人：名冊前四個（至少要有一個不是 Vivi 的人）
@@ -613,7 +620,7 @@ export function applyTrain(run, id, key) { if (!isPlus(run, id, key)) (run.plus 
 // ---------- 存檔：站與站之間的進度（戰鬥打到一半不存，重開會回到進站前） ----------
 // SAVE_V＝存檔格式的版本。格式有變就加一，並在 MIGRATE[舊版號] 放一個把舊資料改成下一版的函式；
 // 沒有對應的轉換、或轉完檢查不過，loadRun 回傳 null（存檔作廢，不會帶著壞資料進遊戲）。
-export const SAVE_V = 5;
+export const SAVE_V = 6;
 // 1→2：行程表在第 5 站插了一層事件站，後面的樓層編號都往後一格
 // 2→3：第 8 站又插了一層事件站「樓梯間」
 const insertFloor = K => d => { const sh = o => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [+k >= K ? +k + 1 : +k, v])); if (d.floor >= K) { d.floor++; d.path.splice(K, 0, 0); } d.offers = sh(d.offers); d.events = sh(d.events); return d; };
@@ -622,7 +629,9 @@ const dropPets = d => { const P = ['zong', 'hui'], isP = id => P.includes(id); i
   if (d.offers && typeof d.offers === 'object') for (const f in d.offers) if (d.offers[f] && typeof d.offers[f] === 'object') for (const k in d.offers[f]) if (Array.isArray(d.offers[f][k])) d.offers[f][k] = d.offers[f][k].filter(id => !isP(id)); if (d.pend === 'battle') d.blog = []; return d; };
 // 4→5：小米、許許、Vivi 多一招復活——已經在名冊裡的補上（主角照舊邊打邊學）；規則改了不少，打到一半的戰鬥從頭打
 const addRevive = d => { const R = { mi: 'recall', xu: 'wakeup', vivi: 'rehire' }; if (d.skills && typeof d.skills === 'object') for (const id in R) if (Array.isArray(d.skills[id]) && d.starter !== id && !d.skills[id].includes(R[id])) d.skills[id].push(R[id]); if (d.pend === 'battle') d.blog = []; return d; };
-const MIGRATE = { 1: insertFloor(4), 2: insertFloor(7), 3: dropPets, 4: addRevive };
+// 5→6：鼠仙女多一招「老鼠們，總動員」；打到一半的戰鬥從頭打
+const addRally = d => { if (d.skills && Array.isArray(d.skills.fairy) && d.starter !== 'fairy' && !d.skills.fairy.includes('rally')) d.skills.fairy.push('rally'); if (d.pend === 'battle') d.blog = []; return d; };
+const MIGRATE = { 1: insertFloor(4), 2: insertFloor(7), 3: dropPets, 4: addRevive, 5: addRally };
 export function saveRun(run, extra = {}) { const { rand, node, ...d } = run; return { v: SAVE_V, ...JSON.parse(JSON.stringify(d)), ...extra }; }
 export function loadRun(data, rand = Math.random) {
   try {
@@ -642,11 +651,12 @@ export function loadRun(data, rand = Math.random) {
     ok(d.events && typeof d.events === 'object' && Object.values(d.events).every(k => EVENTS[k]));
     const pools = Object.fromEntries(MAP.flat().filter(nd => nd.pool).map(nd => [nd.stage, nd.pool])); ok(d.alt == null || (typeof d.alt === 'object' && Object.entries(d.alt).every(([k, v]) => pools[k] && pools[k].includes(v))));
     const run = newRun(rand, d.roster[0], null, mp);      // newRun 會把 STAT 還原成基本值；「特休」強化改過的 HP 上限照拿過的次數重算
-    for (const k of d.picks) if (k === 'leave' || k === 'blanket') statPick(k);
+    for (const k of d.picks) if (k === 'leave' || k === 'blanket') statPick(k); for (const k of ['hp', 'spd']) for (let i = 0; i < Math.max(0, Math.min(BOOST_MAX, +(d.boost || {})[k] || 0)); i++) boostStat(k);
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
     Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    run.drawPend = ALL.includes(d.drawPend) && d.drawPend !== 'vivi' && !d.roster.includes(d.drawPend) ? d.drawPend : null;
     run.boost = Object.fromEntries(Object.keys(BOOST).map(k => [k, Math.max(0, Math.min(BOOST_MAX, +(d.boost || {})[k] || 0))]));
     run.cycle = Number.isInteger(d.cycle) && d.cycle >= 1 && d.cycle <= CYCLE_MAX ? d.cycle : 1; run.carry = Array.isArray(d.carry) ? d.carry.filter(id => ALL.includes(id) && d.roster.includes(id)) : [];
     run.back = BACKERS.includes(d.back) && d.roster.includes(d.back) ? d.back : null;
@@ -888,7 +898,7 @@ const allyPool = (s, id, sk) => { const a = sk.ally || 'hurt', f = FRONT.filter(
 // 「再動一次」的護欄：被送行動的那一次不能再送給別人；全隊一回合最多多動 3 次
 export const EXTRA_MAX = 3;
 export const backOk = (id, key) => (BACK_SKILLS[id] || []).includes(key);
-export const skillOk = (s, id, sk) => (id !== s.back || backOk(id, sk.key)) && (id !== 'vivi' || backOk(id, sk.key)) && s.sp[id] >= spCost(s, id, sk) && (sk.target !== 'ally' || allyPool(s, id, sk).length > 0) && !(sk.key === 'encore' && (s.onBonus === id || s.extra >= EXTRA_MAX)) && !(sk.key === 'mice' && petsOut(s).length > 0);
+export const skillOk = (s, id, sk) => (id !== s.back || backOk(id, sk.key)) && (id !== 'vivi' || backOk(id, sk.key)) && s.sp[id] >= spCost(s, id, sk) && (sk.target !== 'ally' || allyPool(s, id, sk).length > 0) && !(sk.key === 'encore' && (s.onBonus === id || s.extra >= EXTRA_MAX)) && !(sk.key === 'mice' && petsOut(s).length > 0) && !(sk.key === 'rally' && petsOut(s).length < 2);
 export const allyTargets = allyPool;
 export function doSkill(s, id, key, target) { s.cmdLog.push(['s', id, key, target ?? null]);
   const sk = SKILLS[id].find(x => x.key === key), atk = STAT[id].atk, K = isPlus(s.run, id, key) ? 1.25 : 1, kv = v => Math.round(v * K); s.sp[id] -= spCost(s, id, sk); s.plusK = K; newCmd(s); s.smoke[id] = null; s.inSkill = true; s.curType = sk.type || null; s.layerHit = false; const fee = s.L && s.L.fee && s.sign > 0 ? Math.min(s.L.fee, s.sp[id]) : 0; s.sp[id] -= fee; const r = { kind: 'skill', id, key, name: sk.name, target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
@@ -966,6 +976,8 @@ function runFx(s, id, sk, target, r, push, all, team = [id]) { const atk = STAT[
   for (const [op, a, b, c2] of sk.fx) {
     if (op === 'dmg') { const tg = sk.target === 'all' ? all() : [target]; for (const f of tg) { const o = { ...(b || {}) }; if (sk.fx.some(x => x[0] === 'stun') && f === 'boss') o.sh = (o.sh ?? 1) + 2; const h = push(hitFoe(s, id, f, atk * a, o)); if (h && !h.guard && !h.kill && alive(s, h.dst)) hitList.push(h.dst); } }
     else if (op === 'dmgBy') { const by = team[a], tg = sk.target === 'all' ? all() : [target]; for (const f of tg) { const h = push(hitFoe(s, by, f, STAT[by].atk * b, { ...(c2 || {}) })); if (h) { h.by = by; if (!h.guard && !h.kill && alive(s, h.dst) && !hitList.includes(h.dst)) hitList.push(h.dst); } } }
+    else if (op === 'petBite') { for (const f of all()) { const h = push(hitFoe(s, id, f, PET.bite * a, { noCrit: true, type: 'blunt' })); if (h && !h.guard && !h.kill && alive(s, h.dst)) hitList.push(h.dst); } }
+    else if (op === 'petStay') { for (const q of PETS) if (s.pets[q]) s.pets[q].left += a; }
     else if (op === 'mark0') { if (target && alive(s, target)) { s.mark[target] = 3; r.marked = [target]; } }
     else if (op === 'wardTo') addFx(r, FX.ward(s, team[a], b)); else if (op === 'tauntBy') { s.guardian = team[a]; addFx(r, FX.tag(team[a], '我來扛！')); }
     else if (op === 'healPct') { const h = team[a], x = FX.heal(s, h, Math.round(STAT[h].hp * b)); if (x) (r.heals || (r.heals = [])).push({ dst: h, v: x.v, hp: x.hp }); }
