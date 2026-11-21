@@ -498,7 +498,7 @@ export const OT_MAX = OVERTIME.length;
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null, guest: null };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
@@ -507,6 +507,10 @@ export function newRun(rand = Math.random, starter = null, skill = null, map = '
 }
 // 加入名冊（滿血滿 SP、會全部招式）
 export function join(run, id) { if (run.roster.includes(id) || run.roster.length >= 6) return false; run.roster.push(id); run.hp[id] = STAT[id].hp; run.sp[id] = STAT[id].sp; run.skills[id] = SKILLS[id].map(k => k.key); return true; }
+// 第一場的陪打：沒被選的那位主角先同行（run.guest），打贏第一場就離隊（endStage），之後還是可能在招募站遇到
+export const guestOf = starter => STARTERS.find(id => id !== starter) || null;
+export function addGuest(run) { const g = run.starter && guestOf(run.starter); if (!g || run.floor !== 0 || run.tally.fights > 0 || run.roster.includes(g) || !join(run, g)) return null; run.guest = g; return g; }
+const leave = (run, id) => { run.roster.splice(run.roster.indexOf(id), 1); delete run.hp[id]; delete run.sp[id]; delete run.skills[id]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(id + ':')); };
 // 名冊滿了還要帶人：joinOrSwap 的 who＝玩家指定誰離隊；沒指定就換掉名冊最後一位（主角不會被換掉）。回傳被換掉的人（沒滿就是 ''）；帶不了回傳 null
 export const swapOut = run => run.roster.length < 6 ? '' : [...run.roster].reverse().find(h => h !== run.starter) || null;
 export function joinOrSwap(run, id, who) { if (run.roster.includes(id)) return null; const out = run.roster.length >= 6 && who && who !== run.starter && run.roster.includes(who) ? who : swapOut(run); if (out === null) return null; if (out) { run.roster.splice(run.roster.indexOf(out), 1); delete run.hp[out]; delete run.sp[out]; delete run.skills[out]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(out + ':')); } return join(run, id) ? out : null; }
@@ -534,6 +538,7 @@ export const advance = run => { run.floor++; prepare(run); return run; };
 export function addTally(s, run) { if (s.tallied) return; s.tallied = true; run.tally.brk += s.tally.brk; run.tally.ult += s.tally.ult; }
 export function endStage(s, run) { for (const id of HEROES) { run.hp[id] = Math.min(STAT[id].hp, Math.max(0, s.hp[id]) + Math.round(STAT[id].hp * .25)); run.sp[id] = Math.min(STAT[id].sp, s.sp[id] + Math.round(STAT[id].sp * .3)); }
   addTally(s, run); run.tally.fights++;
+  run.guestLeft = null; if (run.guest) { const g = run.guest; run.guest = null; if (run.roster.includes(g) && run.roster.length > 1 && g !== run.starter) { leave(run, g); run.guestLeft = g; } }
   run.lastLearn = null; if (run.starter && LEARN_AT.includes(run.tally.fights)) { const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); run.lastLearn = u[0]; } }      // 主角邊打邊學：打贏第二、第四場各學會一招（不用等抽到「在職進修」）
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
   run.lastCoin = Math.round(coinFor(run.node) * (run.job === 'buyer' ? 1.5 : 1)); run.coin = (run.coin || 0) + run.lastCoin;
@@ -597,6 +602,7 @@ export function loadRun(data, rand = Math.random) {
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
     Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    run.guest = STARTERS.includes(d.guest) && d.roster.includes(d.guest) && d.guest !== d.starter ? d.guest : null; if ('guestLeft' in d) run.guestLeft = STARTERS.includes(d.guestLeft) ? d.guestLeft : null;
     if ('lastLearn' in d) run.lastLearn = d.starter && SKILLS[d.starter] && SKILLS[d.starter].some(k => k.key === d.lastLearn) ? d.lastLearn : null; if ('lastCoin' in d) run.lastCoin = Number.isFinite(d.lastCoin) && d.lastCoin >= 0 ? d.lastCoin : 0; if ('lastReward' in d) run.lastReward = typeof d.lastReward === 'string' ? d.lastReward.slice(0, 80) : null;
     { const fl = MAP[d.floor], o = run.offers[d.floor]; if (o && !d.pend && fl.some((nd, k) => (nd.type === 'recruit' || (nd.rescue && run.roster.length < 6)) && !(o[k] && o[k].length))) delete run.offers[d.floor]; }
     run.node = MAP[d.floor][d.pend ? d.path[d.floor] : 0]; prepare(run);
