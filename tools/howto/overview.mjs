@@ -6,7 +6,7 @@ await A.boot('window.__game && __game.phase === "title" && __game.zones.some(z =
 // 片頭：疊在標題畫面上
 await A.run(.9); await A.cap('不想上班的回合制冒險\n一分鐘看完怎麼玩', 2.9, 610); await A.run(3.0);      // 標題畫面本身就有片名，不再疊一次大字
 await A.tag('玩法 ②　怎麼玩'); await A.ev(() => { __ov.tagX = 960; __ov.tagY = 18; });
-// 選路線、主角、第一招
+// 選路線、主角、拿手招
 await A.tapZone('z => z.big'); await A.boot(pick); await A.run(.3, false); await log('路線');
 await A.cap('選一條路線、一位主角，一個人出發', 4.6, 880); await A.run(1.5); await A.tapItem('一般行程'); await A.run(1.3); await A.tapItem('小葵'); await A.run(1.2); await A.tapItem('全部一起改'); await A.run(.6); await log('選完');
 // 行程開場的卡片、開場對話

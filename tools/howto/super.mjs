@@ -4,7 +4,7 @@ const A = await open('super', 'seed=9&map=office&cycle=2&stage=chief&team=qiang,
 const cmd = '(__game.phase === "command" && __game.menu && __game.menu.kind === "root") || !!__game.state.over';
 await A.boot('window.__game && __game.phase === "title" && __game.zones.some(z => z.big)');
 { const z = await A.ev(() => { const z = __game.zones.find(z => z.big); return [z.x + (z.w || 0) / 2, z.y + (z.h || 0) / 2]; }); await A.page.mouse.click(z[0], z[1]); }
-await A.boot('__game.phase === "pick" && __game.menu'); await A.ev(() => __game.press(0)); await A.run(.5, false); await A.boot('__game.phase === "pick" && __game.menu && /第一招/.test(__game.menu.title || "")'); await A.ev(() => __game.press(0));
+await A.boot('__game.phase === "pick" && __game.menu'); await A.ev(() => __game.press(0)); await A.run(.5, false); await A.boot('__game.phase === "pick" && __game.menu && /拿手招/.test(__game.menu.title || "")'); await A.ev(() => __game.press(0));
 await A.boot('__game.phase === "hub" && __game.menu'); await A.run(.6, false);
 await A.ev(() => { const g = __game, n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); }); await A.run(.4, false); await A.ev(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); } });
 await A.until(cmd, false, 60); await A.run(.3, false);

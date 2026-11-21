@@ -64,7 +64,7 @@ export async function open(name, url, pref = {}) {
     // 點畫面（畫布座標 1920×1080）：先畫圈、走幾格再真的點下去
     async tap(x, y, rec = true) { await page.evaluate((x, y) => { __ov.taps.push({ x, y, t0: performance.now() / 1000 }); }, x, y); await A.run(.18, rec); await page.mouse.click(x, y); await A.run(.12, rec); },
     // 點選單上某個字的按鈕
-    async tapItem(label, rec = true) { const z = await page.evaluate(l => { const g = __game, i = g.menu ? g.menu.items.findIndex(x => x.label === l) : -1, z = g.zones.find(z => z.i === i && !z.big && !z.soft) || g.zones.find(z => z.i === i && !z.big); return z ? [z.x + z.w / 2, z.y + z.h / 2] : null; }, label); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
+    async tapItem(label, rec = true) { const z = await page.evaluate(l => { const g = __game, i = g.menu ? g.menu.items.findIndex(x => x.label === l || x.label === l + '＋') : -1, z = g.zones.find(z => z.i === i && !z.big && !z.soft) || g.zones.find(z => z.i === i && !z.big); return z ? [z.x + z.w / 2, z.y + z.h / 2] : null; }, label); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
     // 點選單第 i 項；點符合條件的可點區域（src＝頁面裡的函式字串 (z, g) => …）
     async tapIdx(i, rec = true) { const z = await page.evaluate(i => { const g = __game, z = g.zones.find(z => z.i === i && !z.big && !z.soft) || g.zones.find(z => z.i === i && !z.big); return z ? [z.x + z.w / 2, z.y + z.h / 2] : null; }, i); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },
     async tapZone(src, rec = true) { const z = await page.evaluate(s => { const g = __game, f = eval(s), z = g.zones.find(z => f(z, g)); return z ? [z.x + (z.w || 0) / 2, z.y + (z.h || 0) / 2] : null; }, src); if (!z) return false; await A.tap(z[0], z[1], rec); return true; },

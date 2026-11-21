@@ -3,7 +3,7 @@ import path from 'node:path'; import { open, ROOT } from './lib.mjs';
 const A = await open('battle', 'seed=9&map=office&stage=chief&team=senpai,jie,kevin,mi,qiang'), log = async s => console.log(s, '｜', (await A.where()).slice(0, 110));
 const cmd = '(__game.phase === "command" && __game.menu && __game.menu.kind === "root") || !!__game.state.over';
 await A.boot('window.__game && __game.phase === "title" && __game.zones.some(z => z.big)'); await A.tapZone('z => z.big', false);
-await A.boot('__game.phase === "pick" && __game.menu'); await A.ev(() => __game.press(0)); await A.run(.5, false); await A.boot('__game.phase === "pick" && __game.menu && /第一招/.test(__game.menu.title || "")'); await A.ev(() => __game.press(0));
+await A.boot('__game.phase === "pick" && __game.menu'); await A.ev(() => __game.press(0)); await A.run(.5, false); await A.boot('__game.phase === "pick" && __game.menu && /拿手招/.test(__game.menu.title || "")'); await A.ev(() => __game.press(0));
 await A.boot('__game.phase === "hub" && __game.menu'); await A.run(.6, false);
 await A.ev(() => { const g = __game; g.run.skills.kui = ['draft', 'counter', 'sweep', 'deadline', 'backup']; const n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); }); await A.run(.4, false); await A.ev(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const n = g.menu.items.filter(x => x.node != null); g.go(n.length - 1); } });
 await A.until(cmd, false, 60); await A.run(.3, false); await log('開打');
