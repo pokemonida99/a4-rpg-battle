@@ -47,7 +47,7 @@ const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 200
 // 喊招台詞與錄音長度（秒）
 export const LINES = { kui: ['吐槽一閃！', 1.67], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
-export const SUPER_ART = ['qiang', 'kui'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
+export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
 export const EXTRA = ['yan', 'heilun', 'cha', 'qiang', 'senpai', 'wu', 'you', 'fairy', 'zong', 'hui', 'xu', 'zhe', 'an'];      // 新夥伴：圖齊了才載入（少一張必要的圖就整個人不載）
 export const PARTY = ['kui', 'kevin', 'jie', 'mi', 'vivi'], FOES = ['boss', 'ma', 'mb', 'mc', 'md'];
 export const WIDE = { x: .65, y: 1.5, z: -.3, d: 12.9, pitch: 10, fov: 28, blur: 7 };
