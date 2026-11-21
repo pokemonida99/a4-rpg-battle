@@ -48,6 +48,7 @@ const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 200
 export const LINES = { kui: ['吐槽一閃！', 1.67], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
 export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
+const SFACE = { kui: [.42, .12], jie: [.47, .14], qiang: [.5, .1], you: [.47, .1], senpai: [.48, .12], zhe: [.5, .1], an: [.4, .1] };      // 超級版頭像從半身像切：臉的中心在寬度的幾成、從高度的幾成開始切
 export const EXTRA = ['yan', 'heilun', 'cha', 'qiang', 'senpai', 'wu', 'you', 'fairy', 'zong', 'hui', 'xu', 'zhe', 'an'];      // 新夥伴：圖齊了才載入（少一張必要的圖就整個人不載）
 export const PARTY = ['kui', 'kevin', 'jie', 'mi', 'vivi'], FOES = ['boss', 'ma', 'mb', 'mc', 'md'];
 export const WIDE = { x: .65, y: 1.5, z: -.3, d: 12.9, pitch: 10, fov: 28, blur: 7 };
@@ -98,7 +99,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   // 超級版的造型：背景載入，不擋開場。載好後放在 units[id].superFrames，變身時整組換上去
   for (const id of SUPER_ART) { const u = units[id]; if (!u) continue; (async () => { const n = 's_' + id, [ready, wind, act, win, hurt, guard, k1, k2, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${n}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${n}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${n}_${i}.png`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${n}_${i}.png`))]);
     if (!ready || !wind || !act || !win) return; const f = { ready, wind, act, win }; f.ult = atk.every(Boolean) ? atk : [ready, wind, wind, act, act, act, act, ready]; f.ult.k = 1; if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (k1 && k2) f.ko = [k1, k2];
-    u.superFrames = f; u.superS = DEFS[id].hgt * PPU / ready.image.height; try { A.bust[n] = await img(`art/cutin/bust_${n}.png`); } catch (e) { /* 沒有半身像就用原本的加金色 */ } })(); }
+    u.superFrames = f; u.superS = DEFS[id].hgt * PPU / ready.image.height; try { const b = await img(`art/cutin/bust_${n}.png`); A.bust[n] = b; const [fx, fy] = SFACE[id] || [.5, .1], s = Math.round(.56 * Math.min(b.width, b.height)); A.face[n] = crop(b, [Math.max(0, Math.round(fx * b.width - s / 2)), Math.round(fy * b.height), s]); } catch (e) { /* 沒有半身像就用原本的加金色 */ } })(); }
   for (const id of [...PARTY, ...EXTRA]) if (A.bust[id]) A.face[id] = crop(A.bust[id], DEFS[id].face);
   { const later = opts.lazy ? [...PARTY, ...EXTRA].filter(id => units[id] && (!A.bust[id] || !A.eyes[id])) : []; A.restN = later.length; A.restDone = 0; const opt2 = p => p.catch(() => null);
     const one = async id => { const d = DEFS[id], [bust, eyes] = await Promise.all([A.bust[id] || opt2(img(`art/cutin/bust_${id}.png`)), opt2(img(`art/cutin/eyes_${id}.jpg`))]); A.bust[id] = bust; A.eyes[id] = eyes; if (bust && !A.face[id]) { d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)]; A.face[id] = crop(bust, d.face); } A.restDone++; if (A.onFace) A.onFace(id); }, queue = later.slice();      // 一次載三位，照 queue 的順序
