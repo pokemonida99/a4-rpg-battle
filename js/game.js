@@ -656,7 +656,8 @@ function startStage() {
 let rescued = null;
 const met = id => { PREF.met = PREF.met || []; if (!PREF.met.includes(id)) { PREF.met.push(id); savePref(); } };
 const uniteWith = id => { if (!run || !run.roster) return null; const U = R.UNITES.find(u => u.who.includes(id) && u.who.every(h => h === id || run.roster.includes(h))); return U ? `★ 和${U.who.filter(h => h !== id).map(h => DEFS[h].name).join('、')}有合體技「${U.name}」` : null; };      // 招募卡上提醒：帶他就能放合體技
-const heroCard = (id, go, starter) => ({ label: DEFS[id].name, tag: DEFS[id].job.includes(R.ROLE[id]) ? DEFS[id].job : `${DEFS[id].job}　${R.ROLE[id]}`, bust: id, lines: [`HP ${R.STAT[id].hp}　SP ${R.STAT[id].sp}　攻擊 ${R.STAT[id].atk}`, ...(starter ? [`${R.SKILLS[id].length} 個招式先選一個（下一步）`] : [R.SENSE.includes(id) ? '★ 在場時看得到敵人的弱點和下一步' : null, uniteWith(id), ...R.SKILLS[id].map(k => `◆ ${k.name}　${k.note}`)]), `奧義「${DEFS[id].skill}」`, DEFS[id].desc || ''], go });
+const ROLE_NAME = { 坦: '防禦', 補: '補血', 輸出: '攻擊' };
+const heroCard = (id, go, starter) => ({ label: DEFS[id].name, tag: `${DEFS[id].job}・${ROLE_NAME[R.ROLE[id]] || R.ROLE[id]}`, bust: id, lines: [`HP ${R.STAT[id].hp}　SP ${R.STAT[id].sp}　攻擊 ${R.STAT[id].atk}`, ...(starter ? [`${R.SKILLS[id].length} 個招式先選一個（下一步）`] : [R.SENSE.includes(id) ? '★ 在場時看得到敵人的弱點和下一步' : null, uniteWith(id), ...R.SKILLS[id].map(k => `◆ ${k.name}　${k.note}`)]), `奧義「${DEFS[id].skill}」`, DEFS[id].desc || ''], go });
 // 立繪對話（11/21 使用者：要有開場對話，同事加入時也要講話）。點一下換下一句，右上角可以跳過。台詞都在 TALK，要改口吻改這裡。
 // open：主角＋第一場陪打的人（'主角+陪打'），每一組只在第一次出現；join：加入隊伍時說的一句
 const TALK = {
@@ -675,7 +676,7 @@ function drawTalk() { const T = menu.talk, [who, line] = T.lines[T.i], d = DEFS[
   const bx = 240, bw2 = W - 480, by = 770, bh2 = 256, right = T.cast.indexOf(who) === 1, nw = Math.max(300, mw(d.name, 42, 900, SERIF) + mw(d.tag || d.job, 26, 700) + 90), nx = right ? bx + bw2 - nw - 36 : bx + 36; skin.paper(bx, by, bw2, bh2);
   skin.wood(nx, by - 50, nw, 76, { studs: false }); text(d.name, nx + 26, by + 4, { px: 42, w: 900, fam: SERIF, col: CREAM, ls: 4, stroke: 'rgba(20,10,4,.7)', sw: 5 }); text(d.tag || d.job, nx + nw - 24, by + 2, { px: 26, w: 700, align: 'right', col: BRASS });
   wrap(line, bw2 - 120, 44).slice(0, 3).forEach((s, k) => text(s, bx + 60, by + 104 + k * 60, { px: 44, w: 700, col: INK }));
-  text(last ? '點一下繼續 ▶' : `點一下看下一句（${T.i + 1}／${T.lines.length}）▼`, bx + bw2 - 44, by + bh2 - 26, { px: 26, w: 700, align: 'right', col: INK2 }); sheetBtn('跳過', W - 310, 30, 260, 88, 1, false); }
+  text(last ? '點一下繼續 ▶' : `點一下看下一句（${T.i + 1}／${T.lines.length}）▼`, bx + bw2 - 44, by + bh2 - 26, { px: 26, w: 700, align: 'right', col: INK2 }); sheetBtn('跳過', 50, 30, 260, 88, 1, false); }
 // 開局的選擇頁（路線、週目、加班、主角、招式、帶誰、職位）一路走過來的紀錄：每一頁左上角都有「回上一頁」，第一頁回標題
 const NAV = []; let jobOffer = null;
 const toTitle = () => { NAV.length = 0; menu = null; saved = undefined; phase = 'title'; };
@@ -756,12 +757,12 @@ function openEvent() { const key = run.events[run.floor], ev = R.EVENTS[key];
 // 休息站二選一：休息（回血、補 SP），或特訓（三個招式挑一個升級成「＋」：傷害與回復量 ＋25%、SP 消耗 －20%，每招一次）
 function openRest(nd, free) { const place = nd.name || '茶水間', tr = R.offerTrain(run), hurt = run.roster.filter(id => id !== 'vivi').reduce((a, id) => a + (R.STAT[id].hp - run.hp[id]), 0);
   const rest = () => { const v = R.rest(run); snd(now, 'heal', .8); R.advance(run); openHub(v > 0 ? `在${place}休息：全隊共回復 ${v} HP，SP 補滿` : `在${place}休息：SP 補滿（HP 本來就是滿的）`); };
-  const train = () => openCards({ title: free ? place : '特訓', sub: '挑一個招式升級成「＋」（每個招式只能升一次）：', foot: '選完回到行程表', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.applyTrain(run, id, key); snd(now, sfxOr('train', 'buff'), .8); R.advance(run); openHub(`特訓完成：${DEFS[id].name}的「${k.name}」升級成「${k.name}＋」`); } }; }) });
+  const train = () => { const prev = menu; openCards({ ...(free ? {} : { back: () => { menu = prev; phase = 'pick'; focus = 1; } }), title: free ? place : '特訓', sub: '挑一個招式升級成「＋」（每個招式只能升一次）：', foot: '選完回到行程表', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.applyTrain(run, id, key); snd(now, sfxOr('train', 'buff'), .8); R.advance(run); openHub(`特訓完成：${DEFS[id].name}的「${k.name}」升級成「${k.name}＋」`); } }; }) }); };
   if (free) { if (tr.length) return train(); for (const id of run.roster) run.sp[id] = Math.min(R.STAT[id].sp, run.sp[id] + 40); R.advance(run); return openHub(`${place}：招式都升級過了，全員 SP ＋40`); }
   if (!tr.length) return rest();
   openCards({ title: place, sub: '休息一下，還是趁空檔練一招？只能選一個。', foot: '選一個', items: [
     { label: '休息', tag: '回血、補 SP', icon: 'rest', big: true, lines: ['全員 HP 回復一半', '全員 SP 補滿', hurt > 0 ? `現在全隊少了 ${hurt} HP` : '現在大家都是滿血'], go: rest },
-    { label: '特訓', tag: '升級一個招式', icon: 'up_learn', big: true, lines: ['三個招式挑一個升級成「＋」', '傷害、回復量 ＋25%', 'SP 消耗 －20%；這一站不回血'], go: train }] }); }
+    { label: '特訓', tag: '升級一個招式', icon: 'up_learn', big: true, lines: ['三個招式挑一個升級成「＋」', '傷害、回復量 ＋25%', 'SP 消耗 －20%；這一站不回血'], go: train }] }); if (hurt <= 0) focus = 1; }
 // 採買站：用報帳額度買東西，可以買好幾樣，按「離開」才走
 // 福利社：行程表上隨時可以開，把打贏拿到的報帳額度花掉——買單樣道具、抽一位同事、買素質 ＋1（規則在 R.storeBuy）
 function openStore(msg) { const price = p => `${p} 點` + (run.coin < p ? '（不夠）' : ''), buy = k => { const r = R.storeBuy(run, k); if (!r) return; snd(now, sfxOr('coin', 'buff'), .8); if (r.joined) { met(r.joined); saveGame(); return sayJoin(r.joined, () => openStore(`抽到${DEFS[r.joined].name}，加入隊伍！`)); } saveGame(); if (r.boost) return openBoost(`${R.BOOST[r.boost][0]}強化到 ＋${r.lv}`); openStore(r.joined ? `抽到${DEFS[r.joined].name}，加入隊伍！` : `買了${R.ITEMS[r.item].name}`); };
@@ -777,7 +778,7 @@ function openShop(nd) { const st = R.shopStock(run), U = st.relic && R.UPGRADES[
     U ? { label: U.name, tag: `${R.UP_TAG[st.relic] || '小物'}　${tag('relic')}`, icon: 'up_' + st.relic, lines: U.desc.split('，'), off: !can('relic'), go: () => { R.buy(run, 'relic'); snd(now, sfxOr('coin', 'buff'), .8); openShop(nd); } } : { label: '小物賣完了', tag: '', icon: 'gift', lines: ['能拿的都拿過了'], off: true, go: () => {} },
     { label: '補給包', tag: tag('supply'), icon: 'up_drinks', lines: ['珍珠奶茶 ＋1', '黑咖啡 ＋1', '雞排便當 ＋1'], off: !can('supply'), go: () => { R.buy(run, 'supply'); snd(now, sfxOr('coin', 'buff'), .8); openShop(nd); } },
     { label: '特訓', tag: tr.length ? tag('train') : '招式都升級過了', icon: 'up_learn', lines: ['三個招式挑一個升級成「＋」', '傷害、回復量 ＋25%', 'SP 消耗 －20%'], off: !can('train') || !tr.length, go: () => openCards({ title: '特訓', sub: `挑一個招式升級成「＋」（${R.PRICE.train} 點）：`, foot: '選完回到採買', items: tr.map(([id, key]) => { const k = R.SKILLS[id].find(q => q.key === key); return { label: k.name + '＋', tag: `${DEFS[id].name}　SP ${k.sp} → ${Math.ceil(k.sp * .8)}`, icon: 'sk_' + key, lines: [k.desc, '傷害與回復量 ＋25%'], go: () => { R.buy(run, 'train', [id, key]); snd(now, sfxOr('train', 'buff'), .8); openShop(nd); } }; }) }) },
-    { label: '離開', tag: '回行程表', icon: 'clock', lines: ['沒花完的額度會留著', '下一個採買站還能用'], go: leave }] }); }
+    { label: '離開', tag: '回行程表', icon: 'clock', lines: ['沒花完的額度會留著', '行程表的福利社也能花'], go: leave }] }); }
 function openUpgrade(gift) { const offers = R.offerUpgrades(run);
   openCards({ title: gift ? '福委會' : '過關獎勵', sub: gift ? '這個月的福利，選一個：' : (rescued ? `救出了${DEFS[rescued].name}！` : '') + (run.guestLeft ? `${DEFS[run.guestLeft].name}先回去忙了，接下來自己找同事。` : '') + (run.lastLearn && run.starter ? `${DEFS[run.starter].name}學會了「${R.SKILLS[run.starter].find(k => k.key === run.lastLearn).name}」！` : '') + (run.lastReward ? run.lastReward + '。' : '') + (run.lastCoin ? `報帳額度 ＋${run.lastCoin}（共 ${run.coin} 點，行程表的福利社可以花）。` : '') + (run.guestLeft || run.lastLearn || rescued ? '全員回復一些 HP 和 SP。' : '全員回復兩成五 HP、三成 SP，倒下的人也站起來了。') + '再選一個強化：', foot: '選完回到行程表', items: offers.map(k => { const U = R.UPGRADES[k], who = (U.need || []).filter(id => run.roster.includes(id)).map(id => DEFS[id].name); const tg = R.UP_TAG[k], tn = tg ? R.tagCount(run, tg) : 0; return { label: U.name, tag: [tg ? `${tg}${tn < 3 ? `（已有 ${tn}／3）` : '（套裝已湊齊）'}` : '', who.length ? `配合${who.join('、')}的招式` : ''].filter(Boolean).join('　'), icon: 'up_' + k, lines: U.desc.split('，'), big: true, go: () => pickUpgrade(k) }; }) }); }
 function pickUpgrade(k, opt) {
@@ -793,12 +794,12 @@ function hubItems() { const fl = R.MAP[run.floor], ok = R.reachable(run), items 
 // 資料卡：素質、招式、奧義。這一輪同行的人可以用「上一位／下一位」翻；名冊裡沒同行的人只看基本資料
 // 「隊伍與道具」選單：隊伍順序（只有在行程表能調）、每個人的資料卡、道具、強化、夥伴名冊。行程表與戰鬥中輪到自己時都能叫出來
 const inBattle = () => phase !== 'hub', curHp = id => inBattle() && R.HEROES.includes(id) ? Math.max(0, state.hp[id]) : run.hp[id], curSp = id => inBattle() && R.HEROES.includes(id) ? state.sp[id] : run.sp[id];
-let mapItem = null;      // 行程表的「隊伍與道具」：點了哪個道具、等著選人（戰鬥中不用這個，照舊從指令用）
+let mapItem = null, mapNote = '';      // 行程表的「隊伍與道具」：點了哪個道具、等著選人（戰鬥中不用這個，照舊從指令用）
 const mapUse = id => { const k = mapItem, r = k && R.useMapItem(run, k, id); if (!r) { uiSound('move'); return; } snd(now, 'heal', .8); if (!R.mapItemTargets(run, k).length) mapItem = null; saveGame(); refreshPanel(); };
 function panelItems() { const items = []; if (inBattle()) mapItem = null;
   if (!inBattle()) run.roster.forEach((id, r) => { if (r > 0) items.push({ label: '上移', re: r, d: -1, go: () => { R.reorder(run, r, -1); refreshPanel(); } }); if (r < run.roster.length - 1) items.push({ label: '下移', re: r, d: 1, go: () => { R.reorder(run, r, 1); refreshPanel(); } }); });
-  run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => mapItem && R.mapItemTargets(run, mapItem).includes(id) ? mapUse(id) : openSheet(id) }));
-  if (!inBattle() && panelTab === 0) for (const k of Object.keys(R.ITEMS)) items.push({ label: R.ITEMS[k].name, use: k, off: !R.mapItemTargets(run, k).length, go: () => { mapItem = mapItem === k ? null : k; snd(now, 'card', .6); refreshPanel(); } });
+  run.roster.forEach((id, r) => items.push({ label: '資料', view: id, row: r, go: () => { if (!mapItem) return openSheet(id); if (R.mapItemTargets(run, mapItem).includes(id)) { mapNote = ''; return mapUse(id); } mapNote = `${DEFS[id].name}現在用不到${R.ITEMS[mapItem].name}`; uiSound('move'); } }));
+  if (!inBattle() && panelTab === 0) for (const k of Object.keys(R.ITEMS)) items.push({ label: R.ITEMS[k].name, use: k, off: !R.mapItemTargets(run, k).length, go: () => { mapItem = mapItem === k ? null : k; mapNote = ''; snd(now, 'card', .6); refreshPanel(); } });
   if (!inBattle()) run.roster.forEach((id, r) => { if (R.BACKERS.includes(id) && !(id === 'vivi' && R.backOf(run) === 'vivi')) items.push({ label: R.backOf(run) === id ? '回前排' : '站後排', bk: r, go: () => { R.setBack(run, R.backOf(run) === id ? null : id); snd(now, 'card', .6); saveGame(); refreshPanel(); } }); });
   for (const t of [0, 1, 2]) items.push({ label: ['道具與強化', '夥伴名冊', '敵人圖鑑'][t], tab: t, go: () => { panelTab = t; refreshPanel(); focus = menu.items.findIndex(m => m.tab === t); } });
   if (panelTab === 1) for (const id of DEX) if ((PREF.met || []).includes(id)) items.push({ label: '資料', view: id, dex: true, go: () => openSheet(id) });
@@ -961,7 +962,7 @@ function drawPanel() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgb
     Object.keys(R.ITEMS).forEach((k, j) => { const x = RX + 16 + j * 248, y = RY + 18, w = 240, h = 168, im = A.items[k] || (k === 'bento' ? A.icons.up_bento : null), it = R.ITEMS[k]; skin.paper(x, y, w, h, { old: !bag[k] });
       if (im) pix(im, x + 14, y + 10, 78 * im.width / im.height, 78); text(`×${bag[k]}`, x + w - 18, y + 68, { px: 48, w: 900, align: 'right', col: bag[k] ? INK : RED }); text(it.name, x + 16, y + 124, { px: 32, w: 900, fam: SERIF, col: INK }); text(fit(it.note, w - 28, 26, 700), x + 16, y + 156, { px: 26, w: 700, col: INK2 });
       { const ui = menu.items.findIndex(m => m.use === k); if (ui >= 0) { const m = menu.items[ui], sel = mapItem === k; zones.push({ x, y, w, h, i: ui, off: !!m.off }); if (sel || (focus === ui && !m.off)) { c.strokeStyle = sel ? '#d8a02a' : TEAL; c.lineWidth = sel ? 7 : 5; c.strokeRect(x + 3, y + 3, w - 6, h - 6); } if (!m.off) { c.fillStyle = sel ? '#d8a02a' : '#1f6a5c'; c.fillRect(x + w - 92, y + 96, 78, 38); text(sel ? '取消' : '使用', x + w - 53, y + 124, { px: 26, w: 900, align: 'center', col: '#fff8e6' }); } } } });
-    text(fight ? '道具在戰鬥中輪到自己時，從「道具」指令使用' : mapItem ? `點左邊框起來的人，用${R.ITEMS[mapItem].name}` : '點道具再點左邊的人，在這裡就能用', RX + 22, RY + 226, { px: 26, w: 700, col: 'rgba(239,230,207,.72)' });
+    text(fight ? '道具在戰鬥中輪到自己時，從「道具」指令使用' : mapItem ? (mapNote ? mapNote + '；' : '') + `點左邊框起來的人，用${R.ITEMS[mapItem].name}` : '點道具再點左邊的人，在這裡就能用', RX + 22, RY + 226, { px: 26, w: 700, col: 'rgba(239,230,207,.72)' });
     // 強化：名字和效果都寫出來
     const cnt = {}; for (const k of run.picks) cnt[k] = (cnt[k] || 0) + 1; const ks = [...(run.job ? ['@job'] : []), ...Object.keys(cnt)], UY = RY + 304, upOf = k => k === '@job' ? { name: R.JOBS[run.job][0], desc: '好處：' + R.JOBS[run.job][1], bad: '限制：' + R.JOBS[run.job][2] } : R.UPGRADES[k], jo = run.job ? 32 : 0, upIc = k => A.icons[k === '@job' ? JOB_ICON[run.job] : 'up_' + k];
     text('這一輪的強化', RX + 22, RY + 284, { px: 32, w: 900, fam: SERIF, col: CREAM, ls: 6, stroke: 'rgba(20,10,4,.7)', sw: 5 }); { const st = Object.keys(R.SETS).map(t => [t, R.tagCount(run, t)]).filter(x => x[1] > 0).map(([t, n]) => `${t} ${Math.min(n, 3)}／3${n >= 3 ? '✓' : ''}`).join('　'); text(fit(st ? `套裝　${st}` : `${run.picks.length} 個`, RW - 330, 24, 700), RX + RW - 24, RY + 284, { px: 24, w: 700, align: 'right', col: BRASS }); }
@@ -1191,7 +1192,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
   if (k.win) text('今天，準時下班。', L + 8, Y + PH - 74, { px: 38, w: 900, fam: SERIF, col: INK, ls: 6 }); else if (k.log.length) { text('最後幾步', L + 8, Y + PH - 136, { px: 16, w: 900, col: RED, ls: 4 }); k.log.forEach((ln, i) => text(fit(ln, IW - 384, 17), L + 8, Y + PH - 110 + i * 24, { px: 17, w: 700, col: INK2 })); }
   else wrap('提示：看到「蓄力」就防禦或用坦克的奧義；血少先喝珍珠奶茶；岔路多去茶水間。', IW - 400, 20).forEach((ln, i) => text(ln, L + 8, Y + PH - 100 + i * 30, { px: 20, w: 700, col: INK2 }));
   { const se = el - 1.9; if (se > 0) skin.stamp(k.win ? '討伐完成' : '未結案', X + PW - 210, Y + 112, -.12, 46, se < .2 ? lerp(2.4, 1, easeOut(se / .2)) : 1); }
-  c.restore(); if (phase === 'over') bigButton(k.win ? '再玩一次' : '再挑戰一次', X + PW - 64 - 180, Y + PH - 88, 360, 92);
+  c.restore(); if (phase === 'over') bigButton(k.win ? '再玩一次' : '重新出發', X + PW - 64 - 180, Y + PH - 88, 360, 92);
 }
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
