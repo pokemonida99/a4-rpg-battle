@@ -14,7 +14,7 @@ const H3_T = [0, .125, .25, .375, .5, .625, .75, .75, .75, .75, .875, 1.0, 1.125
 const SANS = '"Noto Sans TC", sans-serif', SERIF = '"Songti TC", "Noto Serif TC", "PMingLiU", serif';
 const gl = document.getElementById('gl'), hudCv = document.getElementById('hud'), stage = document.getElementById('stage');
 const Q = new URLSearchParams(location.search);
-const VERSION = 'v0.45.1';      // 改版時一起改 tools/deploy.sh 會顯示的版本
+const VERSION = 'v0.45.2';      // 改版時一起改 tools/deploy.sh 會顯示的版本
 
 // ---------- 載入 ----------
 let loadMsg = '載入中', booted = false;
@@ -743,7 +743,7 @@ function drawTalk() { const T = menu.talk, [who, line] = T.lines[T.i], d = DEFS[
   text(last ? '點一下繼續 ▶' : `點一下看下一句（${T.i + 1}／${T.lines.length}）▼`, bx + bw2 - 44, by + bh2 - 26, { px: 26, w: 700, align: 'right', col: INK2 }); sheetBtn('跳過', 50, 30, 260, 88, 1, false); }
 // 開局的選擇頁（路線、週目、加班、主角、招式、帶誰、職位）一路走過來的紀錄：每一頁左上角都有「回上一頁」，第一頁回標題
 const NAV = []; let jobOffer = null;
-const toTitle = () => { NAV.length = 0; menu = null; saved = undefined; phase = 'title'; };
+const toTitle = () => { NAV.length = 0; menu = null; saved = undefined; phase = 'title'; playMusic('bgm/map'); };
 function flowCards(key, reopen, o) { const i = NAV.findIndex(n => n.key === key); if (i >= 0) NAV.length = i; const prev = NAV.at(-1); NAV.push({ key, reopen }); openCards({ ...o, back: prev ? prev.reopen : toTitle }); }
 // 結案報告上的「再玩一次／再挑戰一次」：留在遊戲裡直接回到開局的選擇（以前是整頁重新讀取）
 function again() { SFX.clear('black'); report = null; NAV.length = 0; menu = null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); snd(now, 'card', .6); start(); }
@@ -891,7 +891,7 @@ function confItems() { if (confHelp) return [{ label: '回設定', back: true, c
 function openConf() { conf = true; confAsk = false; confHelp = false; confMsg = ''; menu = { kind: 'conf', items: confItems() }; focus = menu.items.length - 1; }
 function closeConf() { conf = false; confAsk = false; confHelp = false; if (phase === 'hub') { menu = { kind: 'hub', items: hubItems() }; focus = 0; } else openMenu('root'); }
 // 回到主畫面：先存檔（戰鬥中存到這一個指令），排好的事件全部取消，畫面收乾淨
-function backToTitle() { if (inBattle()) saveBattle(); else saveGame(); conf = false; confAsk = false; panel = false; sheet = null; todo.length = 0; menu = null; actor = null; S.film = null; uniteFilm = null; S.stageCard = null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); SFX.clear(); NAV.length = 0; playMusic(null); snd(now, 'card', .6); saved = undefined; phase = 'title'; }
+function backToTitle() { if (inBattle()) saveBattle(); else saveGame(); conf = false; confAsk = false; panel = false; sheet = null; todo.length = 0; menu = null; actor = null; S.film = null; uniteFilm = null; S.stageCard = null; if (S.ui.length) S.ui.at(-1).t1 = Math.min(S.ui.at(-1).t1, now); SFX.clear(); NAV.length = 0; playMusic('bgm/map'); snd(now, 'card', .6); saved = undefined; phase = 'title'; }
 function drawConf() { const fight = inBattle(); if (fight) { c.fillStyle = 'rgba(8,5,4,.93)'; c.fillRect(0, 0, W, H); } else drawTable(.62);
   text('設定', 64, 104, { px: 54, w: 900, fam: SERIF, col: CREAM, ls: 10, stroke: 'rgba(20,10,4,.8)', sw: 8 }); text(`第 ${run.floor + 1}／${R.MAP.length} 站　${VERSION}`, 250, 100, { px: 26, w: 700, col: BRASS });
   if (confHelp) { const X0 = 110, Y0 = 150, Wd = W - 220; skin.paper(X0, Y0, Wd, 900); sheetBtn(confHelp === 'icons' ? '玩法說明' : '圖示說明', 1284, 30, 280, 100, 1, false); if (confHelp === 'icons') { drawLegend(X0, Y0, Wd); return sheetBtn('回設定', 1584, 30, 280, 100, 0, true); } let y = Y0 + 58; for (const ln of HELP) { c.fillStyle = RED; c.fillRect(X0 + 40, y - 18, 10, 10); for (const s2 of wrap(ln, Wd - 130, 28)) { text(s2, X0 + 66, y, { px: 28, w: 700, col: INK }); y += 38; } y += 10; } return sheetBtn('回設定', 1584, 30, 280, 100, 0, true); }
@@ -1341,7 +1341,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發（第一場有人陪），照行程表一站一站走到最後；路上招募同事，最多帶六人，四人站前排、一人在後排支援', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '敵人的弱點和下一步，要有小燕或學姊在場才看得到', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '點開行程表左邊的隊伍：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也能把候補換上場', '名詞：「底氣」是頭目頭上的紅格，打到歸零他就「理虧」；「議程」是左上角的行動順序；同標籤的小物湊三個是「套裝」；「福委會」那一站可以白拿一個強化', '候補每回合回三分之一 HP 和 SP；前排有人倒下，候補會自動補上', '戰鬥畫面上的小圖示是什麼意思，按右上角的「圖示說明」看對照', '進度會自動存到這台裝置（戰鬥打到一半也會存），下次打開可以「繼續上班」；有三個存檔位'];
-const CHANGES = [['v0.45.1', '菁英戰和中頭目有自己的配樂了；行程表和標題畫面換成正式的地圖配樂'], ['v0.45.0', '合體技多了破框定格：上下黑邊滑進來，兩個人衝向鏡頭、看著你，蓋過黑邊', '16 位同事各有一張專屬的動作圖；鼠仙女從空中飛進來，兩隻老鼠跟在旁邊跳舞'], ['v0.44.0', '戰鬥畫面精簡：設定、隊伍・道具、速度、返回改成圖示；拿掉「議程」「目標」等不必要的字', '敵人頭上的狀態全部改成小圖示加回合數；底氣改成盾牌圖示；攻擊按鈕直接顯示屬性牌', '圖示的意思：設定 → 玩法說明 → 圖示說明（戰鬥中按設定會直接開這一頁）', '戰鬥畫面不再顯示第幾站和候補，按「隊伍・道具」看'], ['v0.43.0', '後來加入的 11 位同事放奧義時會喊出自己的台詞（小燕、茶茶、學姊、小蝶、鼠仙女、許許、小安、黑輪、阿強、老油條、阿哲）', '鼠仙女的奧義改唸愛的咒語；小葵換了比較甜的聲音', '看得到敵情時，左上角多一顆眼睛：點一下把敵人頭上的標籤收起來（大招預告照樣顯示）'], ['v0.42.0', '開局選的招式變成「拿手招」：一開始就是＋版（效果 ＋25%、SP －20%）', '說明文字整理過一遍，講得更直接'], ['v0.41.0', '福利社：「內部調派」名冊滿了也能用（調來再決定誰回公司）；素質強化多了體力、速度', '三個存檔位（標題畫面左下切換）；設定頁可以看玩法說明', '候補的 HP 直接看得到；血剩三成以下會擺出受傷的姿勢；可以直接點我方角色用道具', '鼠仙女新招「老鼠們，總動員」、Kevin＋小米的合體技；阿哲、小安的招式有自己的圖示'], ['v0.40.0', '設定頁：聲音、畫質、戰鬥速度、地圖、立繪對話集中在一頁，按鈕放大', '可以手動存檔、回到主畫面（進度會留著，按「繼續上班」接著玩）'], ['v0.39.0', '超級化（二週目起）：氣勢滿 100 時，小葵、阿傑、阿強、老油條、學姊、阿哲、小安可以變身', '三回合內傷害 ×2、受傷 −30%、速度 +30%、招式不花 SP，HP 回滿；每人每場一次', '七個人都有超級版造型：金髮金眼，阿強沒帽子、頭頂禿'] ];
+const CHANGES = [['v0.45.2', '標題畫面也會播地圖配樂（手機要先碰一下螢幕才會出聲）'], ['v0.45.1', '菁英戰和中頭目有自己的配樂了；行程表和標題畫面換成正式的地圖配樂'], ['v0.45.0', '合體技多了破框定格：上下黑邊滑進來，兩個人衝向鏡頭、看著你，蓋過黑邊', '16 位同事各有一張專屬的動作圖；鼠仙女從空中飛進來，兩隻老鼠跟在旁邊跳舞'], ['v0.44.0', '戰鬥畫面精簡：設定、隊伍・道具、速度、返回改成圖示；拿掉「議程」「目標」等不必要的字', '敵人頭上的狀態全部改成小圖示加回合數；底氣改成盾牌圖示；攻擊按鈕直接顯示屬性牌', '圖示的意思：設定 → 玩法說明 → 圖示說明（戰鬥中按設定會直接開這一頁）', '戰鬥畫面不再顯示第幾站和候補，按「隊伍・道具」看'], ['v0.43.0', '後來加入的 11 位同事放奧義時會喊出自己的台詞（小燕、茶茶、學姊、小蝶、鼠仙女、許許、小安、黑輪、阿強、老油條、阿哲）', '鼠仙女的奧義改唸愛的咒語；小葵換了比較甜的聲音', '看得到敵情時，左上角多一顆眼睛：點一下把敵人頭上的標籤收起來（大招預告照樣顯示）'], ['v0.42.0', '開局選的招式變成「拿手招」：一開始就是＋版（效果 ＋25%、SP －20%）', '說明文字整理過一遍，講得更直接'], ['v0.41.0', '福利社：「內部調派」名冊滿了也能用（調來再決定誰回公司）；素質強化多了體力、速度', '三個存檔位（標題畫面左下切換）；設定頁可以看玩法說明', '候補的 HP 直接看得到；血剩三成以下會擺出受傷的姿勢；可以直接點我方角色用道具', '鼠仙女新招「老鼠們，總動員」、Kevin＋小米的合體技；阿哲、小安的招式有自己的圖示'], ['v0.40.0', '設定頁：聲音、畫質、戰鬥速度、地圖、立繪對話集中在一頁，按鈕放大', '可以手動存檔、回到主畫面（進度會留著，按「繼續上班」接著玩）'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (!bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }      // 標題畫面畫得出來就收掉開機畫面（聲音與其餘立繪還在背景載，按鈕的位置會寫進度）
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -1421,6 +1421,8 @@ window.__game = { get zones() { return zones.map(z => ({ ...z })); }, film: (ids
 booted = true; requestAnimationFrame(frame); loadMsg = '聲音載入中'; phase = 'load';      // 標題畫面先出來；聲音與新夥伴的立繪在背景載，載完才能按開始
 startAudio(); bgmLater(['map']); const uiP = uiArt(); let restDone = false; const restP = Promise.all([uiP, audioReady]).then(() => bgmLater(['battle'])).then(() => A.rest()).then(() => { restDone = true; }), bgmP = restP.then(() => bgmLater(['elite', 'boss', 'victory']));      // 順序：介面圖與音效（按開始前要有）→ 戰鬥曲（第一場馬上要用）→ 其餘立繪（快要看到的人先載）→ 魔王曲、通關曲
 A.onFace = id => { const key = 'm_' + id; if (minionU[key]) minionFace[key] = A.face[id]; if (phase !== 'title' && phase !== 'load' && state) { for (const m of R.SLOTS) if (state.kind && state.kind[m] === key) A.face[m] = A.face[id]; if (state.L && state.L.hero === id) A.face.boss = A.face[id]; } };      // 立繪晚到：鏡像敵人借用的頭像補上
-Promise.all(Q.has('map') ? [audioReady, uiP, restP, bgmP] : [audioReady, uiP]).then(() => { if (phase === 'load') phase = 'title'; });
+const showTitle = () => { if (phase !== 'load') return; phase = 'title'; playMusic('bgm/map'); if (AC.state !== 'running') AC.resume().catch(() => {}); };      // 標題畫面直接播地圖配樂
+for (const ev of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(ev, () => { if (AC.state !== 'running') AC.resume().catch(() => {}); }, { passive: true });      // 瀏覽器規定：玩家碰過螢幕才能出聲。碰哪裡都算，不用等按到「開始」
+Promise.all(Q.has('map') ? [audioReady, uiP, restP, bgmP] : [audioReady, uiP]).then(showTitle);
 // 等聲音太久（網路慢）也讓玩家先開始
-setTimeout(() => { if (phase === 'load') phase = 'title'; }, 6000);
+setTimeout(showTitle, 6000);
