@@ -506,8 +506,8 @@ export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'
 export const OT_MAX = OVERTIME.length;
 // ---------- 一輪遊戲的進度 ----------
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
-// 週目（11/21 使用者定）：二週目敵人的血與攻擊 ×1.8、開局多帶一位上一輪的同事；三週目 ×2、多帶一位再加 Vivi。通關一個週目才開下一個（記在 game.js 的 PREF.cyc）
-export const CYCLE_K = [1, 1.8, 2], CYCLE_MAX = CYCLE_K.length, cycK = run => CYCLE_K[((run && run.cycle) || 1) - 1] || 1, CYCLE_NAME = ['一週目', '二週目', '三週目'];
+// 週目（11/21 使用者定）：二週目敵人的血與攻擊 ×1.8、開局多帶一位上一輪的同事；三週目 ×2.5（原本 2，同一天改的）、多帶一位再加 Vivi。通關一個週目才開下一個（記在 game.js 的 PREF.cyc）
+export const CYCLE_K = [1, 1.8, 2.5], CYCLE_MAX = CYCLE_K.length, cycK = run => CYCLE_K[((run && run.cycle) || 1) - 1] || 1, CYCLE_NAME = ['一週目', '二週目', '三週目'];
 export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null, cycle = 1, carry = []) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
   const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null, guest: null, back: null, cycle: Math.max(1, Math.min(CYCLE_MAX, cycle | 0 || 1)), carry: [] };
