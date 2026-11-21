@@ -506,20 +506,23 @@ export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'
 export const OT_MAX = OVERTIME.length;
 // ---------- 一輪遊戲的進度 ----------
 // starter：開局選的人；skill：三選一的招式。沒給就用舊的五人隊（影片與舊測試用）。
-export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null) {
+// 週目（11/21 使用者定）：二週目敵人的血與攻擊 ×1.8、開局多帶一位上一輪的同事；三週目 ×2、多帶一位再加 Vivi。通關一個週目才開下一個（記在 game.js 的 PREF.cyc）
+export const CYCLE_K = [1, 1.8, 2], CYCLE_MAX = CYCLE_K.length, cycK = run => CYCLE_K[((run && run.cycle) || 1) - 1] || 1, CYCLE_NAME = ['一週目', '二週目', '三週目'];
+export function newRun(rand = Math.random, starter = null, skill = null, map = 'office', ot = 0, job = null, cycle = 1, carry = []) {
   for (const id in BASE) Object.assign(STAT[id], BASE[id]); useMap(map);
-  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null, guest: null, back: null };
+  const run = { rand, map: MAPS[map] ? map : 'office', floor: 0, node: MAP[0][0], path: [], offers: {}, events: {}, tally: { brk: 0, ult: 0, fights: 0 }, atk: 1, def: 1, moStart: MO.start, items: {}, hp: {}, sp: {}, skills: {}, roster: [], starter, picks: [], rounds: 0, summons: 0, alt: {}, plus: [], next: null, affix: {}, coin: 0, shop: {}, ot: Math.max(0, Math.min(OT_MAX, ot | 0)), job: JOBS[job] ? job : null, guest: null, back: null, cycle: Math.max(1, Math.min(CYCLE_MAX, cycle | 0 || 1)), carry: [] };
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = ITEMS[k].n;
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
   if (starter && run.job) { const j = run.job; if (j === 'edu') run.skills[starter] = SKILLS[starter].map(k => k.key); else if (j === 'buyer') run.coin = 60; else if (j === 'host') run.moStart += 20; else if (j === 'hr') { run.def *= 1.05; const pool = ALL.filter(id => id !== 'vivi' && !STARTERS.includes(id)); join(run, pool[Math.floor(rand() * pool.length)]); } }
+  if (starter && run.cycle >= 2) { const c = (Array.isArray(carry) ? carry : []).find(id => ALL.includes(id) && id !== 'vivi' && id !== starter && !run.roster.includes(id)); if (c && join(run, c)) run.carry.push(c); if (run.cycle >= 3 && join(run, 'vivi')) run.carry.push('vivi'); }
   return run;
 }
 // 加入名冊（滿血滿 SP、會全部招式）
 export function join(run, id) { if (run.roster.includes(id) || run.roster.length >= 6) return false; run.roster.push(id); run.hp[id] = STAT[id].hp; run.sp[id] = STAT[id].sp; run.skills[id] = SKILLS[id].map(k => k.key); return true; }
 // 第一場的陪打：沒被選的那位主角先同行（run.guest），打贏第一場就離隊（endStage），之後還是可能在招募站遇到
 export const guestOf = starter => STARTERS.find(id => id !== starter) || null;
-export function addGuest(run) { const g = run.starter && guestOf(run.starter); if (!g || run.floor !== 0 || run.tally.fights > 0 || run.roster.includes(g) || !join(run, g)) return null; run.guest = g; return g; }
+export function addGuest(run) { const g = run.starter && guestOf(run.starter); if (!g || run.cycle >= 2 || run.floor !== 0 || run.tally.fights > 0 || run.roster.includes(g) || !join(run, g)) return null; run.guest = g; return g; }
 const leave = (run, id) => { run.roster.splice(run.roster.indexOf(id), 1); delete run.hp[id]; delete run.sp[id]; delete run.skills[id]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(id + ':')); };
 // 名冊滿了還要帶人：joinOrSwap 的 who＝玩家指定誰離隊；沒指定就換掉名冊最後一位（主角不會被換掉）。回傳被換掉的人（沒滿就是 ''）；帶不了回傳 null
 export const swapOut = run => run.roster.length < 6 ? '' : [...run.roster].reverse().find(h => h !== run.starter) || null;
@@ -621,6 +624,7 @@ export function loadRun(data, rand = Math.random) {
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
     Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, d.items[k]])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && (v.relic == null || UPGRADES[v.relic]) && Array.isArray(v.sold)).map(([k, v]) => [k, { relic: v.relic || null, sold: v.sold.filter(x => PRICE[x]) }])) : {}, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    run.cycle = Number.isInteger(d.cycle) && d.cycle >= 1 && d.cycle <= CYCLE_MAX ? d.cycle : 1; run.carry = Array.isArray(d.carry) ? d.carry.filter(id => ALL.includes(id) && d.roster.includes(id)) : [];
     run.back = BACKERS.includes(d.back) && d.roster.includes(d.back) ? d.back : null;
     run.guest = STARTERS.includes(d.guest) && d.roster.includes(d.guest) && d.guest !== d.starter ? d.guest : null; if ('guestLeft' in d) run.guestLeft = STARTERS.includes(d.guestLeft) ? d.guestLeft : null;
     if ('lastLearn' in d) run.lastLearn = d.starter && SKILLS[d.starter] && SKILLS[d.starter].some(k => k.key === d.lastLearn) ? d.lastLearn : null; if ('lastCoin' in d) run.lastCoin = Number.isFinite(d.lastCoin) && d.lastCoin >= 0 ? d.lastCoin : 0; if ('lastReward' in d) run.lastReward = typeof d.lastReward === 'string' ? d.lastReward.slice(0, 80) : null;
@@ -635,7 +639,7 @@ export function newState(run = newRun()) {
   if (typeof run === 'function') { run = newRun(run); run.floor = MAP.length - 1; run.node = MAP[run.floor][0]; }      // 舊用法 newState(rand)：五人隊直接打魔王
   const st = STAGES[stageOf(run, run.node)], rand = run.rand, act = active(run); const back0 = backOf(run); HEROES.length = 0; HEROES.push(...act); FRONT.length = 0; FRONT.push(...act.filter(id => id !== back0));
   const nx = run.next || { foeHp: 1, ward: 0 }; run.next = null;      // 事件給的「下一場戰鬥」加成，進場就用掉
-  const af = affixOf(run), [hk0, ak0] = SCALE[Math.min(4, HEROES.length)], hk = hk0 * nx.foeHp, ak = ak0 * (af === 'late' ? 1.2 : 1) * (run.map === 'mirror' ? .9 : 1), sc = (v, k) => Math.round(v * k);      // 鏡像內戰本來就難，敵人攻擊打九折
+  const af = affixOf(run), [hk0, ak0] = SCALE[Math.min(4, HEROES.length)], hk = hk0 * nx.foeHp * cycK(run), ak = ak0 * (af === 'late' ? 1.2 : 1) * (run.map === 'mirror' ? .9 : 1) * cycK(run), sc = (v, k) => Math.round(v * k);      // 鏡像內戰本來就難，敵人攻擊打九折
   const kind = {}, spare = Object.keys(KINDS).filter(k => KINDS[k].hero && !Object.values(st.kinds || {}).includes(k)); MINIONS.length = 0; MINIONS.push(...st.minions);
   for (const m of SLOTS) { const want = (st.kinds || {})[m]; kind[m] = want === 'random' ? spare.splice(Math.floor(rand() * spare.length), 1)[0] : want || st.base || 'drone'; const K = KINDS[kind[m]]; Object.assign(STAT[m], { hp: sc(st.minion.hp * K.hp * TUNE.hp, hk), atk: sc(st.minion.atk * K.atk * TUNE.atk, ak), spd: K.spd || BASE[m].spd }); }
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp * TUNE.bhp, hk), atk: sc(st.boss.atk * TUNE.batk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * TUNE.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
