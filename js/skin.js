@@ -11,8 +11,8 @@ const fmt = n => Math.round(n).toLocaleString('en-US');
 const valAt = (keys, t, dur = .5) => { let p = keys[0], q = keys[0]; for (const k of keys) { if (k.t > t) break; p = q; q = k; } return p === q ? q.v : lerp(p.v, q.v, easeOut(sat((t - q.t) / dur))); };
 const lastChange = (keys, t) => { let q = keys[0]; for (const k of keys) { if (k.t > t) break; q = k; } return t - q.t; };
 
-// 精簡版介面（11/21 使用者：字太多，能省的省、能改圖示的改圖示；先用網址 ?hud2 預覽，定案後再變成預設）
-export const HUD = { lean: false };
+// 精簡版介面（11/21 使用者：字太多，能省的省、能改圖示的改圖示，「圖示比較好」）：現在是預設；網址加 ?hud1 看舊版
+export const HUD = { lean: true };
 export function makeSkin(c, A, S, D) {
   // ---------- 材質 ----------
   const tex = (w, h, paint, k = 3) => { const lo = document.createElement('canvas'); lo.width = w; lo.height = h; paint(lo.getContext('2d'), w, h); const up = document.createElement('canvas'); up.width = w * k; up.height = h * k; const x = up.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(lo, 0, 0, w * k, h * k); return c.createPattern(up, 'repeat'); };
@@ -71,18 +71,18 @@ export function makeSkin(c, A, S, D) {
   }
   // ---------- 木板下面：氣勢條（全隊共用） ----------
   function momentum(t, a, v, MO) {
-    if (a <= 0) return; c.save(); c.globalAlpha *= a; const X = 648, Y = 142, ok = v >= MO.ult - .5, bx = X + 96, bw = 1247 - 96 - 84; paper(X, Y - 4, 84, 30); text('氣勢', X + 42, Y + 19, { px: 20, w: 900, align: 'center', ls: 3 });
+    if (a <= 0) return; c.save(); c.globalAlpha *= a; const X = 648, Y = 142, ok = v >= MO.ult - .5, NW = HUD.lean ? 118 : 74, bx = X + 96, bw = 1247 - 96 - 10 - NW; paper(X, Y - 4, 84, 30); text('氣勢', X + 42, Y + 19, { px: 20, w: 900, align: 'center', ls: 3 });
     bar(bx, Y + 4, bw, 14, v / MO.max, ok ? '#d9a62e' : '#9a6a3c', ok ? `rgba(255,244,190,${.35 + .25 * Math.sin(t * 6)})` : 'rgba(255,255,255,.22)');
     for (let m = MO.ult; m < MO.max; m += MO.ult) { const tx = bx + bw * m / MO.max; c.fillStyle = '#1d120b'; c.fillRect(tx - 2, Y, 4, 22); c.fillStyle = BRASS; c.fillRect(tx - 1, Y + 1, 2, 20); }
-    paper(X + 1247 - 74, Y - 4, 74, 30, { tint: ok ? 'rgba(217,166,46,.35)' : null }); text(HUD.lean && !ok ? `${Math.round(v)}／${MO.ult}` : String(Math.round(v)), X + 1247 - 37, Y + 19, { px: HUD.lean && !ok ? 18 : 22, w: 900, align: 'center' });
+    paper(X + 1247 - NW, Y - 4, NW, 30, { tint: ok ? 'rgba(217,166,46,.35)' : null }); text(HUD.lean && !ok ? `${Math.round(v)}／${MO.ult}` : String(Math.round(v)), X + 1247 - NW / 2, Y + 19, { px: 22, w: 900, align: 'center' });
     if (!HUD.lean) text(ok ? '可以放奧義' : `到 ${MO.ult} 可以放奧義`, bx + bw * MO.ult / MO.max + 10, Y + 42, { px: 15, w: 700, fam: SANS, col: ok ? '#ffd84a' : 'rgba(239,230,207,.7)', shadow: 'rgba(0,0,0,.8)' }); c.restore();
   }
   // ---------- 敵人腳下：底氣條；歸零蓋「理虧」。左下：魔王木牌 ----------
   function enemies(t, a, MAXSH) {
     if (a <= 0) return; c.save(); c.globalAlpha *= a; const guard = stepAt(S.guard, t, false);
     for (const id of S.foes) { const u = S.units[id]; if (!u.alive) continue; const boss = id === 'boss', [px, py] = S.proj(id, 0), sh = stepAt(S.shield[id], t, 0), mx = boss ? MAXSH : 2, w = boss ? 250 : 176, y = Math.round(py + (boss ? 30 : 22)), x = Math.min(Math.round(px - w / 2 - (boss ? 40 : 0)), !boss && y > 840 ? 742 - w : 9999);      // 前排小兵的底氣條不要壓到下方的指令列
-      paper(x, y, w, 34); text('底氣', x + 12, y + 25, { px: 20, w: 900 }); bar(x + 64, y + 11, w - 78, 12, sh / mx, '#b23a30');
-      for (let k = 1; k < mx; k++) { c.fillStyle = '#1d120b'; c.fillRect(x + 64 + (w - 78) * k / mx - 1, y + 9, 2, 16); }
+      const bx0 = HUD.lean ? 44 : 64, bw0 = w - bx0 - 14; paper(x, y, w, 34); if (HUD.lean) { c.save(); c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round'; c.beginPath(); c.moveTo(x + 12, y + 7); c.lineTo(x + 34, y + 7); c.lineTo(x + 34, y + 17); c.quadraticCurveTo(x + 33, y + 25, x + 23, y + 29); c.quadraticCurveTo(x + 13, y + 25, x + 12, y + 17); c.closePath(); c.stroke(); c.lineWidth = 2.5; c.beginPath(); c.moveTo(x + 25, y + 8); c.lineTo(x + 21, y + 14); c.lineTo(x + 26, y + 18); c.lineTo(x + 22, y + 27); c.stroke(); c.restore(); } else text('底氣', x + 12, y + 25, { px: 20, w: 900 }); bar(x + bx0, y + 11, bw0, 12, sh / mx, '#b23a30');
+      for (let k = 1; k < mx; k++) { c.fillStyle = '#1d120b'; c.fillRect(x + bx0 + bw0 * k / mx - 1, y + 9, 2, 16); }
       if (sh <= 0) { const el = lastChange(S.shield[id], t); stamp('理虧', x + w - 46, y + 12, -.2, 30, el < .2 ? lerp(2.2, 1, easeOut(el / .2)) : 1); }
       if (guard && boss) { paper(x, y + 42, w, 30, { tint: 'rgba(178,58,48,.14)' }); text('護衛中　傷害無效', x + w / 2, y + 64, { px: 18, w: 900, align: 'center', col: RED, ls: 1 }); }
       if (boss && !guard && S.pot && S.pot()) { paper(x, y + 42, w, 30, { tint: 'rgba(202,162,76,.2)' }); text('甩鍋中　第一下小兵背', x + w / 2, y + 64, { px: 18, w: 900, align: 'center', col: INK, ls: 1 }); }
