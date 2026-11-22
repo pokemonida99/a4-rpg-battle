@@ -116,7 +116,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   const FXL = makeFxLayer(g), SFX = makeScreenFx();
   // 在某個單位（或 [x,z]）的位置放特效。o：{ dx, y, dz, scale, palette, flip, dur, glow, seed }
   const fx = (id, t, at, o = {}) => { const [x, z] = Array.isArray(at) ? at : (units[at].posAt(t)); return FXL.add({ id, t, x: x + (o.dx || 0), y: o.y || 0, z: z + (o.dz ?? .1), scale: o.scale, palette: o.palette, flip: o.flip, dur: o.dur, glow: o.glow, seed: o.seed }); };
-  arena.fires.forEach((f, i) => { const k = f.s * .6; FXL.add({ id: 'fire/brazier', t: -5, dur: 9999, x: f.x, y: f.top - .1 - .8 * k, z: f.z - .12, scale: k, seed: 3 + i }); });      // 特效自己也畫了火盆，把它藏在我們的火盆後面，只露出碗口上面的火
+  arena.fires.forEach((f, i) => { const k = f.s * .6; f.fx = FXL.add({ id: 'fire/brazier', t: -5, dur: 9999, x: f.x, y: f.top - .1 - .8 * k, z: f.z - .12, scale: k, seed: 3 + i }); });      // 特效自己也畫了火盆，把它藏在我們的火盆後面，只露出碗口上面的火
 
   // ---------- 狀態軌道 ----------
   const S = { defs: DEFS, party: PARTY, foes: FOES, units, ui: [], order: [], active: [{ t: -1, v: null }], hp: {}, sp: {}, bp: {}, shield: { boss: [{ t: -1, v: 6 }], ma: [{ t: -1, v: 2 }], mb: [{ t: -1, v: 2 }], mc: [{ t: -1, v: 2 }], md: [{ t: -1, v: 2 }] }, guard: [{ t: -1, v: true }], items: [], reveal: [{ t: -1, v: 0 }], bossBar: [{ t: -1, v: true }],

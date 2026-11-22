@@ -36,7 +36,7 @@ export function makeFxLayer(parent) {
     prune(t) { for (let i = casts.length - 1; i >= 0; i--) { const c = casts[i]; if (t > c.o.t + c.end + .2) { for (const L of [c.back, c.front]) { parent.remove(L.m); L.tex.dispose(); L.m.material.dispose(); L.m.geometry.dispose(); } casts.splice(i, 1); } } },
     update(t) {
       for (const c of casts) {
-        const el = t - c.o.t, on = el >= 0 && el < c.end + .05;
+        const el = t - c.o.t, on = el >= 0 && el < c.end + .05 && !c.hide;      // hide：先收起來不畫（換場景時大廳的火盆火焰）
         c.back.m.visible = c.front.m.visible = on;
         if (!on) { c.inst = null; continue; }
         const want = Math.floor(el * 60);

@@ -11,8 +11,9 @@ function shaftTex() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 // 地板大圖：把兩張石板貼圖拼成 4×3 格，每格隨機選一張、隨機左右上下翻，整張再平鋪。回傳貼圖。
-async function floorMosaic(urls) {
-  const ims = (await Promise.all(urls.map(u => loadTex(u)))).map(t => t.image), n = ims[0].width, c = document.createElement('canvas'); c.width = n * 4; c.height = n * 3; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+const floorMosaic = async urls => mosaicFrom((await Promise.all(urls.map(u => loadTex(u)))).map(t => t.image));
+export function mosaicFrom(ims) {      // 換場景用的地板（scene.js 的 setBackdrop）也走這裡：圖要跟原本的石板一樣大（201×201），地板的貼圖座標才不用重算
+  const n = ims[0].width, c = document.createElement('canvas'); c.width = n * 4; c.height = n * 3; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
   // 相鄰格用同一張圖的鏡像，接縫才接得起來：位置 (i,j) 的翻轉由奇偶決定，選哪張圖才是隨機的
   for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) { const im = ims[Math.floor(rnd(i * 7 + j * 13 + 3) * ims.length)], fx = i % 2 ? -1 : 1, fy = j % 2 ? -1 : 1;
     x.save(); x.translate(i * n + (fx < 0 ? n : 0), j * n + (fy < 0 ? n : 0)); x.scale(fx, fy); x.drawImage(im, 0, 0); x.restore(); }
@@ -97,7 +98,7 @@ export async function buildRoom(E, o = {}) {
   })();
   P.window = WIN.frame; const panes = [];
   // 放一個像素看板道具；shadow:true 會加腳下陰影
-  const prop = (k, x, y, z, opt = {}) => { const s = sprite(typeof k === 'string' ? P[k] : k, opt); add(s, x, y, z); if (opt.shadow) { const b = blob(opt.shadow === true ? .8 : opt.shadow); b.position.set(x, .012, z); g.add(b); } return s; };
+  const prop = (k, x, y, z, opt = {}) => { const s = sprite(typeof k === 'string' ? P[k] : k, opt); add(s, x, y, z); if (opt.shadow) { const b = blob(opt.shadow === true ? .8 : opt.shadow); b.position.set(x, .012, z); g.add(b); s.userData.blob = b; } return s; };
 
   // 直式看得到比較多前景地板和比較高的牆，地板往鏡頭方向加長、後牆往上加高
   const f = add(floorPlane(w + 4, VERT ? 28 : 12, T.floor), cx, 0, VERT ? 8.5 : .5); f.material.color.set(o.floorTint ?? 0xf6e6d4);      // 地板預設帶一點暖色，冷色環境光下才不會整片發青
@@ -164,7 +165,7 @@ export async function buildRoom(E, o = {}) {
   const N = 150, pos = new Float32Array(N * 3), dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.add(new THREE.Points(dustG, new THREE.PointsMaterial({ color: o.dust ?? 0xffe9b8, size: .04, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false })));
   return {
-    group: g, T, P, add, prop, load, x0, x1,
+    group: g, T, P, add, prop, load, x0, x1, floor: f, shafts,
     shelf: (x, y, wd) => add(box(wd, .1, .5, T.wood), x, y, -4.4),
     update(t) {
       shafts.forEach((s, i) => { s.material.opacity = sOp * (.9 + .2 * Math.sin(t * .6 + i * 1.7)); });
