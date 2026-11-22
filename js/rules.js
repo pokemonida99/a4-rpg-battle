@@ -552,7 +552,7 @@ export const swapOut = run => run.roster.length < 6 ? '' : [...run.roster].rever
 export function joinOrSwap(run, id, who) { if (run.roster.includes(id)) return null; const out = run.roster.length >= 6 && who && who !== run.starter && run.roster.includes(who) ? who : swapOut(run); if (out === null) return null; if (out) { run.roster.splice(run.roster.indexOf(out), 1); delete run.hp[out]; delete run.sp[out]; delete run.skills[out]; run.plus = (run.plus || []).filter(p => !String(p).startsWith(out + ':')); } return join(run, id) ? out : null; }
 // 事件裡「有人想加入」：隨機帶一位還沒同行的同事（名冊滿了就沒有）
 export function joinRandom(run) { const p = ALL.filter(id => !run.roster.includes(id)); if (!p.length || run.roster.length >= 6) return null; const id = p[Math.floor(run.rand() * p.length)]; return join(run, id) ? id : null; }
-// 後排（v0.32）：上場＝前排最多四人＋後排一人。後排不會被打，也不能攻擊。
+// 後排（v0.32）：上場＝前排最多四人＋後排一人。後排不會被打，也不能自己攻擊（合體技例外：站後排照樣能一起放、照樣出手）。
 // Vivi 只能站後排，而且只有應援和奧義（老闆不做那麼多事）；鼠仙女、小蝶、茶茶可以站前排或後排，站後排時只能應援、用 BACK_SKILLS 裡的輔助招式、道具、奧義。
 // run.back＝玩家指定站後排的人；沒指定而名冊裡有 Vivi，就是 Vivi
 export const BACKERS = ['vivi', 'fairy', 'wu', 'cha'], BACK_SKILLS = { vivi: ['rehire'], fairy: ['mice', 'wand', 'snacks', 'rally'], wu: ['encore', 'dance', 'cooldown'], cha: ['push', 'cheer'] };
@@ -1007,9 +1007,9 @@ function runFx(s, id, sk, target, r, push, all, team = [id]) { const atk = STAT[
     else if (op === 'evade') for (const h of who(a)) { s.evade[h] = true; addFx(r, FX.tag(h, '閃過下一擊')); } } }
 
 // 合體技：現在能不能放（成員都上場、都活著、SP 都夠、其他成員這回合還沒動；被送的那一次行動不能放）
+// 站後排的人也算在場、也會出手（11/22 使用者：站在後排的人也可以合體技）；以前要她出手的合體技站後排放不了，現在沒有這個限制
 export const unitesOf = id => UNITES.filter(U => U.who.includes(id) && U.who.every(h => HEROES.includes(h)));
-export const uniteBack = (s, U) => !!s.back && U.who.includes(s.back) && U.fx.some(x => x[0] === 'dmgBy' && U.who[x[1]] === s.back);
-export const uniteOk = (s, id, U) => U.who.includes(id) && s.onBonus !== id && !uniteBack(s, U) && U.who.every((h, i) => HEROES.includes(h) && alive(s, h) && s.sp[h] >= uniteCost(s.run, U, i) && (h === id || s.queue.includes(h)));
+export const uniteOk = (s, id, U) => U.who.includes(id) && s.onBonus !== id && U.who.every((h, i) => HEROES.includes(h) && alive(s, h) && s.sp[h] >= uniteCost(s.run, U, i) && (h === id || s.queue.includes(h)));
 export function doUnite(s, id, key, target) { s.cmdLog.push(['n', id, key, target ?? null]); const U = UNITES.find(x => x.key === key); newCmd(s); s.inSkill = true; s.curType = U.type || null; s.layerHit = false;
   U.who.forEach((h, i) => { s.sp[h] -= uniteCost(s.run, U, i); s.smoke[h] = null; if (h !== id) { const q = s.queue.indexOf(h); if (q >= 0) s.queue.splice(q, 1); } });
   const r = { kind: 'unite', id, key, name: U.name, who: U.who.slice(), target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
