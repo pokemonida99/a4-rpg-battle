@@ -17,7 +17,8 @@ const weakMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => s.hp[a] 
 const PRIO = { intern: 0, smoker: 0, courier: 1, drone: 1, knight: 2, auntie: 2 }, prio = k => PRIO[KINDS[k].like || k] ?? 1, smartMinion = s => MINIONS.filter(m => alive(s, m)).sort((a, b) => prio(s.kind[a]) - prio(s.kind[b]) || s.hp[a] - s.hp[b])[0];
 // 猴子的臨時專案（畫面上寫明「打倒他，大招就落空」）一般玩家也會去打；鸚鵡附議的那隻只有會想的打法會優先處理
 const projT = s => s.charging && s.proj && alive(s, s.proj) ? s.proj : null, echoT = s => !s.charging && !s.broken && s.echo && alive(s, s.echo) ? s.echo : null;
-const target = (s, wm = weakMinion) => (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
+const gateT = s => s.L && s.L.gates ? Object.keys(s.glock || {}).find(m => alive(s, m)) : null;      // 門禁人資長：會想的人先打警衛
+const target = (s, wm = weakMinion) => (wm === smartMinion && gateT(s)) || (wm === smartMinion || s.round % 3 ? projT(s) : null) || (wm === smartMinion && echoT(s)) || (guarded(s) || !alive(s, 'boss') ? wm(s) : null) || (alive(s, 'boss') ? 'boss' : wm(s));
 // 超級化（二週目起）：會打的玩家這一場還沒人變身之前，先把氣勢存到滿（進攻型的奧義先不放），變完再照常放
 let HOLD = false; const canUlt = (s, id) => canUlt0(s, id) && !(HOLD && !s.charging && !['mi', 'xu', 'fairy', 'kevin', 'qiang', 'an', 'yan', 'cha'].includes(id));
 const superNow = (s, id) => canSuper(s, id) && (ROLE[id] === '輸出' || !FRONT.some(h => h !== id && alive(s, h) && SUPERS.includes(h) && ROLE[h] === '輸出' && !s.superUsed[h]));
