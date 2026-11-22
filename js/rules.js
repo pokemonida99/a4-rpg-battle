@@ -186,7 +186,7 @@ Object.assign(KINDS, {
 // 坦克皮厚（普攻減半）、補師幫敵人回血、小燕與黑輪打中扣 SP、阿傑一次打全體（aoe＝對每個人的傷害倍率）。
 export const NAME = { kui: '小葵', jie: '阿傑', kevin: 'Kevin', mi: '小米', vivi: 'Vivi', yan: '小燕', heilun: '黑輪', cha: '茶茶', qiang: '阿強', senpai: '學姊', wu: '小蝶', you: '老油條', fairy: '鼠仙女', zong: '棕鼠', hui: '灰鼠', xu: '許許', zhe: '阿哲', an: '小安' };
 const MIRROR_TRAIT = { kevin: { armor: .5, note: '跟本人一樣皮厚：普通攻擊只有一半傷害' }, qiang: { armor: .5, note: '跟本人一樣皮厚：普通攻擊只有一半傷害' }, zong: { armor: .6, note: '皮厚：普通攻擊傷害打六折' },
-  mi: { heal: 1100, note: '跟本人一樣會補血，先解決' }, xu: { heal: 900, note: '跟本人一樣會補血，先解決' }, fairy: { heal: 900, note: '會幫敵人回血，先解決' },
+  mi: { heal: 700, note: '跟本人一樣會補血，先解決' }, xu: { heal: 600, note: '跟本人一樣會補血，先解決' }, fairy: { heal: 600, note: '會幫敵人回血，先解決' },
   yan: { drain: 30, note: '打中會扣 30 SP' }, heilun: { drain: 20, note: '打中會扣 20 SP' }, jie: { aoe: .55, note: '跟本人一樣，一次打全體' } };
 for (const id of [...ALL, ...PETS]) if (id !== 'vivi') KINDS['m_' + id] = { hero: id, name: '鏡像' + NAME[id], hp: Math.max(.75, Math.min(1.5, STAT[id].hp / 2600)), atk: Math.max(.7, STAT[id].atk / 1150), spd: STAT[id].spd, move: SKILLS[id][0].name, weak: ROLE[id] === '坦' ? ['fire', 'dark'] : ROLE[id] === '補' ? ['dark', 'slash'] : ROLE[id] === '輸出' ? ['ice', 'holy'] : ['blunt', 'fire'], ...MIRROR_TRAIT[id] };
 // 氣勢：起始值、放奧義要多少、各種行動加多少
@@ -668,14 +668,21 @@ export function loadRun(data, rand = Math.random) {
   } catch (e) { return null; }
 }
 
+// 鏡像關卡（11/22 使用者）：對面的鏡像同事能力值跟本人一樣（血量、攻擊力、速度，這一趟的強化也算進去），人數也跟我方上場人數一樣。
+// 頭目算一個人，其餘補鏡像同事；位置最多頭目加四個。關卡沒指定是誰的位置就隨機挑一位。
+export const isMirror = st => Object.values((st && st.kinds) || {}).some(k => k === 'random' || !!(KINDS[k] && KINDS[k].hero));
+export const foeSlots = (run, st) => !isMirror(st) ? st.minions : SLOTS.slice(0, Math.max(st.boss ? 0 : 1, Math.min(SLOTS.length, active(run).length - (st.boss ? 1 : 0))));
+
 // ---------- 一場戰鬥 ----------
 export function newState(run = newRun()) {
   if (typeof run === 'function') { run = newRun(run); run.floor = MAP.length - 1; run.node = MAP[run.floor][0]; }      // 舊用法 newState(rand)：五人隊直接打魔王
   const st = STAGES[stageOf(run, run.node)], rand = run.rand, act = active(run); const back0 = backOf(run); HEROES.length = 0; HEROES.push(...act); FRONT.length = 0; FRONT.push(...act.filter(id => id !== back0));
   const nx = run.next || { foeHp: 1, ward: 0 }; run.next = null;      // 事件給的「下一場戰鬥」加成，進場就用掉
   const af = affixOf(run), [hk0, ak0] = SCALE[Math.min(4, HEROES.length)], hk = hk0 * nx.foeHp * cycK(run), ak = ak0 * (af === 'late' ? 1.2 : 1) * (run.map === 'mirror' ? .9 : 1) * cycK(run), sc = (v, k) => Math.round(v * k);      // 鏡像內戰本來就難，敵人攻擊打九折
-  const kind = {}, spare = Object.keys(KINDS).filter(k => KINDS[k].hero && !Object.values(st.kinds || {}).includes(k)); MINIONS.length = 0; MINIONS.push(...st.minions);
-  for (const m of SLOTS) { const want = (st.kinds || {})[m]; kind[m] = want === 'random' ? spare.splice(Math.floor(rand() * spare.length), 1)[0] : want || st.base || 'drone'; const K = KINDS[kind[m]]; Object.assign(STAT[m], { hp: sc(st.minion.hp * K.hp * TUNE.hp, hk), atk: sc(st.minion.atk * K.atk * TUNE.atk, ak), spd: K.spd || BASE[m].spd }); }
+  const mir = isMirror(st), slots = foeSlots(run, st), ck = cycK(run);
+  const kind = {}, spare = Object.keys(KINDS).filter(k => KINDS[k].hero && !Object.values(st.kinds || {}).includes(k) && !(st.boss && k === 'm_' + st.boss.hero)); MINIONS.length = 0; MINIONS.push(...slots);
+  for (const m of SLOTS) { const want = (st.kinds || {})[m] || (mir && slots.includes(m) ? 'random' : null); kind[m] = want === 'random' ? spare.splice(Math.floor(rand() * spare.length), 1)[0] : want || st.base || 'drone'; const K = KINDS[kind[m]], H = mir && K.hero ? STAT[K.hero] : null;
+    Object.assign(STAT[m], H ? { hp: sc(H.hp, nx.foeHp * ck), atk: sc(H.atk, run.atk * (af === 'late' ? 1.2 : 1) * ck), spd: H.spd } : { hp: sc(st.minion.hp * K.hp * TUNE.hp, hk), atk: sc(st.minion.atk * K.atk * TUNE.atk, ak), spd: K.spd || BASE[m].spd }); }
   BOSS_ULT = {}; if (st.boss) { Object.assign(STAT.boss, st.boss, { hp: sc(st.boss.hp * TUNE.bhp, hk), atk: sc(st.boss.atk * TUNE.batk, ak) }); for (const id of FRONT) BOSS_ULT[id] = sc(st.boss.ult * TUNE.ult * (.82 + .18 * STAT[id].hp / 2680), ak); }
   const s = { run, kind, hk, L: st.boss, hasBoss: !!st.boss, potUsed: false, rand, hp: {}, sp: {}, mo: run.moStart, defend: {}, items: { ...run.items }, round: 0, queue: [], events: [], shield: st.boss ? st.boss.shield : 0, broken: false, charging: false, bossTurns: 0,
     aegis: false, taunt: false, carry: false, duty: 0, bulwark: false, cover: null, dodge: false, counter: {}, meeting: false, friends: false, evidence: run.picks.includes('dossier') ? 2 : 0, aidUsed: false, plan: {}, tally: { brk: 0, ult: 0, ko: 0 }, burn: {}, mark: {}, atkDown: {}, atkUp: 0, evade: {}, bless: {}, endure: 0, overtime: run.picks.includes('crunch') ? 2 : 0, fairyBuff: act.includes('fairy'), pets: {}, summons: 0, over: null,
@@ -1038,13 +1045,13 @@ function foeAct(s, id, targets, pick, weak, k) {
   if (id !== 'boss') { const K = KINDS[s.kind[id]], nAct = (s.acts[id] = (s.acts[id] || 0) + 1);
     if (K.firstWard && nAct === 1) { s.fward[id] = Math.round(K.firstWard * s.hk); return { kind: 'foeWard', id, dst: id, v: s.fward[id] }; }
     if (K.wardAlly && nAct % 2 === 0) { const t = wardWho(s, id), v = Math.round(K.wardAlly * s.hk); s.fward[t] = Math.max(s.fward[t] || 0, v); return { kind: 'foeWard', id, dst: t, v }; }
-    if (K.heal) { const hurt = hurtFoe(s); if (hurt) { const v = Math.min(Math.round(K.heal * s.hk), STAT[hurt].hp - s.hp[hurt]); s.hp[hurt] += v; const hype = !!K.hype && hurt !== 'boss' && hurt !== id; if (hype) s.fup[hurt] = true; return { kind: 'foeHeal', id, dst: hurt, v, hp: s.hp[hurt], hype }; } }
+    if (K.heal) { const hurt = hurtFoe(s); if (hurt) { const v = Math.min(Math.round(K.heal * (K.hero ? cycK(s.run) : s.hk)), STAT[hurt].hp - s.hp[hurt]); s.hp[hurt] += v; const hype = !!K.hype && hurt !== 'boss' && hurt !== id; if (hype) s.fup[hurt] = true; return { kind: 'foeHeal', id, dst: hurt, v, hp: s.hp[hurt], hype }; } }
     const hv = K.heavy && nAct % K.heavy === 0 ? 1.6 : 1, pn = packN(s, id), up = !!s.fup[id], gn = K.grudge ? s.grudge[id] || 0 : 0, xk = (1 + (K.pack || 0) * pn) * (up ? 1.3 : 1) * (1 + (K.grudge || 0) * gn); s.fup[id] = false; s.grudge[id] = 0; const r = { kind: 'foeAtk', id, weak, heavy: hv > 1, pack: pn, hyped: up, grudge: gn, hits: hitHeroes(s, id, K.aoe ? targets.map(h => [h, STAT[id].atk * k * K.aoe * xk]) : [[pick(), STAT[id].atk * k * hv * xk]]) };
     afterHit(s, id, K, r.hits); if (K.selfWard && alive(s, id)) { r.selfWard = Math.round(K.selfWard * s.hk); s.fward[id] = Math.max(s.fward[id] || 0, r.selfWard); } return r; }
   if (s.broken) { s.broken = false; s.shield = STAT.boss.shield; if (s.L.backlog) { s.bregen = 2; s.backlogAtk = true; }
     if (!(s.run.ot >= 5 && s.stunned1)) { s.stunned1 = true; return { kind: 'stunned', id, shield: s.shield, backlog: !!s.L.backlog }; } s.ignored = true; }      // 加班等級 5：第二次以後理虧不取消行動（底氣照樣回滿）
   if (s.L.p2 && !s.p2 && s.hp.boss <= STAT.boss.hp * .5 && !s.charging) { s.p2 = true; STAT.boss.cycle = s.L.p2[1]; STAT.boss.atk = Math.round(STAT.boss.atk * s.L.p2[2]); const r = { kind: 'phase2', id, text: s.L.p2[0] }; if (s.L.layers) { s.layers = 3; r.layers = 3; }
-    if (!MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }      // 第二階段：不是在蓄力中才變（蓄好的大招先放完）
+    if (MINIONS.length && !MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }      // 第二階段：不是在蓄力中才變（蓄好的大招先放完）
   s.bossTurns++; const echo = s.echo; s.echo = null; let pre = null;
   if (s.L.backlog && s.bregen > 0) { s.bregen--; const v = Math.min(Math.round(1300 * s.hk), STAT.boss.hp - s.hp.boss); s.hp.boss += v; pre = s.pre = { regen: v, hp: s.hp.boss }; }      // 舊案回流：行動開始先回血
   if (s.L.reassign && !s.reassign) { const q = s.hp.boss / STAT.boss.hp, lv = q <= .35 ? 2 : q <= .7 ? 1 : 0; if (lv > s.reDone) { s.reDone = lv; s.reassign = true; } }
@@ -1053,11 +1060,11 @@ function foeAct(s, id, targets, pick, weak, k) {
     if (s.L.proj) { const p = s.proj; s.proj = null; if (!p || !alive(s, p)) return { kind: 'ultMiss', id, of: p }; }      // 猴子：臨時專案倒了，大招放不出來
     if (s.L.wok) { const w = s.wok && alive(s, s.wok) ? s.wok : targets[Math.floor(s.rand() * targets.length)]; s.wok = null;
       if (s.defend[w]) { const v = Math.min(s.hp.boss, Math.round(BOSS_ULT[w] * 3)); s.hp.boss -= v; s.shield = 0; s.broken = true; s.tally.brk++; check(s); return { kind: 'wokBack', id, dst: w, v, hp: s.hp.boss, shield: 0, kill: s.hp.boss <= 0 }; }      // 背鍋的人在防禦：鍋彈回去
-      const r = { kind: 'bossUlt', id, weak, single: w, hits: hitHeroes(s, id, [[w, BOSS_ULT[w] * k * 1.7]]), blocked: false }; if (!s.over && !MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }
+      const r = { kind: 'bossUlt', id, weak, single: w, hits: hitHeroes(s, id, [[w, BOSS_ULT[w] * k * 1.7]]), blocked: false }; if (!s.over && MINIONS.length && !MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }
     const lockK = s.locks ? 1 - .25 * (s.lockN - s.locks.length) : 1, opened = s.locks ? s.lockN - s.locks.length : 0; s.locks = null;
     const pow = (s.L.layers ? roofPow(s) : s.L.brag ? .5 + s.bragLow / s.L.shield : 1) * lockK, r = { kind: 'bossUlt', id, weak, pow, opened, hits: hitHeroes(s, id, targets.map(h => [h, BOSS_ULT[h] * k * pow])), blocked: (s.aegis && alive(s, 'kevin')) || (s.bulwark && alive(s, 'qiang')) };
     if (s.L.moDrain && !r.blocked) { r.moLoss = Math.min(s.L.moDrain, s.mo); gain(s, -r.moLoss); r.mo = s.mo; }      // 考績魔導士：大招沒被完全擋下來就扣氣勢
-    if (!s.over && !s.L.proj && !MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }
+    if (!s.over && !s.L.proj && MINIONS.length && !MINIONS.some(m => alive(s, m))) { for (const m of MINIONS) callIn(s, m); s.summons++; r.summon = true; } return r; }
   if (s.L.layers && s.layers < 3) s.layers++;      // 鐵皮：每行動一次加蓋一層
   if (s.bossTurns % STAT.boss.cycle === STAT.boss.cycle - 1) { s.charging = true; s.bragLow = s.shield; const r = { kind: 'charge', id }; if (has(s, 'countdown')) { r.moGain = 15; r.mo = gain(s, 15); }
     if (s.L.wok) s.wok = r.wok = targets[Math.floor(s.rand() * targets.length)]; if (s.L.fee) s.sign = r.sign = 3; if (s.L.layers) r.layers = s.layers;
