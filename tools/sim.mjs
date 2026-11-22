@@ -32,7 +32,8 @@ const POLICY = {
     { const dn = fallen(s), rk = REVIVE_SKILLS[id]; if (dn.length && rk && can(s, id, rk)) return doSkill(s, id, rk, dn[0]); if (dn.length && s.items.bento) return doItem(s, id, 'bento', dn[0]); }      // 有人倒下（場上或候補）：會復活的人先救，不然用便當
     if (me < .4 && id !== 'vivi' && s.swapRound !== s.round && bench(s).some(h => s.run.hp[h] / STAT[h].hp > .7)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 這回合還沒換過人（不用掉行動）：血剩四成以下就換滿血的候補上來
     if (me < .22 && id !== 'vivi' && bench(s).length && !(s.items.tea && FRONT.length > 1)) return doSwap(s, id, bench(s).sort((a, b) => s.run.hp[b] / STAT[b].hp - s.run.hp[a] / STAT[a].hp)[0]);      // 快倒了又沒得補：換候補上來
-    if (s.charging && s.wok) { if (s.wok === id) return doDefend(s, id); }      // 背鍋的人防禦，其他人照打（大招只打背鍋的）
+    if (s.charging && s.wok) { if (s.wok === id) return s.L.wok === 'pass' ? doAttack(s, id, 'boss') : doDefend(s, id); }      // 背鍋的人：甩鍋課長（v0.48）用普攻把鍋甩回去；剪黏課長防禦彈回去。其他人照打（大招只打背鍋的）
+    else if (s.charging && s.L && s.L.ticket && (s.ticket[id] || 0) > 0) return doDefend(s, id);      // 奧客總經理：大招前把身上的客訴單撕掉
     else if (s.charging && !covered && canUlt(s, id) && ['kevin', 'qiang', 'yan', 'cha', 'an'].includes(id)) return doUlt(s, id);
     if (s.sign > 0 && boss && !guarded(s) && !['mi', 'xu', 'vivi'].includes(id) && me > .4) return doAttack(s, id, 'boss');      // 不夜城：先用普攻把招牌打熄
     if (id === 'mi') { if (hurt.length >= 2 && canUlt(s, id)) return doUlt(s, id); if (hurt.length >= 2 && can(s, id, 'soothe', keep)) return doSkill(s, id, 'soothe'); if (hurt.length && can(s, id, 'mend', keep)) return doSkill(s, id, 'mend', lowest(s)); }

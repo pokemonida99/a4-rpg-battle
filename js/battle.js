@@ -35,7 +35,7 @@ export const DEFS = {
   // 11/21 原創新同事（使用者：先隨便做一男一女、能力偏弱）。圖：art/raw/jobs21.sh
   zhe: { name: '阿哲', job: '實習槍兵', tag: '實習生', color: '#ff7a4a', pal: 'fire', skill: '第一次獨立提案', en: 'MY FIRST SOLO PITCH', cost: 90, eyeY: .52, pos: [2.25, -.5], hgt: 1.6, extra: true, shout: '這次……讓我自己來！' },
   an: { name: '小安', job: '工安衛士', tag: '工安', color: '#6fd0e8', pal: 'cyber', skill: '全員戴好安全帽', en: 'HARD HATS ON, EVERYONE', cost: 60, eyeY: .52, pos: [2.25, -.5], hgt: 1.56, extra: true, shout: '全員，安全帽戴好！' },
-  boss: { name: '奧客總經理', enemy: true, hp: 120000, pos: [-3.0, -.5], hgt: 3.35, face: [110, 58, 80] },
+  boss: { name: '奧客總經理', enemy: true, hp: 120000, pos: [-3.0, -.5], hgt: 2.95, face: [54, 0, 54] },      // v0.48 換新造型（art/raw/b2_boss.png）：站姿、蓄力、出手、受傷四張，沒有逐格動畫
   ma: { name: '社畜小兵', enemy: true, hp: 3800, pos: [-.6, 1.05], hgt: 1.36, face: [19, 5, 34] },
   mb: { name: '社畜小兵', enemy: true, hp: 3800, pos: [-1.55, -1.7], hgt: 1.36, face: [19, 5, 34] },
   // 魔王大招之後叫來的第二批（一開始不在場上）
@@ -87,9 +87,9 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
     if (bust) d.face = d.face || [Math.round(bust.width * .2), Math.round(bust.height * .1), Math.round(Math.min(bust.width, bust.height) * .56)];      // 頭像：半身像上半部中間偏左（臉朝左）
   }
   { const d = DEFS.boss, idle = await loadTex('art/enemy/boss_idle.png'), atk = await loadTex('art/enemy/boss_atk.png');
-    const seq = await Promise.all([1, 2, 3, 4, 5, 6].map(i => tryTex(`art/enemy/anim/boss_${i}.png`)));
-    const hurt = await tryTex('art/enemy/boss_hurt.png'), stun = await tryTex('art/enemy/boss_stun.png');
-    const f = { idle, atk, ...(hurt && { hurt }), ...(stun && { stun }), swing: seq.every(Boolean) ? [idle, seq[0], seq[1], atk, seq[2], seq[3], seq[4], seq[5]] : [idle, atk, atk, atk, atk, atk, idle, idle] };
+    const seq = [];      // 舊造型有六格揮擊（art/enemy/anim/boss_1～6），新造型沒有，用蓄力和出手兩張頂著
+    const hurt = await tryTex('art/enemy/boss_hurt.png'), stun = hurt, wind = (await tryTex('art/enemy/boss_wind.png')) || atk;
+    const f = { idle, atk, ...(hurt && { hurt }), ...(stun && { stun }), swing: seq.length === 6 && seq.every(Boolean) ? [idle, seq[0], seq[1], atk, seq[2], seq[3], seq[4], seq[5]] : [idle, wind, wind, atk, atk, atk, idle, idle] };
     units.boss = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / idle.image.height, tint: 0xf0e8f4, shadowK: .7 }); }
   { const f = {}; for (const k of ['idle', 'atk', 'hit']) f[k] = await loadTex(`art/enemy/minion_${k}.png`);
     for (const id of ['ma', 'mb', 'mc', 'md']) { const d = DEFS[id], front = id === 'ma' || id === 'mc'; units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.idle.image.height, tint: front ? 0xf0e8f4 : 0xd8d4ee, phase: front ? .2 : .7 }); }
