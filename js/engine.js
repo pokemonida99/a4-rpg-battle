@@ -233,7 +233,10 @@ class DofPass extends Pass {
     });
     this.fsq = new FullScreenQuad(this.mat);
   }
+  // 場景是這一關畫的（前面沒有另外的 RenderPass），所以這一關不能整個關掉：關掉就沒有人畫場景，畫面會停在最後一格。
+  // 省電畫質用 this.blur = false：場景直接畫進下一關要讀的緩衝，不做景深的 28 次取樣。
   render(renderer, writeBuffer) {
+    if (this.blur === false) { renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer); renderer.clear(); renderer.render(this.scene, this.camera); return; }
     renderer.setRenderTarget(this.rt); renderer.clear(); renderer.render(this.scene, this.camera);
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer); this.fsq.render(renderer);
   }

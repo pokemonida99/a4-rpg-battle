@@ -80,6 +80,8 @@ const a2hs = () => { if (STANDALONE || installed || PREF.noA2hs) return null; if
 
 // ---------- 聲音：WebAudio，事件排在遊戲時鐘上 ----------
 const PREF = (() => { try { return JSON.parse(localStorage.getItem('a4rpg') || '{}'); } catch (e) { return {}; } })(), savePref = () => { try { localStorage.setItem('a4rpg', JSON.stringify(PREF)); } catch (e) { /* 存不了就算了 */ } };
+// 畫質一律從「一般」開始（11/22 使用者：畫質不要開省電）：以前開始畫面太慢會自動切省電，被切過去的人這裡改回來一次（PREF.q2 記著已經改過）；之後只有玩家自己在設定裡選才會是省電
+if (!PREF.q2) { PREF.q2 = 1; PREF.low = false; savePref(); }
 if (Q.has('mute')) PREF.mute = true; if (Q.has('low')) PREF.low = true;
 // 進度存檔：每次回到行程表、每次打贏要選強化之前各存一次（localStorage）。格式與檢查在 rules.js 的 saveRun／loadRun；讀不回來的存檔直接刪掉
 const SAVE_KEYS = ['a4rpg.run', 'a4rpg.run.2', 'a4rpg.run.3'], slotNo = () => Math.max(0, Math.min(SAVE_KEYS.length - 1, PREF.slot | 0)); let SAVE_KEY = SAVE_KEYS[slotNo()], saved, savedAt = -9;      // 三個存檔位（11/21 使用者同意補上）：標題畫面左下切換，各自獨立
@@ -90,8 +92,9 @@ let bSeed = 0, bBase = null, replay = null;
 const saveBattle = () => { if (!bBase || replay) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...bBase, blog: state.cmdLog, ver: VERSION, at: Date.now() })); savedAt = performance.now(); } catch (e) { /* 存不了就算了 */ } };
 function beginBattle(seed, log) { bSeed = seed != null ? seed >>> 0 : Math.floor(RAND() * 4294967296) >>> 0; run.rand = R.mulberry(bSeed); bBase = NOSAVE ? null : R.saveRun(run, { pend: 'battle', bseed: bSeed }); replay = log && log.length ? log.slice() : null; state = R.newState(run); saveBattle(); enterStage(); startStage(); }
 const readSave = () => { if (NOSAVE) return null; try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return null; const data = JSON.parse(raw), back = R.loadRun(data, RAND); if (!back) clearSave(); else back.ver = data.ver; return back; } catch (e) { clearSave(); return null; } };
-// 低畫質：關掉景深、光暈和陰影（手機卡的時候用）。沒選過的話，開始畫面會量幾十格，太慢就自動切過去
-const applyQuality = () => { E.dof.enabled = !PREF.low; E.bloom.enabled = !PREF.low; E.renderer.shadowMap.enabled = !PREF.low; E.scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); };
+// 低畫質：關掉景深、光暈和陰影（手機卡的時候用）。只有玩家自己選才會開，不再自動切（11/22）。
+// 景深那一關同時負責畫場景，所以不能用 enabled 關掉（v0.47.1 以前這樣做，省電畫質下 3D 畫面會整個停在最後一格），改用 blur
+const applyQuality = () => { E.dof.blur = !PREF.low; E.bloom.enabled = !PREF.low; E.renderer.shadowMap.enabled = !PREF.low; E.scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); };
 applyQuality();
 const AC = new (window.AudioContext || window.webkitAudioContext)(), master = AC.createGain(), musicGain = AC.createGain(); master.connect(AC.destination); musicGain.connect(master); master.gain.value = PREF.mute ? 0 : .9;
 const buf = {}; let now = 0, music = null;
@@ -1373,7 +1376,7 @@ function drawReport() { const k = report; if (!k || now < k.t0) return; zones = 
 // 封面上另外開的兩張紙：玩法說明、更新紀錄（新版本往最上面加一筆，留最近八筆）
 let titleInfo = null, bootClosed = false;
 const HELP = ['一個人出發（第一場有人陪），照行程表一站一站走到最後；路上招募同事，最多帶六人，四人站前排、一人在後排支援', '打贏戰鬥可以三選一強化，還會拿到報帳額度；岔路自己選：休息或特訓、福利、救人、找新同事、採買', '攻擊有六種屬性。敵人頭上兩格是弱點，打中才揭曉：傷害多三成、氣勢多加', '普通攻擊會回 SP，每個人還有自己的附帶效果；招式花 SP；特定夥伴同場可以放合體技', '行動會累積全隊共用的「氣勢」，夠了就能放奧義', '把頭目的「底氣」打到歸零，他會理虧；頭目蓄力時用對屬性拆他頭上的鎖，大招會變弱', '敵人的弱點和下一步，要有小燕或學姊在場才看得到', '連攜：冰打灼燒、火打中毒、打屬性打暈眩、光打攻擊下降、暗打標記、斬打護盾，各有額外效果', '點開行程表左邊的隊伍：調順序、看每個人的素質、招式與被動；戰鬥中也能開，也能把候補換上場', '名詞：「底氣」是頭目頭上的紅格，打到歸零他就「理虧」；「議程」是左上角的行動順序；同標籤的小物湊三個是「套裝」；「福委會」那一站可以白拿一個強化', '候補每回合回三分之一 HP 和 SP；前排有人倒下，候補會自動補上', '戰鬥畫面上的小圖示是什麼意思，按右上角的「圖示說明」看對照', '進度會自動存到這台裝置（戰鬥打到一半也會存），下次打開可以「繼續上班」；有三個存檔位'];
-const CHANGES = [['v0.47.1', '站在後排的人也能一起放合體技、也會出手（以前鼠仙女站後排時，「午夜前全部重建」放不了）'], ['v0.47.0', '鏡像內戰：對面的鏡像同事能力值跟本人一樣（血量、攻擊力、速度；我方這一趟的強化也算進去）', '鏡像內戰：對面的人數跟我方上場人數一樣（頭目算一個人）；三位頭目仍是頭目的血量'], ['v0.46.0', '合體技有配音了：兩個人一搭一唱，各說一句，輪到誰說台詞就打在誰身上', '我方身上的狀態（中毒、護盾、再生、攻擊提升…）也改成圖示加回合數，畫在每個人頭上；全隊的效果畫在氣勢條下面', '設定 → 玩法說明多一頁「我方狀態」的圖示對照'], ['v0.45.2', '標題畫面也會播地圖配樂（手機要先碰一下螢幕才會出聲）'], ['v0.45.1', '菁英戰和中頭目有自己的配樂了；行程表和標題畫面換成正式的地圖配樂'], ['v0.45.0', '合體技多了破框定格：上下黑邊滑進來，兩個人衝向鏡頭、看著你，蓋過黑邊', '16 位同事各有一張專屬的動作圖；鼠仙女從空中飛進來，兩隻老鼠跟在旁邊跳舞'], ['v0.44.0', '戰鬥畫面精簡：設定、隊伍・道具、速度、返回改成圖示；拿掉「議程」「目標」等不必要的字', '敵人頭上的狀態全部改成小圖示加回合數；底氣改成盾牌圖示；攻擊按鈕直接顯示屬性牌', '圖示的意思：設定 → 玩法說明 → 圖示說明（戰鬥中按設定會直接開這一頁）', '戰鬥畫面不再顯示第幾站和候補，按「隊伍・道具」看'], ['v0.43.0', '後來加入的 11 位同事放奧義時會喊出自己的台詞（小燕、茶茶、學姊、小蝶、鼠仙女、許許、小安、黑輪、阿強、老油條、阿哲）', '鼠仙女的奧義改唸愛的咒語；小葵換了比較甜的聲音', '看得到敵情時，左上角多一顆眼睛：點一下把敵人頭上的標籤收起來（大招預告照樣顯示）'] ];
+const CHANGES = [['v0.47.1', '修正：省電畫質下戰鬥畫面會停住不動（隊伍換了，畫面上還是舊的人）', '畫質不再自動切成省電；以前被切過去的會改回一般。手機發燙或會卡，再到設定裡自己改', '站在後排的人也能一起放合體技、也會出手（以前鼠仙女站後排時，「午夜前全部重建」放不了）'], ['v0.47.0', '鏡像內戰：對面的鏡像同事能力值跟本人一樣（血量、攻擊力、速度；我方這一趟的強化也算進去）', '鏡像內戰：對面的人數跟我方上場人數一樣（頭目算一個人）；三位頭目仍是頭目的血量'], ['v0.46.0', '合體技有配音了：兩個人一搭一唱，各說一句，輪到誰說台詞就打在誰身上', '我方身上的狀態（中毒、護盾、再生、攻擊提升…）也改成圖示加回合數，畫在每個人頭上；全隊的效果畫在氣勢條下面', '設定 → 玩法說明多一頁「我方狀態」的圖示對照'], ['v0.45.2', '標題畫面也會播地圖配樂（手機要先碰一下螢幕才會出聲）'], ['v0.45.1', '菁英戰和中頭目有自己的配樂了；行程表和標題畫面換成正式的地圖配樂'], ['v0.45.0', '合體技多了破框定格：上下黑邊滑進來，兩個人衝向鏡頭、看著你，蓋過黑邊', '16 位同事各有一張專屬的動作圖；鼠仙女從空中飛進來，兩隻老鼠跟在旁邊跳舞'], ['v0.44.0', '戰鬥畫面精簡：設定、隊伍・道具、速度、返回改成圖示；拿掉「議程」「目標」等不必要的字', '敵人頭上的狀態全部改成小圖示加回合數；底氣改成盾牌圖示；攻擊按鈕直接顯示屬性牌', '圖示的意思：設定 → 玩法說明 → 圖示說明（戰鬥中按設定會直接開這一頁）', '戰鬥畫面不再顯示第幾站和候補，按「隊伍・道具」看'], ['v0.43.0', '後來加入的 11 位同事放奧義時會喊出自己的台詞（小燕、茶茶、學姊、小蝶、鼠仙女、許許、小安、黑輪、阿強、老油條、阿哲）', '鼠仙女的奧義改唸愛的咒語；小葵換了比較甜的聲音', '看得到敵情時，左上角多一顆眼睛：點一下把敵人頭上的標籤收起來（大招預告照樣顯示）'] ];
 function drawOverlay() {
   if (phase === 'title' || phase === 'load') { zones = []; if (!bootClosed) { bootClosed = true; window.__bootDone && window.__bootDone(); }      // 標題畫面畫得出來就收掉開機畫面（聲音與其餘立繪還在背景載，按鈕的位置會寫進度）
     // 封面：整張主視覺（art/map/cover.jpg），上面只放標題與按鈕；玩法說明、更新紀錄另外開
@@ -1435,11 +1438,10 @@ for (const ev of ['gesturestart', 'gesturechange', 'dblclick', 'contextmenu', 's
 addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); else if (mapFree()) { mapCamT = null; mapCam = clampCam([mapCam[0] + e.deltaX / mapZ, mapCam[1] + e.deltaY / mapZ]); } }, { passive: false }); addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 // ---------- 主迴圈 ----------
-let last = performance.now(), pruneAt = 0, slowN = 0, slowSum = 0;
+let last = performance.now(), pruneAt = 0;
 function frame(ts) {
   const dt = Math.min(.1, (ts - last) / 1000); last = ts;
-  if (!PREF.set && !PREF.low && (phase === 'title' || phase === 'load') && ++slowN > 20) { slowSum += dt; if (slowN === 70 && slowSum / 50 > .03) { PREF.low = true; applyQuality(); } }
-  now += dt * speedNow();      // ↑ 開始畫面平均不到 33 格：自動切省電畫質
+  now += dt * speedNow();
   while (todo.length && todo[0].t <= now) todo.shift().fn();
   arena.update(now); for (const id in units) units[id].update(now); for (const u of spareUnits()) u.update(now); tickSuper(); for (const id of R.FRONT) { const u = units[id]; if (!u || !S.hp[id]) continue; const hv = S.hp[id].filter(k => k.t <= now).at(-1); u.weak = inFight() && !ko[id] && !!hv && hv.v > 0 && hv.v / R.STAT[id].hp < .3; }
   for (const id of R.FRONT) if (ko[id]) { const m = units[id].mesh; if (units[id].frames.ko) m.material.color.multiplyScalar(.82); else { m.material.color.multiplyScalar(.3); m.scale.y *= .62; } }
