@@ -52,9 +52,13 @@ export async function buildArena(E) {
   const key = new THREE.SpotLight(0xe8e2ff, 150, 28, .5, .85, 1.1); key.position.set(.5, 9.5, 5.5); key.target.position.set(.5, 0, -.6); g.add(key, key.target);
   // 換場景：別張地圖的戰鬥把大廳的擺設收起來，後牆前面掛一張大背景圖。圖取中間一條（寬：高＝30：7.2），tint 把它壓暗一點融進夜色；cy＝取圖的哪個高度當中心（0 最上、1 最下）
   let drop = null; const dropTex = new Map();
-  function setBackdrop(img, tint = 0xa8a4bc, cy = .5) { for (const o of decor) o.visible = !img; if (!img) { if (drop) drop.visible = false; return; }
+  // rep＝這張圖橫向鋪幾次（1＝一張圖撐滿 30 單位寬，畫面上只看得到中間四成，東西會很大；室內景用 2，家具才不會比人大）。
+  // 多出來的用左右鏡射接上；牆腳線的位置不變（圖的 cy 往下半條橫帶），上面不夠的部分用圖最上面那一行補
+  function setBackdrop(img, tint = 0xa8a4bc, cy = .5, rep = 1) { for (const o of decor) o.visible = !img; if (!img) { if (drop) drop.visible = false; return; }
     if (!drop) { drop = new THREE.Mesh(new THREE.PlaneGeometry(30, 7.2), new THREE.MeshBasicMaterial({ color: tint })); drop.position.set(0, 3.6, -4.0); g.add(drop); }
-    if (!dropTex.has(img)) { const bh = Math.round(img.width * 7.2 / 30), y0 = Math.max(0, Math.min(img.height - bh, Math.round(img.height * cy - bh / 2))), c = document.createElement('canvas'); c.width = img.width; c.height = bh; c.getContext('2d').drawImage(img, 0, y0, img.width, bh, 0, 0, img.width, bh); const t = canvasTex(c); dropTex.set(img, t); }
+    if (!dropTex.has(img)) { const b1 = Math.round(img.width * 7.2 / 30), bh = Math.round(b1 * rep), y1 = rep === 1 ? Math.max(0, Math.min(img.height - b1, Math.round(img.height * cy - b1 / 2))) + b1 : Math.min(img.height, Math.round(img.height * cy + b1 / 2)), y0 = y1 - bh, c = document.createElement('canvas'), x = c.getContext('2d'); c.width = img.width; c.height = bh;
+      if (y0 < 0) x.drawImage(img, 0, 0, img.width, 1, 0, 0, img.width, -y0 + 1); x.drawImage(img, 0, Math.max(0, y0), img.width, y1 - Math.max(0, y0), 0, Math.max(0, -y0), img.width, y1 - Math.max(0, y0));
+      const t = canvasTex(c); if (rep !== 1) { t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(rep, 1); t.offset.set((1 - rep) / 2, 0); t.needsUpdate = true; } dropTex.set(img, t); }
     drop.material.map = dropTex.get(img); drop.material.color.set(tint); drop.material.needsUpdate = true; drop.visible = true; }
   return {
     group: g, R, fires, key, setBackdrop,
