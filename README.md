@@ -683,3 +683,13 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - **測試**：`tools/tests/villtest.mjs` 改寫成新機制（49 項）；`m2test`、`v23test`、`c2test` 裡用到課長、總經理、豬腦的幾項照新規則改了期望值。
 - **通關率**：會想的打法 100%／100%（原本也是），隨便打 85%／69%（原本 98%／89%）。
 - 還沒做：台灣篇、地獄分公司共六位＋兩隻輔助小兵；新頭目的台詞（`text`）只改了課長和總經理幾句，都是草稿，使用者還沒看；新造型沒有配音與專屬音效。
+
+### v0.49.0 台灣篇三位頭目重做；新頭目的揮擊動畫；總經理造型改回原本的（11/23，還沒上線）
+使用者 11/23：「台灣篇先處理」「揮擊動畫要做喔，舊的總經理為什麼不用？」。細節在 `design/boss2/README.md` 後半。
+- 台灣篇：剪黏課長 `plates`、不夜城營運總監 `tally`、鐵皮增建處長 `tiers`，輔助小兵 `sup_tw` 巡攤後勤仔；三場都是三隻小兵。舊的 `wok`（防禦彈回去）、`fee`、`layers` 沒有頭目在用了。
+- 新造型 `art/enemy/{tw_pot,tw_night,tw_roof}_{idle,wind,atk,hurt}.png`、`sup_tw_{idle,atk,hit}.png`（`cut.py --cell`：tw_pot 3.62、tw_night 3.62 加 `--key strict`、tw_roof 2.44、sup_tw 5）。
+- 揮擊中間格 `art/enemy/anim/<代號>_s1～4.png`：chief、parrot、monkey、audit、pig、tw_pot、tw_night、tw_roof 共八位（`tools/swing.py`）。
+- 奧客總經理：圖檔從 v0.47.1 救回來（`boss_idle／atk／hurt／stun`、`anim/boss_1～6`），`battle.js` 的 `DEFS.boss` 和載入方式也改回去。
+- `tools/cut.py` 多一個 `--key strict`（只把跟邊緣連在一起的洋紅當背景）。
+- 通關率：一般行程 會想的 100%／100%、隨便打 85%／69%；台灣篇 會想的 95%／99%、隨便打 46%／61%。
+- 還沒做：地獄分公司三位＋輔助小兵；新頭目的台詞都是草稿；沒有配音與專屬音效。

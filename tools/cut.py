@@ -1,5 +1,5 @@
 """動作表 → 單格像素圖（一格一像素），腳底中心對齊到圖的正中間。
-用法：uv run --with pillow --with numpy --with scipy python tools/cut.py <raw.png> <outdir> <名1,名2,…> [--cell 6.1] [--gap 3] [--anchor feet|center] [--flip 1,2,3]
+用法：uv run --with pillow --with numpy --with scipy python tools/cut.py <raw.png> <outdir> <名1,名2,…> [--cell 6.1] [--gap 3] [--anchor feet|center] [--flip 1,2,3] [--key strict]
 會印出每格大小與估到的格子大小；同時輸出 <outdir>/<第一個名字>_meta.json。"""
 import sys, os, json
 import numpy as np
@@ -51,6 +51,9 @@ def split(rgba, gap):
 src, outdir, names = sys.argv[1], sys.argv[2], sys.argv[3].split(',')
 args = sys.argv[4:]; opt = {args[i][2:]: args[i + 1] for i in range(0, len(args) - 1, 2)}
 a = np.asarray(Image.open(src).convert('RGB')).astype(np.int32); mask = bg_mask(a)
+if opt.get('key') == 'strict':      # 人物身上有紫色、桃紅色的大色塊（不夜城的招牌）會被當成背景挖掉：改成「跟圖的邊緣連在一起的洋紅」才算背景，中間被包住的只認很純的洋紅
+    lab, n = ndi.label(mask); edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}; pure = (a[..., 0] > 215) & (a[..., 1] < 50) & (a[..., 2] > 215)
+    mask = np.isin(lab, list(edge)) | pure
 cell = float(opt['cell']) if 'cell' in opt else estimate_cell(a)[0]
 rgba = downsample(a, mask, cell); pieces = split(rgba, int(opt.get('gap', 3)))
 if len(pieces) != len(names): print(f'警告：找到 {len(pieces)} 件，名字有 {len(names)} 個')

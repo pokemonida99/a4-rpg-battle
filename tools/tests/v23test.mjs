@@ -10,6 +10,6 @@ s = mk('chief', 'office', ['mi', 'jie', 'kevin']); s.potUsed = true; R.doSkill(s
 s = mk('chief', 'office', ['heilun', 'jie', 'kevin']); R.doSkill(s, 'heilun', 'mark', 'ma'); r = R.doAttack(s, 'jie', 'ma'); ok(r.hits[0].combo === 'dark', '暗打被標記的：落井下石');
 // 第二階段
 s = mk('boss'); s.hp.boss = Math.round(R.STAT.boss.hp * .49); const atk0 = R.STAT.boss.atk; ok(R.intent(s, 'boss').kind === 'phase2', '意圖預告變身'); for (const m of R.MINIONS) s.hp[m] = 0; r = R.enemyTurn(s, 'boss'); ok(r.kind === 'phase2' && r.summon && s.p2 && R.STAT.boss.cycle === 4 && R.STAT.boss.atk === Math.round(atk0 * 1.15), `第二階段：週期 ${R.STAT.boss.cycle}、攻擊 ${atk0}→${R.STAT.boss.atk}、叫回小兵`); r = R.enemyTurn(s, 'boss'); ok(r.kind !== 'phase2', '只變一次');
-s = mk('tw_roof', 'taiwan'); s.hp.boss = Math.round(R.STAT.boss.hp * .4); r = R.enemyTurn(s, 'boss'); ok(r.kind === 'phase2' && s.layers === 3, '鐵皮處長：一口氣加蓋到三層');
+s = mk('tw_roof', 'taiwan'); ok(s.tier === 3 && !s.L.p2, '鐵皮處長：改成三層血，不再有第二階段（v0.49）');
 s = mk('chief'); s.hp.boss = Math.round(R.STAT.boss.hp * .3); r = R.enemyTurn(s, 'boss'); ok(r.kind !== 'phase2', '中段頭目沒有第二階段');
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過');
