@@ -21,7 +21,7 @@ const toBattle = async () => { await page.waitForFunction('window.__game && wind
 const shot = n => page.screenshot({ path: path.join(OUT, `low_${n}.jpg`), type: 'jpeg', quality: 84 });
 const done = async () => { console.log(log.join('\n')); console.log('錯誤：', errors.length ? [...new Set(errors)].slice(0, 6).join(' ／ ') : '無'); console.log(bad ? `有 ${bad} 項沒過` : '全部通過'); await browser.close(); process.exit(bad ? 1 : 0); };
 
-await page.goto(URL + `&fresh=${Date.now()}`);
+await page.goto(URL + `&fresh=${Date.now()}`, { timeout: 120000, waitUntil: 'domcontentloaded' });
 if (BYURL) { await toBattle(); const mv = await moving(); ok(mv, `網址 ?low：場景${mv ? '會動' : '停住了'}`); await shot('byurl'); await done(); }
 // ① 以前被自動切到省電的人
 await page.evaluate(() => { localStorage.clear(); localStorage.setItem('a4rpg', JSON.stringify({ low: true, set: true })); }); await page.reload(); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 });
@@ -34,6 +34,6 @@ ok(await tapZone(z => z.opt === 'conf'), '點得到設定'); ok(await tapItem('�
 ok(await tapItem('回戰鬥'), '回戰鬥'); await wait(500); ok(await moving(), '省電畫質：場景會動'); await shot('3_low');
 { const a = await clip(); await page.evaluate(() => { const g = __game; g.press(0); }); await wait(300); await page.evaluate(() => { const g = __game; if (g.phase === 'command' && g.menu && g.menu.kind !== 'root') g.press(0); }); await wait(650); const b2 = await clip(); await shot('4_low_hit'); ok(!a.equals(b2), '省電畫質：出手時人有移動'); }
 // ④ 重新整理：自己選的省電留著
-await page.goto(URL + `&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); { const p = await pref(); ok(p.low === true, '重新整理後還是省電（自己選的不會被改回去）'); }
+await page.goto(URL + `&fresh=${Date.now()}`, { timeout: 120000, waitUntil: 'domcontentloaded' }); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); { const p = await pref(); ok(p.low === true, '重新整理後還是省電（自己選的不會被改回去）'); }
 await toBattle(); ok(await moving(), '重新整理後的省電畫質：場景會動');
 await page.evaluate(() => { localStorage.clear(); }); await done();
