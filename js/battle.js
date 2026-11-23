@@ -113,7 +113,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   A.face.boss = crop(units.boss.frames.idle.image, DEFS.boss.face); A.face.ma = A.face.mb = A.face.mc = A.face.md = crop(units.ma.frames.idle.image, DEFS.ma.face);
 
   // ---------- 特效 ----------
-  const FXIDS = ['fire/brazier', 'arcane/spell-charge', 'arcane/rune-circle', 'arcane/magic-circle-cast', 'arcane/mana-burst', 'melee/sword-slash', 'melee/double-slash', 'melee/dagger-flurry', 'melee/heavy-cleave', 'melee/spin-slash', 'melee/hammer-smash',
+  const FXIDS = ['fire/brazier', 'arcane/spell-charge', 'arcane/rune-circle', 'arcane/magic-circle-cast', 'arcane/mana-burst', 'melee/sword-slash', 'melee/thrust', 'melee/double-slash', 'melee/dagger-flurry', 'melee/heavy-cleave', 'melee/spin-slash', 'melee/hammer-smash',
     'impacts/hit-spark', 'impacts/crit-hit', 'impacts/shield-block', 'impacts/parry', 'impacts/blunt-hit', 'impacts/ground-slam', 'shadow/dark-explosion', 'shadow/grasping-hands', 'shadow/shadow-tendrils', 'shadow/shadow-flames', 'shadow/void-orb', 'shadow/black-hole',
     'holy/blessing', 'holy/divine-shield', 'holy/heal', 'holy/heal-aoe', 'holy/holy-pillar', 'holy/smite', 'holy/sunburst', 'holy/feather-burst', 'explosions/big-explosion', 'explosions/plasma-explosion', 'explosions/small-explosion', 'explosions/firework-burst',
     'lightning/charge-up', 'lightning/thunderclap', 'lightning/lightning-strike', 'spawn/poof', 'spawn/soul-rise', 'status/stunned', 'status/rage', 'status/haste', 'ui/level-up', 'ui/confetti', 'arcane/star-fall'];

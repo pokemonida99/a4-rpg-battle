@@ -1,0 +1,19 @@
+// 11/24 改版：行程表的道具欄、戰鬥中的道具選單與丟道具。node tools/tests/revampbattle.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
+const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core'); const wait = ms => new Promise(r => setTimeout(r, ms));
+const OUT = '/Users/hermes/Public/0720/a4-rpg-battle/out/revamp'; fs.mkdirSync(OUT, { recursive: true }); const errors = [];
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 2.3, isMobile: true, hasTouch: true }); page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+const shot = n => page.screenshot({ path: path.join(OUT, n + '.jpg'), type: 'jpeg', quality: 86 }), menu = () => page.evaluate(() => __game.menu && __game.menu.items.map(x => x.label + (x.off ? '(off)' : '')));
+await page.goto(`http://localhost:4630/game.html?mute&seed=3&map=office&stage=crowd&team=kevin,mi,heilun&fresh=${Date.now()}`); await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); await wait(6000);
+await page.evaluate(() => __game.start()); await page.waitForFunction('__game.phase === "pick" && __game.menu'); await page.evaluate(() => __game.press(0)); await wait(700); await page.evaluate(() => __game.press(0)); await page.waitForFunction('__game.phase === "hub" && __game.menu', { timeout: 30000 }); await wait(900);
+await page.evaluate(() => { const r = __game.run; Object.assign(r.items, { stapler: 2, warmer: 1, poncho: 1, stamp: 1, tonic: 1, bandage: 1, highlighter: 1, notice: 1 }); r.picks.push('express', 'recycle'); r.hp.kevin = 3000; });
+await page.evaluate(() => __game.openPanel()); await wait(900); await shot('7_hub_panel'); await page.evaluate(() => { const g = __game, i = g.menu.items.findIndex(m => m.use === 'stapler'); g.press(i); }); await wait(500); await shot('7b_hub_panel_note');
+await page.evaluate(() => { const g = __game, i = g.menu.items.findIndex(m => m.close || m.label === '關閉' || m.label === '回行程表'); if (i >= 0) g.press(i); }); await wait(600);
+await page.evaluate(() => { const g = __game; g.go(g.menu.items.filter(x => x.node != null).length - 1); }); await wait(400); await page.evaluate(() => { const g = __game; if (g.phase === 'hub' && g.menu) { const i = g.menu.items.findIndex(m => m.depart); if (i >= 0) g.press(i); } });
+await page.waitForFunction('__game.phase === "command" && __game.menu && __game.menu.kind === "root"', { timeout: 60000 }); await wait(500);
+await page.evaluate(() => __game.openMenu('items')); await wait(500); await shot('8_battle_items'); console.log('道具選單', await menu());
+await page.evaluate(() => { const g = __game, i = g.menu.items.findIndex(m => m.label === '訂書機'); g.press(i); }); await wait(400); console.log('選對象', await menu()); await shot('8b_item_target');
+await page.evaluate(() => { const g = __game; g.press(0); }); await wait(900); await shot('9_item_throw'); await wait(1500); await shot('9b_after'); console.log('快用後輪到', await page.evaluate(() => [__game.phase, __game.actor]));
+await page.waitForFunction('__game.phase === "command" && __game.menu && __game.menu.kind === "root"', { timeout: 30000 }); await page.evaluate(() => __game.openMenu('items')); await wait(300); await page.evaluate(() => { const g = __game, i = g.menu.items.findIndex(m => m.label === '螢光筆'); g.press(i); }); await wait(1200); await shot('10_highlighter');
+console.log('錯誤：', errors.length ? errors.slice(0, 6).join(' ／ ') : '無'); await browser.close();

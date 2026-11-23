@@ -694,6 +694,21 @@ HD-2D 像素奇幻風的 RPG 戰鬥影片（約 94 秒，1920×1080）。腳本�
 - 通關率：一般行程 會想的 100%／100%、隨便打 85%／69%；台灣篇 會想的 95%／99%、隨便打 46%／61%。
 - 還沒做：地獄分公司三位＋輔助小兵；新頭目的台詞都是草稿；沒有配音與專屬音效。
 
+### v0.51.0 系統改版：過關獎勵、職位、福利社與報帳處、道具（11/24，本機，還沒上線）
+- 使用者睡前交代：三選一不誘人、代理職位讓人不想選、福利社和報帳處要有差異、道具太少。跟 GPT 討論後一次改。設計與取捨在 `design/revamp/README.md`。
+- 規則在 `js/rules.js`：
+  - 道具：`ITEMS`、`doItem`、`itemTargets`。
+  - 強化：`UPGRADES` 的 tier、old、10 個核心。
+  - 過關獎勵：`offerReward`、`applyReward`。
+  - 職位：`JOBS`、`jobBlock`、`skillBlock`、`ultCost`。
+  - 商店：`storeStock`、`storeBuy`、`shopStock`、`buy`、`shopPrice`。
+- 畫面在 `js/game.js`：
+  - `openUpgrade`、`rewardCard`、`openStore`、`openShop(nd, 頁)`、`pickJob`。
+  - 道具選單 `items`／`itemFoe`、`playItem`、行程表道具欄。
+- 圖示（`art/map/icons/`）：道具 `it_*` 16 個、核心 `up_*` 12 個（`art/raw/jobs33.sh`，切圖 `design/revamp/cut_icons.py`）。
+- 同版也做了軌跡格（`design/pixelcraft/03-smear.md`）：九位近戰同事揮出那格畫成武器殘影、小葵刀光改從頭上劈到刀身。
+- 測試：`tools/tests/revamptest.mjs`（規則）、`revampshot.mjs`、`revampbattle.mjs`（截圖）、`revamptap.mjs`（真的觸控點）、`revampflow.mjs`（從頭玩幾站）。
+
 ### v0.50.1 鐵皮增建處長站姿補手（11/23，11/23 已上線）
 
 使用者 11/23：「違建是不是少了一隻手」。原本站姿只畫到扛鋼梁的那隻手，另一隻不見；攻擊、受擊和四格揮擊都有兩隻手。只重畫站姿（`art/raw/jobs29.sh` → `art/raw/b2i_tw_roof.png`，`tools/cut.py --cell 3.81` 對到原本 201 像素高），一手扛鋼梁、一手垂在身側。
