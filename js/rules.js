@@ -738,6 +738,10 @@ export function offerReward(run) { const o = run.reward; if (o && o.floor === ru
     if (run.job === 'edu') { const g = growth(run, opts); opts.push(g || packOf(run, k)); } else opts.push(packOf(run, k));
     if (opts.length < 3) { const u2 = upOf(run, 1, opts.filter(x => x.t === 'up').map(x => x.key)); if (u2) opts.push({ t: 'up', key: u2 }); } }
   return (run.reward = { floor: run.floor, node: run.path[run.floor], kind: k, opts, skip: REWARD_SKIP[k] }); }
+// 換一組（11/24）：花 REROLL_COST 點重抽這次的三格，每次獎勵限一次（多的報帳額度有地方花）
+export const REROLL_COST = 15;
+export const rerollOk = run => { const o = offerReward(run); return !o.rerolled && run.coin >= REROLL_COST; };
+export function rerollReward(run) { if (!rerollOk(run)) return false; const old = run.reward; run.coin -= REROLL_COST; run.reward = null; const nw = offerReward(run); nw.rerolled = true; nw.skip = old.skip; return true; }
 // i：選第幾格；-1＝都不要，領額度。回傳一句結果
 export function applyReward(run, i) { const R0 = offerReward(run), o = R0.opts[i]; run.reward = null;
   if (i < 0 || !o) { run.coin += R0.skip; return `領了 ${R0.skip} 點報帳額度`; }

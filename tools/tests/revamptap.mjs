@@ -17,5 +17,7 @@ ok(await tapItem(m => m.nav), '點得到「回道具」'); ok((await labels()).i
 const c0 = await page.evaluate(() => __game.run.coin); ok(await tapItem(m => !m.nav && !m.off && m.label !== '強化與服務'), '點一個道具買'); ok(await page.evaluate(c => __game.run.coin < c, c0), '錢有扣');
 const fl = await page.evaluate(() => __game.run.floor); ok(await tapItem(m => m.nav), '點得到「離開」'); ok(await page.evaluate(f => __game.phase === 'hub' && __game.run.floor === f + 1, fl), '離開後到下一站');
 await page.evaluate(() => { const r = __game.run; r.reward = null; r.node = { type: 'battle', tag: '戰鬥' }; r.path[r.floor] = 0; __game.openUpgrade(false); }); await wait(800); const c1 = await page.evaluate(() => __game.run.coin);
-ok(await tapItem(m => m.label === '都先不要'), '點得到「都先不要」'); ok(await page.evaluate(c => __game.run.coin === c + 15 && __game.phase === 'hub', c1), '領 15 點回行程表');
+{ const before = await page.evaluate(() => [__game.run.coin, JSON.stringify(__game.run.reward.opts)]); ok(await tapItem(m => m.label === '換一組'), '點得到「換一組」'); const after = await page.evaluate(() => [__game.run.coin, JSON.stringify(__game.run.reward.opts), __game.menu.items.find(m => m.label === '換一組').off]); ok(after[0] === before[0] - 15 && after[2], `換一組扣 15 點、之後不能再換（${before[0]}→${after[0]}）`); }
+const c1b = await page.evaluate(() => __game.run.coin);
+ok(await tapItem(m => m.label === '都先不要'), '點得到「都先不要」'); ok(await page.evaluate(c => __game.run.coin === c + 15 && __game.phase === 'hub', c1b), '領 15 點回行程表');
 console.log('錯誤：', errors.length ? errors.join(' ／ ') : '無'); console.log(bad ? `有 ${bad} 項沒過` : '全部通過'); await browser.close();
