@@ -424,7 +424,8 @@ Object.assign(UPGRADES, {
   drill: { name: '火災演習', desc: '每回合第一次讓敵人灼燒：所有灼燒中的敵人各受 800 火屬性傷害', core: true, burn: true } });
 { const T = { raise: 1, leave: 1, chair: 1, cutter: 1, partition: 1, cheatsheet: 1, coffee: 2, firstaid: 2, applause: 2, bell: 2, weakpoint: 2, tabs: 2, carbon: 2, notebook: 2, redpen: 2, ember: 2, bounty: 2, dossier: 2, crunch: 2 };
   for (const k in UPGRADES) { const U = UPGRADES[k]; U.tier = U.core ? 3 : T[k] || 0; if (!U.tier) U.old = true; else U.once = true; }
-  UPGRADES.coffee.desc = '每場戰鬥開始，前排全員 SP ＋40；拿到時全員 SP ＋80'; UPGRADES.crunch.need = ['fairy']; UPGRADES.bounty.need = ['heilun', 'senpai', 'wu']; }
+  UPGRADES.coffee.desc = '每場戰鬥開始，前排全員 SP ＋40；拿到時全員 SP ＋80';
+  UPGRADES.express.desc += '；附訂書機 ×1'; UPGRADES.recycle.desc += '；附泡棉膠帶 ×1'; UPGRADES.drill.desc += '；附暖暖包 ×1'; UPGRADES.crunch.need = ['fairy']; UPGRADES.bounty.need = ['heilun', 'senpai', 'wu']; }
 export const TIER_NAME_UP = ['', '普通', '進階', '核心'];
 // 強化的標籤（結案報告的「打法」、選卡時顯示）
 export const UP_TAG = { raise: '火力', ember: '火力', riposte: '火力', weakpoint: '火力', redpen: '火力', cutter: '火力', thermos: '火力', leave: '耐久', chair: '耐久', firstaid: '耐久', partition: '耐久', blanket: '耐久', cheatsheet: '耐久',
@@ -567,17 +568,17 @@ export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
 // 報帳處（採買站）：打贏戰鬥會拿到「報帳額度」（run.coin：一般 40、菁英 70、頭目 90），在採買站花掉。一站賣三樣：一個小物、一份補給包（奶茶、咖啡、便當各一）、一次特訓
 // 職位：開局選一個，整輪有效。[名字, 好處, 限制, 一句話]
 export const JOBS = {      // 11/24 改版（使用者：「每次看了都覺得那就都不要代理好了」）：好處要明顯、能帶出打法；限制改成改變操作，不單純扣數值
-  fire: ['救火組長', '每場戰鬥第一次用招式不花 SP，傷害 ＋40%', '第一回合不能防禦、換人', '先處理，檢討等一下。'],
+  fire: ['救火組長', '每場戰鬥第一次用招式不花 SP，傷害 ＋40%；開局泡棉膠帶、散會通知各一', '第一回合不能防禦、換人', '先處理，檢討等一下。'],
   welfare: ['福利委員', '每回合第一次補血，被補到的人再得到 400 護盾；開局多一杯奶茶', '奶茶、咖啡要給別人喝（前排只剩自己時例外）', '有吃有保庇。'],
-  risk: ['風控專員', '每回合第一個防禦的人多拿 400 護盾，氣勢 ＋8', '前排沒有人帶護盾時，奧義要多 10 氣勢', '這筆風險我先擋。'],
+  risk: ['風控專員', '每回合第一個防禦的人多拿 400 護盾，氣勢 ＋8；開局輕便雨衣、降噪耳塞各一', '前排沒有人帶護盾時，奧義要多 10 氣勢', '這筆風險我先擋。'],
   window: ['專案窗口', '打中弱點的傷害再高一些；每回合前三次打中弱點，出手的人 SP ＋8', '同一個人不能連續兩回合用同一招', '找對人，事情就快。'],
-  buyer: ['採購主任', '開局 50 點報帳額度；福利社、報帳處的道具打 75 折；報帳處的核心固定是道具類（急件快遞或回收分類）', '報帳處只能買道具類核心，不能買其他強化', '這個我有拿到價。'],
+  buyer: ['採購主任', '開局 50 點報帳額度、訂書機與螢光筆各一；道具打 75 折；報帳處的核心固定是道具類（急件快遞或回收分類）', '報帳處只能買道具類核心，不能買其他強化', '這個我有拿到價。'],
   hr: ['人資專員', '開局從三位同事挑一位同行', '名冊最多 5 人', '人先補齊，事情再說。'],
   host: ['會議主持', '每場開場氣勢 ＋20；每場第一次奧義後，前排 SP ＋20', '第一回合不能放奧義', '好，直接進重點。'],
   edu: ['教育委員', '主角一開始就會全部招式，再升級一招；特訓站可以升兩招', '過關獎勵的道具包換成招式升級', '學起來就是你的。'],
   staff: ['一般職員', '開局 30 點報帳額度，多一杯珍珠奶茶', '沒有限制', '照自己的步調。'],
   duty: ['值班主任', '護盾量 ＋35%', '戰鬥中的回復量 －20%', '問題先擋著，明天再說。'] };
-export const JOB_OLD = ['duty'], JOB_PLAIN = 'staff';      // duty：舊存檔用，不再出現；staff：一般職員，固定放在第四張
+export const JOB_OLD = ['duty'], JOB_PLAIN = 'staff', JOB_KIT = { fire: ['tape', 'notice'], risk: ['poncho', 'earplug'], buyer: ['stapler', 'highlighter'] };      // 職位交接包（11/24 GPT 第三輪）      // duty：舊存檔用，不再出現；staff：一般職員，固定放在第四張
 // 開局給三個職位挑（沒有採買站的地圖不出採購主任）
 export function offerJobs(rand = Math.random, map = 'office') { const pool = Object.keys(JOBS).filter(k => !JOB_OLD.includes(k) && k !== JOB_PLAIN && (k !== 'buyer' || (MAPS[map] || []).some(fl => fl.some(nd => nd.type === 'shop')))); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
 export const rosterMax = run => run && run.job === 'hr' ? 5 : 6;
@@ -591,7 +592,9 @@ const jobHeal = s => s.run.job === 'duty' ? .8 : 1, jobWard = s => s.run.job ===
 // ---------- 商店（11/24 改版，使用者：福利社跟地圖上的報帳處要有差異，例如半價）----------
 // 福利社（行程表上隨時開）：只賣道具、原價；每一站合計最多買兩件，便當每張地圖一件；另有兩款這一站到貨的普通戰術道具。
 // 報帳處（要走到那一站）：普通道具半價、三款稀有道具（偶爾有特級）、進階強化 90、核心強化 150、特訓 45、素質 ＋1、內部調派、換一格強化。
-export const PRICE = { up2: 90, up3: 150, train: 45, reroll: 20, draw: 120 }, STORE_MAX = 2;
+export const PRICE = { up2: 90, up3: 150, train: 45, reroll: 20, draw: 120, sign: 25 }, STORE_MAX = 2;
+// 戰前加簽（11/24 GPT 第三輪）：報帳處每次來能買一張，只限下一場、不能累積，開場自動生效
+export const SIGNS = { ward: ['安全加簽', '下一場開場，前排全員護盾 900', { ward: 900 }], mo: ['提案加簽', '下一場開場，氣勢 ＋20', { mo: 20 }], down: ['稽核加簽', '下一場開場，敵方全體攻擊力 －20%（兩次行動）', { down: .2 }] };
 export const STORE = { tea: 25, coffee: 30, bento: 60, draw: 120 }, BOOST = { atk: ['攻擊', '全隊攻擊力 ＋5%'], def: ['防禦', '全隊受到的傷害 －4%'], hp: ['體力', '全隊 HP 上限 ＋6%'], spd: ['速度', '全隊速度 ＋5%'], mo: ['氣勢', '每場開場氣勢 ＋6'] }, BOOST_MAX = 5;
 // 體力、速度是直接改 STAT（跟「特休」一樣），所以讀檔時要照買過的次數重算（loadRun）
 function boostStat(k) { for (const id of ALL) { if (id === 'vivi') continue; if (k === 'hp') STAT[id].hp = Math.round(STAT[id].hp * 1.06); else if (k === 'spd') STAT[id].spd = Math.round(STAT[id].spd * 1.05); } }
@@ -616,12 +619,12 @@ export function shopStock(run) { const o = run.shop || (run.shop = {}); const st
   return (o[run.floor] = { cheap, rare, up2: upPick(run, 2), up3: buyerCore !== undefined ? buyerCore : upPick(run, 3), sold: [], rerolled: false }); }
 // what：'cheap0'、'cheap1'、'rare0'～'rare2'、'up2'、'up3'、'train'（arg＝[id, key]）、'boost'（arg＝素質）、'draw'、'reroll'（arg＝'up2' 或 'up3'）
 export const shopItem = (st, what) => { const m = /^(cheap|rare)(\d)$/.exec(what); return m ? st[m[1]][+m[2]] || null : null; };
-export function shopPrice(run, what, arg) { const st = shopStock(run), it = shopItem(st, what); if (it) return itemCost(run, it, 'shop'); if (what === 'up2' || what === 'up3' || what === 'train' || what === 'reroll' || what === 'draw') return PRICE[what]; if (what === 'boost') return BOOST[arg] ? boostPrice(run, arg) : null; return null; }
+export function shopPrice(run, what, arg) { const st = shopStock(run), it = shopItem(st, what); if (it) return itemCost(run, it, 'shop'); if (what === 'up2' || what === 'up3' || what === 'train' || what === 'reroll' || what === 'draw' || what === 'sign') return PRICE[what]; if (what === 'boost') return BOOST[arg] ? boostPrice(run, arg) : null; return null; }
 export function shopOk(run, what, arg) { const st = shopStock(run), p = shopPrice(run, what, arg); if (p == null || run.coin < p) return false; if (what !== 'reroll' && st.sold.includes(what)) return false;
   if (what === 'up2' || what === 'up3') return !!st[what] && (run.job !== 'buyer' || ['express', 'recycle'].includes(st[what])) && upOk(run, st[what]);
   if (what === 'reroll') return run.job !== 'buyer' && !st.rerolled && (arg === 'up2' || arg === 'up3') && !st.sold.includes(arg) && !!upPick(run, arg === 'up2' ? 2 : 3, [st[arg]]);
   if (what === 'train') return !arg || !isPlus(run, arg[0], arg[1]); if (what === 'boost') return !!BOOST[arg] && boostLv(run, arg) < BOOST_MAX;
-  if (what === 'draw') return !run.drawPend && drawPool(run).length > 0 && swapOut(run) !== null; return !!shopItem(st, what); }
+  if (what === 'draw') return !run.drawPend && drawPool(run).length > 0 && swapOut(run) !== null; if (what === 'sign') return !!SIGNS[arg] && !(run.next && run.next.sign); return !!shopItem(st, what); }
 export function buy(run, what, arg) { if (!shopOk(run, what, arg)) return false; const st = shopStock(run), p = shopPrice(run, what, arg), it = shopItem(st, what); let res = true;
   if (it) run.items[it] = (run.items[it] || 0) + 1;
   else if (what === 'up2' || what === 'up3') applyUpgrade(run, st[what]);
@@ -629,6 +632,7 @@ export function buy(run, what, arg) { if (!shopOk(run, what, arg)) return false;
   else if (what === 'boost') { (run.boost || (run.boost = {}))[arg] = boostLv(run, arg) + 1; if (arg === 'atk') run.atk *= 1.05; else if (arg === 'def') run.def *= .96; else if (arg === 'hp') { const old = Object.fromEntries(run.roster.map(id => [id, STAT[id].hp])); boostStat('hp'); for (const id of run.roster) if (id !== 'vivi' && run.hp[id] > 0) run.hp[id] += STAT[id].hp - old[id]; } else if (arg === 'spd') boostStat('spd'); else run.moStart += 6; }
   else if (what === 'draw') { const pool = drawPool(run), id = pool[Math.floor(run.rand() * pool.length)]; if (run.roster.length < rosterMax(run)) { join(run, id); res = { joined: id }; } else { run.drawPend = id; res = { pend: id }; } }
   else if (what === 'reroll') { st[arg] = upPick(run, arg === 'up2' ? 2 : 3, [st[arg]]); st.rerolled = true; }
+  else if (what === 'sign') nextUp(run, { ...SIGNS[arg][2], sign: arg });
   run.coin -= p; if (what !== 'reroll') st.sold.push(what); return res; }
 // 菁英詞綴：每一場菁英戰抽一條（記在 run.affix[樓層]，行程表上先看得到）：[名字, 規則, 打贏多拿什麼]
 export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '被小兵打中會中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
@@ -647,7 +651,7 @@ export function newRun(rand = Math.random, starter = null, skill = null, map = '
   for (const fl of MAP) for (const nd of fl) if (nd.pool) run.alt[nd.stage] = nd.pool[Math.floor(rand() * nd.pool.length)];
   for (const k in ITEMS) run.items[k] = (ITEMS[k].n || 0) * (run.cycle >= 2 ? CYCLE_ITEMS : 1);
   if (starter) { join(run, starter); run.skills[starter] = [skill || SKILLS[starter][0].key, START2[starter]].filter(Boolean); } else for (const id of ['kui', 'kevin', 'jie', 'mi', 'vivi']) join(run, id);
-  if (starter && run.job) { const j = run.job; if (j === 'edu') { run.skills[starter] = SKILLS[starter].map(k => k.key); const k = run.skills[starter].find(q => !isPlus(run, starter, q) && q !== skill); if (k) applyTrain(run, starter, k); } else if (j === 'buyer') run.coin = 50; else if (j === 'host') run.moStart += 20; else if (j === 'welfare') run.items.tea++; else if (j === 'staff') { run.coin = 30; run.items.tea++; } }      // 人資專員的同事由畫面讓玩家挑（hrOffer／join）
+  if (starter && run.job) { const j = run.job; if (j === 'edu') { run.skills[starter] = SKILLS[starter].map(k => k.key); const k = run.skills[starter].find(q => !isPlus(run, starter, q) && q !== skill); if (k) applyTrain(run, starter, k); } else if (j === 'buyer') run.coin = 50; else if (j === 'host') run.moStart += 20; else if (j === 'welfare') run.items.tea++; else if (j === 'staff') { run.coin = 30; run.items.tea++; } for (const k of JOB_KIT[j] || []) run.items[k]++; }      // 人資專員的同事由畫面讓玩家挑（hrOffer／join）
 
   if (starter && run.cycle >= 2) { const c = (Array.isArray(carry) ? carry : []).find(id => ALL.includes(id) && id !== 'vivi' && id !== starter && !run.roster.includes(id)); if (c && join(run, c)) run.carry.push(c); if (run.cycle >= 3 && join(run, 'vivi')) run.carry.push('vivi'); }
   return run;
@@ -715,8 +719,10 @@ export const rewardKind = nd => !nd ? 'normal' : nd.type === 'gift' ? 'gift' : n
 const tierRoll = (run, k) => { const r = run.rand(); return k === 'boss' ? 3 : k === 'elite' ? (r < .2 ? 3 : 2) : k === 'gift' ? (r < .3 ? 3 : 2) : r < .2 ? 2 : 1; };
 const upOf = (run, tier, not = []) => upPick(run, tier, not) || upPick(run, tier === 1 ? 2 : tier - 1, not) || upPick(run, tier === 3 ? 2 : 1, not) || upPick(run, 3, not) || null;
 const growth = (run, not = []) => { const u = unlearned(run).filter(k => !not.some(o => o.t === 'learn' && o.key === k)); if (u.length && run.rand() < .4) return { t: 'learn', key: u[Math.floor(run.rand() * u.length)] }; const tr = offerTrain(run).filter(([h, k]) => !not.some(o => o.t === 'train' && o.id === h && o.key === k)); return tr.length ? { t: 'train', id: tr[0][0], key: tr[0][1] } : null; };
+export const PACKS = [{ name: '紅筆催件組', items: ['highlighter', 'stapler'], note: '先全體標記，再集中打一個' }, { name: '茶水間急救組', items: ['coffee', 'tape'], note: 'SP 不夠時先補、先頂住' }, { name: '消防演習組', items: ['warmer', 'poncho'], note: '燒對手，也擋得住大招' }];
 const packOf = (run, k) => { const it = {}, add = x => { it[x] = (it[x] || 0) + 1; }; let coin = 0;
   if (k === 'boss') { const r = pickN(run, ITEM_RARE, 2); if (run.rand() < .2) r[1] = 'usb'; r.forEach(add); coin = 30; }
+  else if (run.rand() < .5) { const P = PACKS[Math.floor(run.rand() * PACKS.length)]; P.items.forEach(add); return { t: 'items', items: it, coin: k === 'elite' ? 15 : 10, name: P.name, note: P.note }; }      // 11/24 GPT 第三輪：一半機會是有名字的組合包，拿到就知道怎麼打
   else if (k === 'elite') { add(pickN(run, ITEM_RARE, 1)[0]); add(pickN(run, ITEM_COMMON, 1)[0]); coin = 15; }
   else { add(run.rand() < .15 ? 'bento' : run.rand() < .5 ? 'tea' : 'coffee'); add(pickN(run, ITEM_COMMON, 1)[0]); coin = 10; }      // 11/24 GPT 審查：道具包另附額度，兼顧眼前與之後
   return { t: 'items', items: it, coin }; };
@@ -738,7 +744,8 @@ export function applyReward(run, i) { const R0 = offerReward(run), o = R0.opts[i
   if (o.t === 'items') { for (const k in o.items) run.items[k] = (run.items[k] || 0) + o.items[k]; run.coin += o.coin || 0; return '拿到' + Object.keys(o.items).map(k => ITEMS[k].name + (o.items[k] > 1 ? ` ×${o.items[k]}` : '')).join('、') + (o.coin ? `，額度 ＋${o.coin}` : ''); }
   return ''; }
 // opt：在職進修要學哪一招（沒給就學排在最前面那個還不會的）
-export function applyUpgrade(run, key, opt) { if (!UPGRADES[key]) return; run.picks.push(key);
+export const CORE_KIT = { express: 'stapler', recycle: 'tape', drill: 'warmer' };      // 核心搭檔補給：第一次拿到這幾個核心，送一件能馬上試的道具
+export function applyUpgrade(run, key, opt) { if (!UPGRADES[key]) return; if (CORE_KIT[key] && !run.picks.includes(key)) run.items[CORE_KIT[key]] = (run.items[CORE_KIT[key]] || 0) + 1; run.picks.push(key);
   if (key === 'raise') run.atk *= 1.15; else if (key === 'chair') run.def *= .85; else if (key === 'morale') run.moStart += 30; else if (key === 'drinks') run.items.tea += 2; else if (key === 'bento') run.items.bento += 1;
   else if (key === 'coffee') { for (const id of run.roster) run.sp[id] = Math.min(STAT[id].sp, run.sp[id] + 80); }
   else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u.includes(opt) ? opt : u[0]); }
@@ -796,7 +803,7 @@ export function loadRun(data, rand = Math.random) {
     run.hp = {}; run.sp = {}; run.skills = {};
     for (const id of d.roster) { ok(num(d.hp?.[id]) && num(d.sp?.[id]) && Array.isArray(d.skills?.[id]) && d.skills[id].length >= 1 && d.skills[id].every(k => SKILLS[id].some(s => s.key === k)));
       run.hp[id] = Math.max(0, Math.min(STAT[id].hp, d.hp[id])); run.sp[id] = Math.max(0, Math.min(STAT[id].sp, d.sp[id])); run.skills[id] = d.skills[id].slice(); }
-    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, Math.round(d.items[k]) || 0])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && Array.isArray(v.rare) && Array.isArray(v.cheap) && Array.isArray(v.sold) && [...v.rare, ...v.cheap].every(x => ITEMS[x]) && [v.up2, v.up3].every(x => x == null || UPGRADES[x]))) : {}, store: d.store && typeof d.store === 'object' ? Object.fromEntries(Object.entries(d.store).filter(([k, v]) => v && Array.isArray(v.tac) && v.tac.every(x => ITEMS[x]) && Number.isInteger(v.n) && Array.isArray(v.sold))) : {}, bentoMap: +d.bentoMap || 0, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0 } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
+    Object.assign(run, { floor: d.floor, path: d.path.slice(), offers: d.offers, events: { ...d.events }, tally: { brk: +(d.tally?.brk) || 0, ult: +(d.tally?.ult) || 0, fights: +(d.tally?.fights) || 0 }, atk: d.atk, def: d.def, moStart: d.moStart, items: Object.fromEntries(Object.keys(ITEMS).map(k => [k, Math.round(d.items[k]) || 0])), roster: d.roster.slice(), starter: d.starter ?? null, picks: d.picks.slice(), rounds: d.rounds, summons: d.summons, alt: { ...(d.alt || {}) }, coin: Number.isFinite(d.coin) && d.coin >= 0 ? d.coin : 0, shop: d.shop && typeof d.shop === 'object' ? Object.fromEntries(Object.entries(d.shop).filter(([k, v]) => v && Array.isArray(v.rare) && Array.isArray(v.cheap) && Array.isArray(v.sold) && [...v.rare, ...v.cheap].every(x => ITEMS[x]) && [v.up2, v.up3].every(x => x == null || UPGRADES[x]))) : {}, store: d.store && typeof d.store === 'object' ? Object.fromEntries(Object.entries(d.store).filter(([k, v]) => v && Array.isArray(v.tac) && v.tac.every(x => ITEMS[x]) && Number.isInteger(v.n) && Array.isArray(v.sold))) : {}, bentoMap: +d.bentoMap || 0, affix: d.affix && typeof d.affix === 'object' ? Object.fromEntries(Object.entries(d.affix).filter(([k, v]) => AFFIX[v])) : {}, next: d.next && typeof d.next === 'object' ? { foeHp: +d.next.foeHp || 1, ward: +d.next.ward || 0, ...(+d.next.mo ? { mo: +d.next.mo } : {}), ...(+d.next.down ? { down: +d.next.down } : {}), ...(SIGNS[d.next.sign] ? { sign: d.next.sign } : {}) } : null, ot: Number.isInteger(d.ot) ? Math.max(0, Math.min(OT_MAX, d.ot)) : 0, job: JOBS[d.job] ? d.job : null, plus: Array.isArray(d.plus) ? d.plus.filter(p => { const [h, k] = String(p).split(':'); return d.roster.includes(h) && SKILLS[h].some(x => x.key === k); }) : [] });
     if (d.reward && typeof d.reward === 'object' && Array.isArray(d.reward.opts) && REWARD_SKIP[d.reward.kind] && d.reward.opts.every(o => o && (o.t === 'up' ? UPGRADES[o.key] : o.t === 'items' ? o.items && Object.keys(o.items).every(k => ITEMS[k]) : o.t === 'learn' ? d.starter && SKILLS[d.starter].some(k => k.key === o.key) : o.t === 'train' ? d.roster.includes(o.id) && SKILLS[o.id].some(k => k.key === o.key) : o.t === 'train2' ? Array.isArray(o.list) && o.list.every(([h, k]) => d.roster.includes(h) && SKILLS[h].some(q => q.key === k)) : false))) run.reward = d.reward;      // 過關獎勵的三格：重開遊戲還是同一組
     run.drawPend = ALL.includes(d.drawPend) && d.drawPend !== 'vivi' && !d.roster.includes(d.drawPend) ? d.drawPend : null;
     run.boost = Object.fromEntries(Object.keys(BOOST).map(k => [k, Math.max(0, Math.min(BOOST_MAX, +(d.boost || {})[k] || 0))]));
@@ -837,7 +844,8 @@ export function newState(run = newRun()) {
   s.ultK = st.boss ? st.boss.ult * TUNE.ult * ak : 0;      // 換人上場時用來算頭目大招對他的傷害
   s.wkBy = {}; s.lastSk = {}; s.lunch = {}; s.expressed = false; s.fireUsed = false; s.hostUlt = false; s.sealed = 0; s.freeTurn = null;
   if (run.picks.includes('coffee')) for (const id of FRONT) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + 40);      // 新咖啡機
-  s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = Math.round(nx.ward * jobWard(s)); s.nx = nx; if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
+  s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = Math.round(nx.ward * jobWard(s)); s.nx = nx;
+  if (nx.mo) s.mo = Math.min(MO.max, s.mo + nx.mo); if (nx.down) for (const f of [...(st.boss ? ['boss'] : []), ...MINIONS]) weaken(s, f, 2, nx.down); /* 戰前加簽 */ if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
 }

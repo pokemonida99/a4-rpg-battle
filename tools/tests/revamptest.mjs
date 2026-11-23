@@ -29,4 +29,9 @@ for (const k of Object.keys(R.ITEMS)) { const run = mk(); run.items[k] = 1; cons
 { let core = 0; for (let i = 0; i < 20; i++) { const run = R.newRun(R.mulberry(100 + i), 'kui', 'draft'); R.join(run, 'kevin'); run.node = { tag: '頭目' }; run.floor = 5; const rw = R.offerReward(run); if (rw.opts.some(o => o.t === 'up' && R.UPGRADES[o.key].tier === 3)) core++; } ok(core === 20, `頭目一定給核心（${core}/20）`); }
 { const run = mk(); run.node = { type: 'gift' }; run.floor = 2; const rw = R.offerReward(run), tg = rw.opts.map(o => R.UP_TAG[o.key]); ok(rw.opts.length === 3 && new Set(tg).size === 3 && rw.opts.filter(o => R.UPGRADES[o.key].tier === 3).length <= 1, `福委會三個不同標籤、最多一個核心（${tg}）`); }
 ok(!Object.keys(R.UPGRADES).some(k => R.UPGRADES[k].old && R.upOk(mk(), k)), '退休的強化不會再出現');
+// GPT 第三輪：組合包、核心搭檔補給、職位交接包、戰前加簽
+{ let named = 0; for (let i = 0; i < 40; i++) { const r = R.newRun(R.mulberry(50 + i), 'kui', 'draft'); r.floor = 1; r.node = R.MAP[1][0]; r.path = [0, 0]; const o = R.offerReward(r).opts.find(o => o.t === 'items'); if (o && o.name) { named++; ok(R.PACKS.some(P => P.name === o.name && P.items.every(k => o.items[k] === 1)), `組合包內容對：${o.name}`); } } ok(named >= 8 && named <= 32, `組合包大約一半（${named}/40）`); }
+{ const run = mk(); const n = run.items.warmer || 0; R.applyUpgrade(run, 'drill'); ok(run.items.warmer === n + 1, '火災演習附暖暖包'); }
+ok(mk([], 'fire').items.notice === 1 && mk([], 'risk').items.poncho === 1 && mk([], 'buyer').items.highlighter === 1, '職位交接包');
+{ const run = mk(); run.coin = 100; ok(R.buy(run, 'sign', 'down') && !R.shopOk(run, 'sign', 'mo'), '戰前加簽：買一張、不能累積'); const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run))), R.mulberry(2)); ok(back && back.run.next && back.run.next.sign === 'down', '加簽存檔讀回來還在'); const s = fight(run); ok(R.foes(s).every(f => s.atkDown[f] > 0) && !run.next, '稽核加簽：開場敵人降攻，用掉了'); }
 console.log(bad ? `有 ${bad} 項沒過` : '全部通過');
