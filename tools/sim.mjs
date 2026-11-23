@@ -68,6 +68,12 @@ const POLICY = {
       if (wk) return doSkill(s, id, wk.key, t);
       if (sup.length && (hurt.length || (s.charging && !covered))) { const k = sup[0], pool = k.target === 'ally' ? allyTargets(s, id, k) : []; return doSkill(s, id, k.key, k.target === 'ally' ? (pool.includes(lowest(s)) ? lowest(s) : pool[0]) : undefined); }
       if (dmg.length && !weakOf(s, t).includes(SKILLS[id][0].type) && s.rand() < .5) return doSkill(s, id, dmg[0].key, t); }
+    { const I = R0.ITEMS, has = k => s.items[k] > 0 && R0.itemTargets(s, k, id).length, atkIt = Object.keys(I).filter(k => I[k].dmg && has(k)), wkIt = atkIt.find(k => I[k].type && weakOf(s, t).includes(I[k].type));      // 11/24 新道具：會想的打法也會用
+      if (boss && !s.broken && !guarded(s) && s.shield <= 2) { const k = ['stamp', 'notice'].find(has); if (k) return doItem(s, id, k, 'boss'); }
+      if (s.charging && !covered && has('poncho')) return doItem(s, id, 'poncho', null);
+      if (s.mo >= 15 && s.mo < R0.ultCost(s) && has('tonic')) return doItem(s, id, 'tonic', null);
+      if (nMin >= 2) { const k = ['highlighter', 'toner'].find(has); if (k) return doItem(s, id, k, null); }
+      if ((s.sp[id] < 20 || wkIt) && (wkIt || atkIt[0]) && !(t === 'boss' && guarded(s))) return doItem(s, id, wkIt || atkIt[0], t); }
     if (s.sp[id] < STAT[id].cost && s.items.coffee && s.mo >= 38) return doItem(s, id, 'coffee', id);
     return doAttack(s, id, t);
   },
@@ -82,6 +88,7 @@ const POLICY = {
     if (low.length && s.items.tea && (id === 'mi' || id === 'vivi' || FRONT.length <= 2)) return doItem(s, id, 'tea', lowest(s));
     if (id === 'vivi') return canUlt(s, id) && !guarded(s) && alive(s, 'boss') ? doUlt(s, id) : doCheer(s);
     if (canUlt(s, id) && !['kevin', 'qiang', 'mi', 'yan', 'cha', 'an'].includes(id)) return doUlt(s, id);
+    if (s.rand() < .15) { const k = Object.keys(R0.ITEMS).find(k => R0.ITEMS[k].dmg && s.items[k] > 0 && R0.itemTargets(s, k, id).length); if (k) return doItem(s, id, k, R0.ITEMS[k].aim === 'foe' ? t : null); }
     if (s.rand() < .35) { const ks = SKILLS[id].filter(k => knows(s, id, k.key) && s.sp[id] >= k.sp && (k.target === 'foe' || k.target === 'all')), k = ks[Math.floor(s.rand() * ks.length)]; if (k) return doSkill(s, id, k.key, t); }
     return doAttack(s, id, t);
   },
@@ -101,7 +108,7 @@ function playRun(policy, seed, starter, map = 'office') {
   const MAP = MAPS[map]; while (run.floor < MAP.length) { const opts = MAP[run.floor], ok = reachable(run), off = run.offers[run.floor] || {}, hpK = run.roster.filter(h => h !== 'vivi').reduce((a, h) => a + run.hp[h] / STAT[h].hp, 0) / run.roster.filter(h => h !== 'vivi').length; let i = 0;
     i = ok[0]; if (ok.length > 1) { const rec = ok.find(k => (opts[k].type === 'recruit' || opts[k].rescue) && off[k]), rst = ok.find(k => opts[k].type === 'rest'), gift = ok.find(k => opts[k].type === 'gift'); i = policy === 'mash' ? ok[0] : rst != null && hpK < .55 ? rst : rec != null && run.roster.length < 4 ? rec : ok[ok.length === 3 ? (seed + run.floor) % 3 : ok.length - 1]; }      /* 三條支線的地圖：每一輪走的路不一樣 */
     const nd = enterNode(run, i);
-    if (nd.type === 'rest') { const tr = offerTrain(run); if (policy !== 'mash' && tr.length && hpK > (policy === 'smart' ? .8 : .9)) applyTrain(run, tr[0][0], tr[0][1]); else rest(run); } else if (nd.type === 'gift') pick(); else if (nd.type === 'supply') supply(run, nd); else if (nd.type === 'shop') { shopStock(run); if (policy !== 'mash') { buy(run, 'up3') || buy(run, 'up2'); if (hpK < .7) { buy(run, 'cheap0'); buy(run, 'cheap1'); } const tr = offerTrain(run); if (tr.length) buy(run, 'train', tr[0]); } } else if (nd.type === 'train') { const tr = offerTrain(run); if (tr.length) applyTrain(run, tr[0][0], tr[0][1]); }
+    if (nd.type === 'rest') { const tr = offerTrain(run); if (policy !== 'mash' && tr.length && hpK > (policy === 'smart' ? .8 : .9)) applyTrain(run, tr[0][0], tr[0][1]); else rest(run); } else if (nd.type === 'gift') pick(); else if (nd.type === 'supply') supply(run, nd); else if (nd.type === 'shop') { shopStock(run); if (policy !== 'mash') { buy(run, 'up3') || buy(run, 'up2'); if (hpK < .7) { buy(run, 'cheap0'); buy(run, 'cheap1'); } buy(run, 'rare0'); buy(run, 'rare1'); const tr = offerTrain(run); if (tr.length) buy(run, 'train', tr[0]); } } else if (nd.type === 'train') { const tr = offerTrain(run); if (tr.length) applyTrain(run, tr[0][0], tr[0][1]); }
     else if (nd.type === 'event') { const key = run.events[run.floor], os = EVENTS[key].opts.map((o, k) => k).filter(k => eventOk(run, key, k)), want = hpK < .6 ? 'heal' : 'buff'; applyEvent(run, key, policy === 'smart' ? os.find(k => EVENTS[key].opts[k].kind === want) ?? os[0] : policy === 'casual' ? os[Math.floor(rand() * os.length)] : os[0]); }
     else if (nd.type === 'recruit') { const c = off[i] || []; if (c.length) join(run, policy === 'smart' ? c.find(id => ROLE[id] === '補') || c.find(id => ROLE[id] === '坦') || c[0] : c[0]); }
     else { const s = battle(policy, run); if (s.over !== 'win') return { win: false, floor: run.floor, size: run.roster.length }; endStage(s, run); if (run.floor < MAP.length - 1) pick(); }

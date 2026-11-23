@@ -46,11 +46,11 @@ export const ITEMS = {
   coolpatch: { name: '退熱貼', note: '單體 1500 冰屬性　攻擊力 ↓', dmg: 1500, type: 'ice', down: [.15, 2], cat: '攻擊', rare: 1, price: 35, aim: 'foe' },
   highlighter: { name: '螢光筆', note: '全體 1100 光屬性　標記兩回合', dmg: 1100, type: 'holy', mark: 2, cat: '攻擊', rare: 2, price: null, aim: 'foes' },
   toner: { name: '碳粉匣', note: '全體 1100 暗屬性　中毒三回合', dmg: 1100, type: 'dark', poison: [350, 3], cat: '攻擊', rare: 2, price: null, aim: 'foes' },
-  tape: { name: '泡棉膠帶', note: '一人護盾 1000', ward: 1000, cat: '防禦', rare: 1, price: 30, aim: 'ally' },
-  poncho: { name: '輕便雨衣', note: '前排全員護盾 600', ward: 600, cat: '防禦', rare: 2, price: null, aim: 'party' },
-  earplug: { name: '降噪耳塞', note: '一人閃過下一次攻擊', evade: true, cat: '防禦', rare: 2, price: null, aim: 'ally' },
+  tape: { name: '泡棉膠帶', note: '一人護盾 1500', ward: 1500, cat: '防禦', rare: 1, price: 30, aim: 'ally' },
+  poncho: { name: '輕便雨衣', note: '前排全員護盾 900', ward: 900, cat: '防禦', rare: 2, price: null, aim: 'party' },
+  earplug: { name: '降噪耳塞', note: '一人閃過下一次攻擊（到他下次行動為止）', evade: true, cat: '防禦', rare: 2, price: null, aim: 'ally' },
   bandage: { name: 'OK 繃', note: '解除異常　HP 回復 600', cleanse: true, hp: 600, cat: '輔助', rare: 1, price: 25, aim: 'ally' },
-  balm: { name: '薄荷膏', note: '再生：每回合回 400，三回合', regen: [400, 3], cat: '輔助', rare: 1, price: 30, aim: 'ally' },
+  balm: { name: '薄荷膏', note: '再生：每回合回 800，三回合', regen: [800, 3], cat: '輔助', rare: 1, price: 30, aim: 'ally' },
   notice: { name: '散會通知', note: '小兵暈眩　頭目底氣 -2', stun: true, stunSh: 2, cat: '干擾', rare: 2, price: null, aim: 'foe' },
   stamp: { name: '主管紅章', note: '標記三回合　底氣 -1', mark: 3, sh: 1, cat: '干擾', rare: 2, price: null, aim: 'foe' },
   tonic: { name: '提神飲料', note: '氣勢 +25', mo: 25, cat: '特殊', rare: 2, price: null, aim: 'team' },
@@ -413,18 +413,18 @@ export const UPGRADES = {
 // old＝不再出現在獎勵與商店（舊存檔拿過的照樣有效，程式不刪）。全部強化都只拿一次。
 Object.assign(UPGRADES, {
   cosign: { name: '交叉會簽', desc: '同一回合兩位同事都打中同一個敵人的弱點：多削 1 底氣，氣勢 ＋6（每回合一次）', core: true },
-  shift: { name: '輪班表', desc: '每回合第一次換人：換上來的人得到 350 護盾，SP ＋20', core: true, roster: 5 },
-  rota: { name: '公假輪休', desc: '每回合前兩次防禦：HP 比例最低的前排回復 6% HP，SP ＋12', core: true },
+  shift: { name: '輪班表', desc: '每回合第一次換人：換上來的人得到 600 護盾，SP ＋35', core: true, roster: 5 },
+  rota: { name: '公假輪休', desc: '每回合前兩次防禦：HP 比例最低的前排回復 6% HP，SP ＋12（同一人每回合一次）', core: true },
   express: { name: '急件快遞', desc: '每場戰鬥第一件道具不用掉行動，用完還能再下指令', core: true },
-  recycle: { name: '回收分類', desc: '每回合第一件道具：補血補 SP 的，目標再得到 400 護盾；攻擊道具打中的敵人標記兩回合', core: true },
-  relay: { name: '茶水間接力', desc: '每回合第一次普攻後，SP 最少的另一位前排 SP ＋12，氣勢 ＋3', core: true },
-  seal: { name: '議程封存', desc: '頭目理虧後，全隊下一招傷害 ＋40%、SP 消耗減半（留到下回合結束）', core: true },
-  notes: { name: '小組共筆', desc: '每回合第一次普攻把目標標記兩回合；當回合第一招打中被標記的頭目，多削 1 底氣', core: true },
+  recycle: { name: '回收分類', desc: '每回合第一件道具：給同伴用的（補血、SP、護盾、再生），目標再得到 400 護盾；攻擊道具打中的敵人標記兩回合', core: true },
+  relay: { name: '茶水間接力', desc: '每回合第一次普攻後，SP 比例最低的另一位前排 SP ＋18，氣勢 ＋3', core: true },
+  seal: { name: '議程封存', desc: '頭目理虧後，全隊接下來第一招傷害 ＋25%、SP 消耗減半（只有一招，留到下回合結束）', core: true },
+  notes: { name: '小組共筆', desc: '每回合第一次普攻把目標標記一回合；當回合第一招打中被標記的頭目，多削 1 底氣（跟交叉會簽合計每回合最多多削 1）', core: true },
   nap: { name: '午休守門員', desc: '每回合第一個防禦的人：得到 500 護盾、吸引攻擊；他下一次普攻多打 900', core: true },
-  drill: { name: '火災演習', desc: '每回合第一次讓敵人灼燒：所有灼燒中的敵人各受 600 火屬性傷害', core: true, need: ['jie', 'zhe'] } });
-{ const T = { raise: 1, leave: 1, chair: 1, cutter: 1, partition: 1, cheatsheet: 1, coffee: 1, firstaid: 2, applause: 2, bell: 2, weakpoint: 2, tabs: 2, carbon: 2, notebook: 2, redpen: 2, ember: 2, bounty: 2, dossier: 2, crunch: 2 };
+  drill: { name: '火災演習', desc: '每回合第一次讓敵人灼燒：所有灼燒中的敵人各受 800 火屬性傷害', core: true, burn: true } });
+{ const T = { raise: 1, leave: 1, chair: 1, cutter: 1, partition: 1, cheatsheet: 1, coffee: 2, firstaid: 2, applause: 2, bell: 2, weakpoint: 2, tabs: 2, carbon: 2, notebook: 2, redpen: 2, ember: 2, bounty: 2, dossier: 2, crunch: 2 };
   for (const k in UPGRADES) { const U = UPGRADES[k]; U.tier = U.core ? 3 : T[k] || 0; if (!U.tier) U.old = true; else U.once = true; }
-  UPGRADES.coffee.desc = '每場戰鬥開始，前排全員 SP ＋40；拿到時全員 SP 補滿'; UPGRADES.crunch.need = ['fairy']; UPGRADES.bounty.need = ['heilun', 'senpai', 'wu']; }
+  UPGRADES.coffee.desc = '每場戰鬥開始，前排全員 SP ＋40；拿到時全員 SP ＋80'; UPGRADES.crunch.need = ['fairy']; UPGRADES.bounty.need = ['heilun', 'senpai', 'wu']; }
 export const TIER_NAME_UP = ['', '普通', '進階', '核心'];
 // 強化的標籤（結案報告的「打法」、選卡時顯示）
 export const UP_TAG = { raise: '火力', ember: '火力', riposte: '火力', weakpoint: '火力', redpen: '火力', cutter: '火力', thermos: '火力', leave: '耐久', chair: '耐久', firstaid: '耐久', partition: '耐久', blanket: '耐久', cheatsheet: '耐久',
@@ -438,7 +438,7 @@ const hpAll = (run, k) => { for (const id of crew(run)) run.hp[id] = Math.max(1,
 const spAll = (run, k) => { for (const id of run.roster) run.sp[id] = Math.max(0, Math.min(STAT[id].sp, run.sp[id] + Math.round(STAT[id].sp * k))); };
 // 事件用的積木：隨機拿一個小物、隨機丟一個小物（只丟「旗標型」的，丟了不用回算數值）、隨機升級一個招式、下一場戰鬥的加成（run.next）
 const LOSABLE = ['redpen', 'cutter', 'thermos', 'partition', 'cheatsheet', 'applause', 'countdown', 'bell', 'tabs', 'carbon', 'notebook', 'snackdrawer', 'tempo', 'weakpoint', 'firstaid', 'ember', 'bounty', 'riposte', 'dossier', 'crunch'];
-export const upOk = (run, k) => { const U = UPGRADES[k]; return !!U && !U.old && !run.picks.includes(k) && !(U.need && !U.need.some(id => run.roster.includes(id))) && !(U.roster && run.roster.filter(h => h !== 'vivi').length < U.roster); };
+export const upOk = (run, k) => { const U = UPGRADES[k]; return !!U && !U.old && !run.picks.includes(k) && !(U.need && !U.need.some(id => run.roster.includes(id))) && !(U.roster && run.roster.filter(h => h !== 'vivi').length < U.roster) && !(U.burn && !run.roster.some(h => h === 'jie' || h === 'zhe') && !(run.items.warmer > 0)); };      // 火災演習：要有灼燒來源（阿傑、阿哲或暖暖包）
 export function randomRelic(run) { const pool = Object.keys(UPGRADES).filter(k => upOk(run, k)); if (!pool.length) return null; const k = pool[Math.floor(run.rand() * pool.length)]; applyUpgrade(run, k); return k; }
 export function loseRelic(run) { const mine = run.picks.filter(k => LOSABLE.includes(k)); if (!mine.length) return null; const k = mine[Math.floor(run.rand() * mine.length)]; run.picks.splice(run.picks.indexOf(k), 1); return k; }
 export function randomTrain(run) { const tr = offerTrain(run); if (!tr.length) return null; applyTrain(run, tr[0][0], tr[0][1]); return tr[0]; }
@@ -555,7 +555,7 @@ export const JOBS = {      // 11/24 改版（使用者：「每次看了都覺�
   welfare: ['福利委員', '每回合第一次補血，被補到的人再得到 400 護盾；開局多一杯奶茶', '奶茶、咖啡要給別人喝（前排只剩自己時例外）', '有吃有保庇。'],
   risk: ['風控專員', '每回合第一個防禦的人多拿 400 護盾，氣勢 ＋8', '前排沒有人帶護盾時，奧義要多 10 氣勢', '這筆風險我先擋。'],
   window: ['專案窗口', '打中弱點的傷害再高一些；每回合前三次打中弱點，出手的人 SP ＋8', '同一個人不能連續兩回合用同一招', '找對人，事情就快。'],
-  buyer: ['採購主任', '開局 50 點報帳額度；福利社、報帳處的道具打 75 折', '報帳處不能買強化', '這個我有拿到價。'],
+  buyer: ['採購主任', '開局 50 點報帳額度；福利社、報帳處的道具打 75 折；報帳處的核心固定是道具類（急件快遞或回收分類）', '報帳處只能買道具類核心，不能買其他強化', '這個我有拿到價。'],
   hr: ['人資專員', '開局從三位同事挑一位同行', '名冊最多 5 人', '人先補齊，事情再說。'],
   host: ['會議主持', '每場開場氣勢 ＋20；每場第一次奧義後，前排 SP ＋20', '第一回合不能放奧義', '好，直接進重點。'],
   edu: ['教育委員', '主角一開始就會全部招式，再升級一招；特訓站可以升兩招', '過關獎勵的道具包換成招式升級', '學起來就是你的。'],
@@ -596,13 +596,14 @@ const upPick = (run, tier, not = []) => { const p = Object.keys(UPGRADES).filter
 export function shopStock(run) { const o = run.shop || (run.shop = {}); const st = o[run.floor]; if (st && Array.isArray(st.rare) && Array.isArray(st.cheap)) return st;
   const cheap = [run.rand() < .5 ? 'tea' : 'coffee', pickN(run, ITEM_COMMON, 1)[0]]; if (run.rand() < .2) cheap[0] = 'bento';
   const rare = pickN(run, ITEM_RARE, 3); if (run.rand() < .2) rare[rare.length - 1] = 'usb';
-  return (o[run.floor] = { cheap, rare, up2: upPick(run, 2), up3: upPick(run, 3), sold: [], rerolled: false }); }
+  const buyerCore = run.job === 'buyer' ? ['express', 'recycle'].find(k => upOk(run, k)) || null : undefined;      // 採購主任：核心格固定是道具類核心
+  return (o[run.floor] = { cheap, rare, up2: upPick(run, 2), up3: buyerCore !== undefined ? buyerCore : upPick(run, 3), sold: [], rerolled: false }); }
 // what：'cheap0'、'cheap1'、'rare0'～'rare2'、'up2'、'up3'、'train'（arg＝[id, key]）、'boost'（arg＝素質）、'draw'、'reroll'（arg＝'up2' 或 'up3'）
 export const shopItem = (st, what) => { const m = /^(cheap|rare)(\d)$/.exec(what); return m ? st[m[1]][+m[2]] || null : null; };
 export function shopPrice(run, what, arg) { const st = shopStock(run), it = shopItem(st, what); if (it) return itemCost(run, it, 'shop'); if (what === 'up2' || what === 'up3' || what === 'train' || what === 'reroll' || what === 'draw') return PRICE[what]; if (what === 'boost') return BOOST[arg] ? boostPrice(run, arg) : null; return null; }
 export function shopOk(run, what, arg) { const st = shopStock(run), p = shopPrice(run, what, arg); if (p == null || run.coin < p) return false; if (what !== 'reroll' && st.sold.includes(what)) return false;
-  if (what === 'up2' || what === 'up3') return !!st[what] && run.job !== 'buyer' && upOk(run, st[what]);
-  if (what === 'reroll') return !st.rerolled && (arg === 'up2' || arg === 'up3') && !st.sold.includes(arg) && !!upPick(run, arg === 'up2' ? 2 : 3, [st[arg]]);
+  if (what === 'up2' || what === 'up3') return !!st[what] && (run.job !== 'buyer' || ['express', 'recycle'].includes(st[what])) && upOk(run, st[what]);
+  if (what === 'reroll') return run.job !== 'buyer' && !st.rerolled && (arg === 'up2' || arg === 'up3') && !st.sold.includes(arg) && !!upPick(run, arg === 'up2' ? 2 : 3, [st[arg]]);
   if (what === 'train') return !arg || !isPlus(run, arg[0], arg[1]); if (what === 'boost') return !!BOOST[arg] && boostLv(run, arg) < BOOST_MAX;
   if (what === 'draw') return !run.drawPend && drawPool(run).length > 0 && swapOut(run) !== null; return !!shopItem(st, what); }
 export function buy(run, what, arg) { if (!shopOk(run, what, arg)) return false; const st = shopStock(run), p = shopPrice(run, what, arg), it = shopItem(st, what); let res = true;
@@ -700,8 +701,8 @@ const upOf = (run, tier, not = []) => upPick(run, tier, not) || upPick(run, tier
 const growth = (run, not = []) => { const u = unlearned(run).filter(k => !not.some(o => o.t === 'learn' && o.key === k)); if (u.length && run.rand() < .4) return { t: 'learn', key: u[Math.floor(run.rand() * u.length)] }; const tr = offerTrain(run).filter(([h, k]) => !not.some(o => o.t === 'train' && o.id === h && o.key === k)); return tr.length ? { t: 'train', id: tr[0][0], key: tr[0][1] } : null; };
 const packOf = (run, k) => { const it = {}, add = x => { it[x] = (it[x] || 0) + 1; }; let coin = 0;
   if (k === 'boss') { const r = pickN(run, ITEM_RARE, 2); if (run.rand() < .2) r[1] = 'usb'; r.forEach(add); coin = 30; }
-  else if (k === 'elite') { add(pickN(run, ITEM_RARE, 1)[0]); add(pickN(run, ITEM_COMMON, 1)[0]); }
-  else { add(run.rand() < .15 ? 'bento' : run.rand() < .5 ? 'tea' : 'coffee'); add(pickN(run, ITEM_COMMON, 1)[0]); }
+  else if (k === 'elite') { add(pickN(run, ITEM_RARE, 1)[0]); add(pickN(run, ITEM_COMMON, 1)[0]); coin = 15; }
+  else { add(run.rand() < .15 ? 'bento' : run.rand() < .5 ? 'tea' : 'coffee'); add(pickN(run, ITEM_COMMON, 1)[0]); coin = 10; }      // 11/24 GPT 審查：道具包另附額度，兼顧眼前與之後
   return { t: 'items', items: it, coin }; };
 export function offerReward(run) { const o = run.reward; if (o && o.floor === run.floor && o.node === run.path[run.floor]) return o; const k = rewardKind(run.node), opts = [];
   if (k === 'gift') { const tags = []; let cores = 0; for (let i = 0; i < 3; i++) { let t = tierRoll(run, k); if (t === 3 && cores) t = 2; const pool = Object.keys(UPGRADES).filter(q => upOk(run, q) && UPGRADES[q].tier === t && !opts.some(x => x.key === q) && !tags.includes(UP_TAG[q])); const q = pool.length ? pool[Math.floor(run.rand() * pool.length)] : upOf(run, t, opts.map(x => x.key)); if (!q) continue; if (UPGRADES[q].tier === 3) cores++; tags.push(UP_TAG[q]); opts.push({ t: 'up', key: q }); } }
@@ -723,7 +724,7 @@ export function applyReward(run, i) { const R0 = offerReward(run), o = R0.opts[i
 // opt：在職進修要學哪一招（沒給就學排在最前面那個還不會的）
 export function applyUpgrade(run, key, opt) { if (!UPGRADES[key]) return; run.picks.push(key);
   if (key === 'raise') run.atk *= 1.15; else if (key === 'chair') run.def *= .85; else if (key === 'morale') run.moStart += 30; else if (key === 'drinks') run.items.tea += 2; else if (key === 'bento') run.items.bento += 1;
-  else if (key === 'coffee') { for (const id of run.roster) run.sp[id] = STAT[id].sp; }
+  else if (key === 'coffee') { for (const id of run.roster) run.sp[id] = Math.min(STAT[id].sp, run.sp[id] + 80); }
   else if (key === 'learn') { const u = unlearned(run); if (u.length) run.skills[run.starter].push(u.includes(opt) ? opt : u[0]); }
   else if (key === 'leave' || key === 'blanket') { statPick(key); for (const id of run.roster) run.hp[id] = STAT[id].hp; }
   else if (key === 'mug') run.items.coffee = Math.max(0, run.items.coffee - 1); else if (key === 'fridge') { for (const k in run.items) run.items[k]++; run.def *= 1.05; } }
@@ -900,7 +901,7 @@ function after(s, id, r) { const hs = (r.hits || []).filter(h => h && !h.guard &
   r.mo = s.mo; return r; }
 
 // 排這一回合的行動順序（頭目可能一回合動兩次）。回合開始時結算灼燒，結果放在 s.events 給畫面演
-export function startRound(s) { autoSub(s); s.round++; s.wkBy = {}; s.cosignDone = false; s.shiftDone = false; s.rotaN = 0; s.recycled = false; s.relayDone = false; s.notesAtk = false; s.notesSk = false; s.napDone = false; s.drillDone = false; s.winN = 0; if (s.sealed && s.round > s.sealed + 1) s.sealed = 0; s.potUsed = false; s.meeting = false; s.extra = 0; s.bonus = {}; s.onBonus = null; if (s.atkUp > 0) s.atkUp--; if (s.endure > 0) s.endure--; s.events = []; for (const id in s.super) if (s.super[id] > 0) { s.super[id] = alive(s, id) && HEROES.includes(id) ? s.super[id] - 1 : 0; if (!s.super[id]) s.events.push({ kind: 'superEnd', who: id }); } { const b = benchRest(s); if (b.length) s.events.push({ kind: 'bench', who: b }); }
+export function startRound(s) { autoSub(s); s.round++; s.wkBy = {}; s.cosignDone = false; s.shiftDone = false; s.rotaN = 0; s.recycled = false; s.relayDone = false; s.notesAtk = false; s.notesSk = false; s.napDone = false; s.drillDone = false; s.winN = 0; s.xChip = false; if (s.sealed && s.round > s.sealed + 1) s.sealed = 0; s.potUsed = false; s.meeting = false; s.extra = 0; s.bonus = {}; s.onBonus = null; if (s.atkUp > 0) s.atkUp--; if (s.endure > 0) s.endure--; s.events = []; for (const id in s.super) if (s.super[id] > 0) { s.super[id] = alive(s, id) && HEROES.includes(id) ? s.super[id] - 1 : 0; if (!s.super[id]) s.events.push({ kind: 'superEnd', who: id }); } { const b = benchRest(s); if (b.length) s.events.push({ kind: 'bench', who: b }); }
   if (has(s, 'tempo')) s.events.push({ kind: 'tempo', mo: gain(s, 8) });
   for (const f in s.burn) if (s.burn[f] > 0 && alive(s, f)) { s.burn[f]--; const v = Math.round(520 * s.run.atk * (has(s, 'ember') ? 1.6 : 1)); s.hp[f] = Math.max(0, s.hp[f] - v); s.events.push({ kind: 'burn', dst: f, v, hp: s.hp[f], kill: s.hp[f] <= 0 }); check(s); }
   for (const f in s.poison) { const p = s.poison[f]; if (p && p.n > 0 && alive(s, f)) { p.n--; s.hp[f] = Math.max(0, s.hp[f] - p.v); s.events.push({ kind: 'poison', dst: f, v: p.v, hp: s.hp[f], kill: s.hp[f] <= 0 }); check(s); } }
@@ -965,7 +966,7 @@ export const canUlt = (s, id) => !jobBlock(s, 'ult') && s.mo >= ultCost(s) && s.
 // 打敵人：回傳一筆結果 { dst, v, guard, crit, kill, brk, hp, shield, pot }
 // ---- 11/24 改版的核心強化與職位用到的小工具 ----
 function brokeHook(s, r) { if (has(s, 'seal') && !s.sealed) { s.sealed = s.round; r.sealed = true; } }      // 議程封存：理虧之後，全隊下一招加強（留到下回合結束）
-function burnHook(s, id, r) { if (!has(s, 'drill') || s.drillDone) return; s.drillDone = true; const fs = foes(s).filter(f => s.burn[f] > 0); if (!fs.length) return; r.drill = []; for (const f of fs) { const h = hitFoe(s, id, f, 600, { type: 'fire', noCrit: true }); if (h) { (r.hits || (r.hits = [])).push({ ...h, drill: true }); r.drill.push(f); } } }      // 火災演習
+function burnHook(s, id, r) { if (!has(s, 'drill') || s.drillDone) return; s.drillDone = true; const fs = foes(s).filter(f => s.burn[f] > 0); if (!fs.length) return; r.drill = []; for (const f of fs) { const h = hitFoe(s, id, f, 800, { type: 'fire', noCrit: true }); if (h) { (r.hits || (r.hits = [])).push({ ...h, drill: true }); r.drill.push(f); } } }      // 火災演習
 function welfareWard(s, list, r) { if (s.run.job !== 'welfare' || s.welRound === s.round || !list.length) return; s.welRound = s.round; for (const h of [...new Set(list)]) addFx(r, FX.ward(s, h, 400, '福利委員')); }
 function hitFoe(s, src, dst, base, o = {}) {
   if (!alive(s, dst)) return null; const type = o.type ?? s.curType ?? ATK_TYPE[src] ?? null, lk = {};
@@ -992,7 +993,7 @@ function hitFoe(s, src, dst, base, o = {}) {
   if (r.kill && dst !== 'boss' && s.L && s.L.credit && alive(s, 'boss')) { s.credit = Math.min(3, (s.credit || 0) + 1); r.credit = s.credit; if (!s.broken) { s.shield = Math.max(0, s.shield - 2); r.bossShield = s.shield; if (s.shield === 0) { s.broken = true; s.tally.brk++; r.creditBrk = true; } } }      // 豬腦搶功：打倒小兵他變強，但底氣掉 2
   if (r.kill && s.mark[dst] > 0) { s.mark[dst] = 0; gain(s, 20); r.bounty = true; if (FRONT.includes('heilun') && alive(s, 'heilun')) { const x = FX.sp(s, 'heilun', 10, '成交有回饋'); if (x) r.fxs = [x]; } if (has(s, 'bounty')) { r.bountySp = 25; for (const h of FRONT) if (alive(s, h)) s.sp[h] = Math.min(STAT[h].sp, s.sp[h] + 25); } }
   if (wk && s.run.job === 'window' && !s.cmd.jsp && HEROES.includes(src) && (s.winN || 0) < 3) { s.cmd.jsp = true; s.winN = (s.winN || 0) + 1; const x = FX.sp(s, src, 8, '專案窗口'); if (x) (r.fxs || (r.fxs = [])).push(x); }
-  if (wk && has(s, 'cosign') && HEROES.includes(src) && !s.cosignDone && alive(s, dst)) { const w = s.wkBy[dst] || (s.wkBy[dst] = []); if (!w.includes(src)) w.push(src); if (w.length >= 2) { s.cosignDone = true; r.cosign = true; gain(s, 6); if (dst === 'boss' && !s.broken) { s.shield = Math.max(0, s.shield - 1); if (s.shield === 0) { s.broken = true; r.brk = true; s.tally.brk++; } } } }
+  if (wk && has(s, 'cosign') && HEROES.includes(src) && !s.cosignDone && alive(s, dst)) { const w = s.wkBy[dst] || (s.wkBy[dst] = []); if (!w.includes(src)) w.push(src); if (w.length >= 2) { s.cosignDone = true; r.cosign = true; gain(s, 6); if (dst === 'boss' && !s.broken && !s.xChip) { s.xChip = true; s.shield = Math.max(0, s.shield - 1); if (s.shield === 0) { s.broken = true; r.brk = true; s.tally.brk++; } } } }
   if (dst === 'boss' && !s.broken && !r.kill) { const first = wk && !s.cmd.chip, more = (first ? 1 : 0) + chip2, base = (o.sh ?? 1) - (s.L.firm && !wk ? 1 : 0), dec = s.L.plates ? (first ? 1 : 0) : base + more; if (wk) s.cmd.chip = true; if ((s.L.firm || s.L.plates) && !wk && dec === 0) r.firm = true; if (s.L.plates && dec) r.plate = s.shield - dec; s.shield = Math.max(0, s.shield - dec);      // firm（v0.48 重新設計的頭目）：沒打中弱點的那一下削不動底氣（招式自己寫明多削的照算）。學歧路旅人：先找弱點才破得了防
     if (s.charging) s.bragLow = Math.min(s.bragLow, s.shield); if (s.shield === 0) { s.broken = true; r.brk = true; s.tally.brk++; } }
   if (r.brk || r.creditBrk || r.lockAll) brokeHook(s, r);
@@ -1026,13 +1027,13 @@ export function doAttack(s, id, target) { s.cmdLog.push(['a', id, target]); newC
   rider(s, id, target, r);
   { const h0 = hits[0], ok = h0 && !h0.guard && alive(s, h0.dst);
     if (s.lunch[id] && h0 && alive(s, target)) { s.lunch[id] = false; const x = hitFoe(s, id, target, 900, { type: 'blunt', noCrit: true }); if (x) { hits.push({ ...x, nap: true }); r.nap = true; } }      // 午休守門員：防禦完的反擊
-    if (has(s, 'notes') && !s.notesAtk && ok) { s.notesAtk = true; s.mark[h0.dst] = Math.max(s.mark[h0.dst] || 0, 2); r.marked = [h0.dst]; addFx(r, FX.tag(h0.dst, '小組共筆　標記')); }
-    if (has(s, 'relay') && !s.relayDone) { const t = lowSp(s, id); if (t) { s.relayDone = true; addFx(r, FX.sp(s, t, 12, '茶水間接力')); addFx(r, FX.mo(s, 3)); } } }
+    if (has(s, 'notes') && !s.notesAtk && ok) { s.notesAtk = true; s.mark[h0.dst] = Math.max(s.mark[h0.dst] || 0, 1); r.marked = [h0.dst]; addFx(r, FX.tag(h0.dst, '小組共筆　標記')); }
+    if (has(s, 'relay') && !s.relayDone) { const t = lowSp(s, id); if (t) { s.relayDone = true; addFx(r, FX.sp(s, t, 18, '茶水間接力')); addFx(r, FX.mo(s, 3)); } } }
   r.sp = s.sp[id]; return after(s, id, r); }
 export function doDefend(s, id) { if (jobBlock(s, 'defend')) return null; s.cmdLog.push(['d', id]); newCmd(s); s.defend[id] = true; s.smoke[id] = null; const spGain = Math.min(10 * cycSp(s.run), STAT[id].sp - s.sp[id]); s.sp[id] += spGain; s.quick[id] = true; const r = { kind: 'defend', id, spGain, sp: s.sp[id], mo: gain(s, MO.defend) }; if (s.ticket && s.ticket[id] > 0) { r.ticketOff = s.ticket[id]; s.ticket[id] = 0; }      // 奧客的客訴單：防禦一次就撕掉
   if (has(s, 'cheatsheet') && FRONT.includes(id)) addFx(r, FX.heal(s, id, Math.round(STAT[id].hp * .08), '急救小抄')); if (FRONT.includes(id)) { if (s.run.job === 'risk' && s.riskRound !== s.round) { s.riskRound = s.round; addFx(r, FX.ward(s, id, 400, '風控專員')); addFx(r, FX.mo(s, 8)); }
     if (has(s, 'nap') && !s.napDone) { s.napDone = true; addFx(r, FX.ward(s, id, 500, '午休守門員')); s.guardian = id; s.lunch[id] = true; addFx(r, FX.tag(id, '我來擋')); }
-    if (has(s, 'rota') && (s.rotaN || 0) < 2) { const t = FRONT.filter(h => alive(s, h)).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0]; if (t) { s.rotaN = (s.rotaN || 0) + 1; addFx(r, FX.heal(s, t, Math.round(STAT[t].hp * .06), '公假輪休')); addFx(r, FX.sp(s, t, 12)); } } }
+    if (has(s, 'rota') && (s.rotaN || 0) < 2) { const t = FRONT.filter(h => alive(s, h) && !(s.rotaGot || (s.rotaGot = {}))[h + ':' + s.round]).sort((a, b) => s.hp[a] / STAT[a].hp - s.hp[b] / STAT[b].hp)[0]; if (t) { s.rotaN = (s.rotaN || 0) + 1; s.rotaGot[t + ':' + s.round] = true; addFx(r, FX.heal(s, t, Math.round(STAT[t].hp * .06), '公假輪休')); addFx(r, FX.sp(s, t, 12)); } } }
   return after(s, id, r); }
 export const CHEER_SP = 60;      // 後排的應援：除了加氣勢，前排每個人再回這麼多 SP（11/21 使用者：後排的人也要能幫忙回 SP）
 export function doCheer(s, id = s.back || 'vivi') { s.cmdLog.push(['c', id]); const r = { kind: 'cheer', id, mo: gain(s, MO.cheer) }; for (const h of FRONT) if (alive(s, h)) addFx(r, FX.sp(s, h, CHEER_SP)); return r; }
@@ -1042,7 +1043,7 @@ export function itemTargets(s, key, user) { const it = ITEMS[key]; if (!it || it
   let l = it.revive ? fallen(s) : HEROES.filter(id => alive(s, id) && (it.hp && !it.cleanse ? s.hp[id] < STAT[id].hp && id !== 'vivi' : it.sp ? s.sp[id] < STAT[id].sp : id !== 'vivi'));
   if (s.run.job === 'welfare' && user && (key === 'tea' || key === 'coffee') && FRONT.filter(h => alive(s, h)).length >= 2) l = l.filter(h => h !== user);      // 福利委員：奶茶咖啡要給別人
   return l; }
-export const ITEM_COST = { highlighter: 45, toner: 45, poncho: 45, earplug: 30, notice: 40, stamp: 35, tonic: 50, usb: 75, bento: 30 };      // 報帳處的價格（普通道具＝福利社半價）
+export const ITEM_COST = { highlighter: 45, toner: 45, poncho: 45, earplug: 30, notice: 40, stamp: 35, tonic: 35, usb: 75, bento: 30 };      // 報帳處的價格（普通道具＝福利社半價）
 export const itemCost = (run, k, where) => { const it = ITEMS[k], base = where === 'store' ? it.price : ITEM_COST[k] ?? Math.ceil(it.price / 2); return base == null ? null : Math.ceil(base * (run.job === 'buyer' ? .75 : 1)); };
 export function doItem(s, id, key, target) { s.cmdLog.push(['i', id, key, target]);
   const it = ITEMS[key]; s.items[key]--; s.itemUses++; s.smoke[id] = null; newCmd(s); const r = { kind: 'item', id, key, target, hits: [] };
@@ -1053,7 +1054,7 @@ export function doItem(s, id, key, target) { s.cmdLog.push(['i', id, key, target
     if (it.revive) { r.revive = true; r.heal = Math.round(STAT[target].hp * it.revive); r.bench = raise(s, target, r.heal).bench; }
     if (it.ward) addFx(r, FX.ward(s, target, it.ward)); if (it.evade) { s.evade[target] = true; addFx(r, FX.tag(target, '閃過下一擊')); } if (it.regen) { s.regen[target] = { v: it.regen[0], n: it.regen[1] }; addFx(r, FX.tag(target, '再生')); }
     r.hp = r.bench ? r.heal : s.hp[target]; r.sp = r.bench ? s.run.sp[target] : s.sp[target];
-    if (has(s, 'recycle') && !s.recycled && (it.hp || it.sp || it.revive) && alive(s, target)) { s.recycled = true; addFx(r, FX.ward(s, target, 400, '回收分類')); }
+    if (has(s, 'recycle') && !s.recycled && (it.hp || it.sp || it.revive || it.ward || it.regen) && alive(s, target)) { s.recycled = true; addFx(r, FX.ward(s, target, 400, '回收分類')); }
   } else if (it.aim === 'party') { for (const h of FRONT) if (alive(s, h)) { if (it.ward) addFx(r, FX.ward(s, h, it.ward)); if (it.sp) addFx(r, FX.sp(s, h, it.sp)); } if (it.mo) addFx(r, FX.mo(s, it.mo)); }
   else if (it.aim === 'team') { if (it.mo) addFx(r, FX.mo(s, it.mo)); }
   else { const tg = it.aim === 'foes' ? foes(s) : [target].filter(f => f && alive(s, f)), hitL = [];
@@ -1083,7 +1084,7 @@ function benchRest(s) { const run = s.run, out = []; for (const id of run.roster
 export function autoSub(s) { const out = []; if (s.over) return out; for (const id of FRONT.slice()) { if (alive(s, id)) continue; const sub = bench(s)[0]; if (!sub) break; swapIn(s, id, sub); out.push({ id, sub, hp: s.hp[sub], sp: s.sp[sub] }); } return out; }
 export function doSwap(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.indexOf(id); if (i < 0 || j < 0 || !bench(s).includes(sub) || jobBlock(s, 'swap')) return null; s.cmdLog.push(['w', id, sub]); newCmd(s); swapIn(s, id, sub);
   const free = s.swapRound !== s.round && s.onBonus !== id; s.swapRound = s.round; if (free) s.queue.unshift(sub);      // 每回合第一次換人不用掉行動：換上來的人接著行動（第二次起才用掉行動）
-  const r = { kind: 'swap', id, sub, free, mo: free ? s.mo : gain(s, MO.item) }; if (has(s, 'shift') && !s.shiftDone) { s.shiftDone = true; addFx(r, FX.ward(s, sub, 350, '輪班表')); addFx(r, FX.sp(s, sub, 20)); } r.hp = s.hp[sub]; r.sp = s.sp[sub]; return r; }
+  const r = { kind: 'swap', id, sub, free, mo: free ? s.mo : gain(s, MO.item) }; if (has(s, 'shift') && !s.shiftDone) { s.shiftDone = true; addFx(r, FX.ward(s, sub, 600, '輪班表')); addFx(r, FX.sp(s, sub, 35)); } r.hp = s.hp[sub]; r.sp = s.sp[sub]; return r; }
 function swapIn(s, id, sub) { const i = HEROES.indexOf(id), j = FRONT.indexOf(id), run = s.run; if (s.super[id] > 0) s.super[id] = 0;
   run.hp[id] = Math.max(0, s.hp[id]); run.sp[id] = s.sp[id]; HEROES[i] = sub; FRONT[j] = sub; s.hp[sub] = run.hp[sub]; s.sp[sub] = run.sp[sub];
   { const a = run.roster.indexOf(id), b = run.roster.indexOf(sub); [run.roster[a], run.roster[b]] = [run.roster[b], run.roster[a]]; }
@@ -1100,7 +1101,7 @@ export const backOk = (id, key) => (BACK_SKILLS[id] || []).includes(key);
 export const skillOk = (s, id, sk) => !skillBlock(s, id, sk.key) && (id !== s.back || backOk(id, sk.key)) && (id !== 'vivi' || backOk(id, sk.key)) && s.sp[id] >= spCost(s, id, sk) && (sk.target !== 'ally' || allyPool(s, id, sk).length > 0) && !(sk.key === 'encore' && (s.onBonus === id || s.extra >= EXTRA_MAX)) && !(sk.key === 'mice' && petsOut(s).length > 0) && !(sk.key === 'rally' && petsOut(s).length < 2);
 export const allyTargets = allyPool;
 export function doSkill(s, id, key, target) { s.cmdLog.push(['s', id, key, target ?? null]);
-  const sk = SKILLS[id].find(x => x.key === key), atk = STAT[id].atk, K = isPlus(s.run, id, key) ? 1.25 : 1, kv = v => Math.round(v * K); s.sp[id] -= spCost(s, id, sk); const fire1 = s.run.job === 'fire' && !s.fireUsed, sealK = s.sealed ? 1.4 : 1; s.fireUsed = true; s.sealed = 0; s.plusK = K * (fire1 ? 1.4 : 1) * sealK; s.lastSk[id] = [key, s.round]; newCmd(s); s.smoke[id] = null; s.inSkill = true; s.curType = sk.type || null; s.layerHit = false; const fee = s.L && s.L.fee && s.sign > 0 ? Math.min(s.L.fee, s.sp[id]) : 0; s.sp[id] -= fee; const r = { kind: 'skill', id, key, name: sk.name, target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
+  const sk = SKILLS[id].find(x => x.key === key), atk = STAT[id].atk, K = isPlus(s.run, id, key) ? 1.25 : 1, kv = v => Math.round(v * K); s.sp[id] -= spCost(s, id, sk); const fire1 = s.run.job === 'fire' && !s.fireUsed, sealK = s.sealed ? 1.25 : 1; s.fireUsed = true; s.sealed = 0; s.plusK = K * (fire1 ? 1.4 : 1) * sealK; s.lastSk[id] = [key, s.round]; newCmd(s); s.smoke[id] = null; s.inSkill = true; s.curType = sk.type || null; s.layerHit = false; const fee = s.L && s.L.fee && s.sign > 0 ? Math.min(s.L.fee, s.sp[id]) : 0; s.sp[id] -= fee; const r = { kind: 'skill', id, key, name: sk.name, target, hits: [] }, push = h => { if (h) r.hits.push(h); return h; }, all = () => [...MINIONS, 'boss'].filter(f => alive(s, f));
   if (key === 'sweep') { const fs = all(); if (fs.length === 1) push(hitFoe(s, id, fs[0], atk * 1.5)); else for (const f of fs) push(hitFoe(s, id, f, atk * .75)); }
   else if (key === 'draft') { push(hitFoe(s, id, target, atk * .8)); if (alive(s, target)) push(hitFoe(s, id, target, atk * .9)); }
   else if (key === 'counter') s.counter[id] = true;
@@ -1135,7 +1136,7 @@ export function doSkill(s, id, key, target) { s.cmdLog.push(['s', id, key, targe
   else if (key === 'transfer') { const v = Math.min(kv(80), STAT[target].sp - s.sp[target]); s.sp[target] += v; r.spGains = [{ dst: target, v, sp: s.sp[target] }]; }
   else if (key === 'mix') { const v = Math.min(Math.round(kv(1100) * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += v; s.defend[target] = true; r.heals = [{ dst: target, v, hp: s.hp[target] }]; r.shielded = target; }
   else if (sk.fx) runFx(s, id, sk, target, r, push, all);
-  if (has(s, 'notes') && !s.notesSk && target === 'boss' && s.mark.boss > 0 && r.hits.some(h => h && !h.guard && h.dst === 'boss')) { s.notesSk = true; if (chipBoss(s, 1, r)) {} r.notesChip = true; }
+  if (has(s, 'notes') && !s.notesSk && target === 'boss' && s.mark.boss > 0 && r.hits.some(h => h && !h.guard && h.dst === 'boss')) { s.notesSk = true; if (!s.xChip) { s.xChip = true; chipBoss(s, 1, r); r.notesChip = true; } }
   if (fire1) r.fireFree = true; if (sealK > 1) r.sealUsed = true; if (r.burn) burnHook(s, id, r);
   s.inSkill = false; s.plusK = 1; s.curType = null; if (K > 1) r.plus = true; if (fee) r.fee = fee; gain(s, MO.skill); after(s, id, r); r.sp = s.sp[id]; return r;
 }

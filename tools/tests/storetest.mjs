@@ -20,7 +20,7 @@ const mk = (job = null) => { const run = R.newRun(R.mulberry(5), 'kui', 'draft',
   const n = run.roster.length, d = R.buy(run, 'draw'); ok(d && d.joined && run.roster.length === n + 1, `內部調派：${d && d.joined}`);
   const tr = R.offerTrain(run)[0]; ok(R.buy(run, 'train', tr) && R.isPlus(run, tr[0], tr[1]), '特訓');
   const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run))), R.mulberry(5)); ok(back && JSON.stringify(back.run.shop) === JSON.stringify(run.shop), '報帳處的貨存檔讀回來一樣'); }
-{ const run = mk('buyer'); run.coin = 500; const st = R.shopStock(run); ok(!R.shopOk(run, 'up2') && !R.shopOk(run, 'up3'), '採購主任：報帳處不能買強化'); ok(R.itemCost(run, 'tea', 'store') === Math.ceil(25 * .75), '採購主任：道具 75 折'); }
+{ const run = mk('buyer'); run.coin = 500; const st = R.shopStock(run); ok(!R.shopOk(run, 'up2') && ['express', 'recycle'].includes(st.up3) && R.shopOk(run, 'up3'), `採購主任：不能買進階強化，核心格是道具類（${st.up3}）`); ok(R.itemCost(run, 'tea', 'store') === Math.ceil(25 * .75), '採購主任：道具 75 折'); }
 // 名冊滿了的調派
 { const run = mk(); while (run.roster.length < 6) R.join(run, R.drawPool(run)[0]); run.coin = 500; const r2 = R.buy(run, 'draw'); ok(r2 && r2.pend && run.drawPend === r2.pend && run.roster.length === 6, '名冊滿了：先調來再決定');
   const out = run.roster.find(h => h !== run.starter), r3 = R.storeSettle(run, out); ok(r3 && r3.joined === r2.pend && !run.roster.includes(out), `${out} 回公司，${r2.pend} 加入`); }

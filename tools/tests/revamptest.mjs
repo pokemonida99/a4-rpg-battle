@@ -22,7 +22,7 @@ for (const k of Object.keys(R.ITEMS)) { const run = mk(); run.items[k] = 1; cons
 { const s = fight(mk(['cosign'])); s.L && (s.L.firm = false); const sh = s.shield; R.doSkill(s, 'kui', 'deadline', 'boss'); }
 { const s = fight(mk(['seal'])); s.shield = 1; s.broken = false; for (const m of R.MINIONS) s.hp[m] = 0; const r = R.doAttack(s, 'jie', 'boss'); if (s.broken) { ok(s.sealed, '議程封存：理虧後記下'); const sk = R.SKILLS.kui.find(k => k.key === 'draft'); ok(R.spCost(s, 'kui', sk) === Math.ceil(R.skCost(s.run, 'kui', sk) * .5), '下一招 SP 半價'); } }
 { const s = fight(mk(['drill'])); const m = minion(s), r = R.doSkill(s, 'jie', 'burn', m); ok(!R.alive(s, m) || (r.hits || []).some(h => h.drill), '火災演習：灼燒時追加火傷'); }
-{ const run = mk(['shift']); R.join(run, 'qiang'); const s = fight(run); const sub = R.bench(s)[0]; if (sub) { const r = R.doSwap(s, 'kevin', sub); ok((r.fxs || []).some(x => x.t === 'ward' && x.v === 350), '輪班表：換上來的人得到護盾'); } }
+{ const run = mk(['shift']); R.join(run, 'qiang'); const s = fight(run); const sub = R.bench(s)[0]; if (sub) { const r = R.doSwap(s, 'kevin', sub); ok((r.fxs || []).some(x => x.t === 'ward' && x.v === 600), '輪班表：換上來的人得到護盾'); } }
 // 過關三格獎勵
 { const run = mk(); run.floor = 1; run.node = R.MAP[1][0]; run.path[0] = 0; run.path[1] = 0; const rw = R.offerReward(run); ok(rw.opts.length === 3 && new Set(rw.opts.map(o => o.t === 'up' ? 'up' : o.t === 'items' ? 'items' : 'grow')).size === 3, `一般戰三格不同類別（${rw.opts.map(o => o.t)}）`);
   const back = R.loadRun(JSON.parse(JSON.stringify(R.saveRun(run, { pend: 'upgrade' }))), R.mulberry(1)); ok(back && JSON.stringify(back.run.reward) === JSON.stringify(rw), '三格存檔讀回來一樣'); const c = run.coin; R.applyReward(run, -1); ok(run.coin === c + rw.skip, '都不要：領額度'); }
