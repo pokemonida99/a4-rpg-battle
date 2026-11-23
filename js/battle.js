@@ -6,6 +6,7 @@ import { buildArena } from './scene.js';
 import { Unit, makeCam, stepAt } from './units.js';
 import { makeScreenFx } from './screenfx.js';
 import { makeUI } from './ui.js';
+const BSW = /[?&]oldswing/.test(location.search) ? [0, .1, .22, .36, .5] : [0, .06, .14, .44, .52];      // 頭目揮擊前五格的節奏，跟 game.js 一樣（11/23 頭尾密集、出手快）
 
 // ---------- 設定 ----------
 const ST = (hp, sp, a, m, d, r, s, c) => [['HP', hp, 6000], ['SP', sp, 500], ['物攻', a, 500], ['魔攻', m, 500], ['物防', d, 500], ['魔防', r, 500], ['速度', s, 500], ['會心', c, 500]];
@@ -232,7 +233,7 @@ export async function buildBattle(E, hudCv) {
     u.move(th + .5, h[0], h[1], .3); endTurn(th + 1.9, 'kevin'); T += .4; }
   // 魔王：退件重擊 → 小葵
   { const t0 = T, u = units.boss, bh = DEFS.boss.pos, kh = DEFS.kui.pos; setOrder(t0, R1.slice(5)); S.active.push({ t: t0, v: 'boss' }); S.boxes.push({ t0: t0 + .1, t1: t0 + 2.5, text: '退件重擊', enemy: true });
-    cam.to(t0, .5, { x: -.2, d: 12.3, y: 1.5 }); const ts = t0 + .35, th = ts + .58; u.move(ts, -.7, -1.3, .45).anim(ts, 'swing', [0, .1, .22, .36, .5, .58, 1.3, 1.6]); snd(ts, 'whoosh', .6);
+    cam.to(t0, .5, { x: -.2, d: 12.3, y: 1.5 }); const ts = t0 + .35, th = ts + .58; u.move(ts, -.7, -1.3, .45).anim(ts, 'swing', [...BSW, .58, 1.3, 1.6]); snd(ts, 'whoosh', .6);
     fx('melee/hammer-smash', th - .5, [.2, -1.5], { scale: 1.5, palette: 'blood' }); snd(th - .05, 'hit', 1); snd(th, 'explosion', .7); cam.shake(th, .3, .6); SFX.add('flash', th, .25, { c: [255, 120, 100], a: .6 });
     hurt(th + .02, 'kui', 1480, 'foe', { pow: 1.6, snd: false, big: true }); units.kui.move(th + .02, kh[0] + .55, kh[1], .2, easeOut).move(th + 1.0, kh[0], kh[1], .3);
     SFX.add('vignette', th, 1.6, { c: [220, 30, 30], a: .5 }); u.move(ts + 1.3, bh[0], bh[1], .55).pose(ts + 1.9, 'idle'); cam.to(ts + 1.3, .6, WIDE); S.active.push({ t: ts + 2.0, v: null }); T = ts + 2.3; }
@@ -288,7 +289,7 @@ export async function buildBattle(E, hudCv) {
     front.forEach((id, i) => { const th = t0 + .85 + i * .15; hurt(th, id, W1[id], 'foe', { pow: 1, snd: i % 2 ? false : 'hit', vol: .7, dy: i % 2 ? -60 : 0 }); fx('impacts/hit-spark', th, id, { y: .8, scale: 1.2 }); });
     num(t0 + 1.1, 'vivi', '後排', 'text', { col: '#ffc0dc', px: 26, y: .9, dx: -110 });
     // 第二波：衝過來一鎚砸在地上，震波把四個人掀退
-    const ts = t0 + 1.75, th = ts + .58; u.move(ts, -1.1, -.4, .5).anim(ts, 'swing', [0, .1, .22, .36, .5, .58, 1.5, 1.8]);
+    const ts = t0 + 1.75, th = ts + .58; u.move(ts, -1.1, -.4, .5).anim(ts, 'swing', [...BSW, .58, 1.5, 1.8]);
     fx('melee/hammer-smash', th - .5, [-.5, -.4], { scale: 1.8, palette: 'blood' }); fx('impacts/ground-slam', th, [.9, -.3], { scale: 2.6, palette: 'blood' }); snd(th - .05, 'hit', 1); snd(th, 'explosion', 1.1);
     SFX.add('flash', th, .45, { c: [255, 140, 110], a: .95 }); SFX.add('ring', th, .7, { cx: 215, cy: 190, r: 460, c: [255, 120, 90], w: 6 }); SFX.add('lines', th, .5, { cx: 215, cy: 180, c: [255, 150, 120], a: .6 }); cam.shake(th, .5, 1.0);
     front.forEach((id, i) => { const h = DEFS[id].pos, tt = th + .05 + i * .07; hurt(tt, id, W2[id], 'foe', { pow: 1.7, snd: false, big: true, dy: i % 2 ? -150 : -50 }); units[id].move(tt, h[0] + .5, h[1], .2, easeOut).move(tt + 1.2, h[0], h[1], .4); });
@@ -335,7 +336,7 @@ export async function buildBattle(E, hudCv) {
     snd(t0 + .3, 'paper_storm', 1); SFX.add('papers', t0 + .3, 2.9, { n: 190 }); SFX.add('speed', t0 + .3, 2.8, { dir: 1, a: .3, n: 26 }); cam.shake(t0 + .4, .07, 2.6);
     const hits = [[.75, 1188], [1.25, 1402], [1.8, 1070]]; hits.forEach(([dt, v], i) => { const th = t0 + dt; fx('impacts/shield-block', th, [.05, -.35], { palette: 'cyber', scale: 1.7, flip: true, y: .1 + i * .15 }); snd(th, 'shield_block', .8); SFX.add('flash', th, .16, { c: [150, 240, 255], a: .35 });
       hurt(th, 'kevin', v, 'foe', { pow: .5, snd: false, dx: 20 * i, dy: -30 * i }); for (const id of ['kui', 'jie', 'mi', 'vivi']) if ((i + PARTY.indexOf(id)) % 2 === 0) num(th + .05, id, 0, 'guard', { y: id === 'vivi' ? .3 : .9 }); });
-    const ts = t0 + 2.6; u.move(ts, -1.5, -.4, .5).anim(ts, 'swing', [0, .1, .22, .36, .5, .58, 1.5, 1.8]); const th = ts + .58; snd(th - .05, 'shield_block', 1.2); snd(th, 'explosion', .8);
+    const ts = t0 + 2.6; u.move(ts, -1.5, -.4, .5).anim(ts, 'swing', [...BSW, .58, 1.5, 1.8]); const th = ts + .58; snd(th - .05, 'shield_block', 1.2); snd(th, 'explosion', .8);
     fx('melee/hammer-smash', th - .5, [-1.0, -.4], { scale: 1.6, palette: 'blood' }); fx('impacts/parry', th, [.1, -.35], { scale: 2.2, palette: 'cyber', y: .2 }); SFX.add('flash', th, .35, { a: .9 }); SFX.add('lines', th, .5, { cx: 250, cy: 170, c: [150, 240, 255] }); cam.shake(th, .36, .8);
     hurt(th + .03, 'kevin', 812, 'foe', { pow: 1.3, snd: false, big: true }); units.kevin.move(th + .03, 1.25, -.4, .28, easeOut); num(th + .5, 'kevin', '完全防禦！', 'text', { col: '#9af0ff', y: 1.5, px: 44 });
     u.move(ts + 1.5, DEFS.boss.pos[0], DEFS.boss.pos[1], .6).pose(ts + 2.1, 'idle');

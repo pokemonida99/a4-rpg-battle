@@ -1,6 +1,10 @@
 // 戰鬥單位（像素看板）、鏡頭軌道、時間軸小工具。所有狀態都是時間 t 的純函式，逐格錄影才接得起來。
 import { THREE, PPU, sat, lerp, ease, easeOut, rnd, sprite, blob, rimLit } from './engine.js';
 
+// 夥伴出招 8 格的節奏（使用者 11/23，でんちゃん A2：頭尾密集、中間快）。各招原本手寫的時間表照這個規則重排：第 6 格（打中）的時間不變，
+// 第 1 格（重畫的站姿）跳過，2、3 格慢慢起手，第 4 格（蓄力最深）停最久，第 5 格揮出只閃 50ms，7、8 格照原本。網址加 ?oldswing 是改之前的節奏。
+const EASE8 = !(typeof location !== 'undefined' && /[?&]oldswing/.test(location.search));
+export const ease8 = a => { const h = a[5]; return [0, 0, h * .12, h * .3, Math.max(h * .3, h - .05), h, a[6], a[7]]; };
 // 取軌道在時間 t 的值：keys＝[{t, v}]，回傳最後一個 t<=現在的 key
 export const stepAt = (keys, t, def) => { let v = def; for (const k of keys) { if (k.t > t) break; v = k.v; } return v; };
 // 一段時間內的進度 0→1（外面是 -1）
@@ -29,7 +33,7 @@ export class Unit {
   }
   pose(t, v) { this.poseK.push({ t, v }); this.poseK.sort((a, b) => a.t - b.t); return this; }
   // 動作：frames[name] 是陣列，從 t 開始每格 dt 秒（或給 times 陣列＝每格開始的相對時間）
-  anim(t, name, times) { this.poseK.push({ t, v: name, times }); this.poseK.sort((a, b) => a.t - b.t); return this; }
+  anim(t, name, times) { if (name === 'ult' && times && !times.raw && EASE8 && this.frames.ult && this.frames.ult.real) times = ease8(times); this.poseK.push({ t, v: name, times }); this.poseK.sort((a, b) => a.t - b.t); return this; }
   move(t, x, z, dur = .2, fn = ease) { this.moveK.push({ t, x, z, dur, fn }); this.moveK.sort((a, b) => a.t - b.t); return this; }
   hit(t, pow = 1, dir = -1) { this.hitK.push({ t, pow, dir }); return this; }      // dir：被打退的方向（-1 往左）
   hop(t, h = .22, dur = .34) { this.hopK.push({ t, h, dur }); return this; }
