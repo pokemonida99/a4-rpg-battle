@@ -223,7 +223,7 @@ export function makeUI(cv, A, S) {
 
   // ---------- 道具：圖示先在使用者頭上跳出來，再拋物線丟給對象（自己用就往下喝掉） ----------
   function items(t) {
-    for (const k of S.items) { const el = t - k.t0; if (el < 0 || el > 1.12) continue; const [fx0, fy0] = S.proj(k.from, 1.0), [tx, ty] = S.proj(k.to, 1.0), img = A.items[k.key] || (k.key === 'bento' && A.icons ? A.icons.up_bento : null), self = k.from === k.to;
+    for (const k of S.items) { const el = t - k.t0; if (el < 0 || el > 1.12) continue; const [fx0, fy0] = S.proj(k.from, 1.0), [tx, ty] = S.proj(k.to, 1.0), img = A.items[k.key] || (A.icons ? A.icons[k.key === 'bento' ? 'up_bento' : 'it_' + k.key] : null), self = k.from === k.to;
       let x = fx0, y = fy0 - 78 - 8 * Math.sin(el * 9), s = back(sat(el / .22)), al = 1;
       if (el > .58) { const u = ease(sat((el - .58) / .44)); if (self) { y = lerp(fy0 - 78, fy0 + 20, u); s = 1 - .45 * u; } else { x = lerp(fx0, tx, u); y = lerp(fy0 - 78, ty + 10, u) - Math.sin(u * Math.PI) * 140; s = 1 - .3 * u; } al = sat((1.1 - el) / .12); }
       c.save(); c.globalAlpha = al; c.translate(x, y); c.scale(s, s);

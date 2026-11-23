@@ -48,6 +48,7 @@ const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 200
 // 喊招台詞與錄音長度（秒）
 export const LINES = { kui: ['吐槽一閃！', 1.61], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
+export const SMEAR = ['kui', 'kevin', 'qiang', 'heilun', 'senpai', 'wu', 'you', 'zhe', 'an'];      // 有軌跡格 art/chars/anim/<代號>_5_smear.png 的人（11/24）
 export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
 const SFACE = { kui: [.42, .12], jie: [.47, .14], qiang: [.5, .1], you: [.47, .1], senpai: [.48, .12], zhe: [.5, .1], an: [.4, .1] };      // 超級版頭像從半身像切：臉的中心在寬度的幾成、從高度的幾成開始切
 export const EXTRA = ['yan', 'heilun', 'cha', 'qiang', 'senpai', 'wu', 'you', 'fairy', 'zong', 'hui', 'xu', 'zhe', 'an'];      // 新夥伴：圖齊了才載入（少一張必要的圖就整個人不載）
@@ -60,13 +61,16 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   const arena = await buildArena(E), g = arena.group;
   // ---------- 載入素材 ----------
   const tryTex = async url => { try { return await loadTex(url); } catch (e) { return null; } };
+  // 軌跡格（11/24 使用者選 GPT 重畫的方案 B）：出招第 5 格換成武器畫成殘影的那張 <id>_5_smear.png，只在動作中閃一下，不拿來當停格或縮圖。
+  // ?smear=0 關掉；?smear=a 換成程式刀光（tools/smear.py，只有小葵有）對照
+  const SMQ = (location.search.match(/[?&]smear=([0a])/) || [])[1], smearIn = async (id, f) => { if (!f.ult.real || SMQ === '0' || !SMEAR.includes(id)) return; const t = await tryTex(`art/chars/anim/${id}_5_smear${SMQ === 'a' ? 'A' : ''}.png`); if (t) f.ult[4] = t; };
   const img = url => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('載不到 ' + url)); im.src = url; });
   const units = {}, A = { face: {}, bust: {}, eyes: {}, items: {} };
   for (const k of ['tea', 'coffee']) { try { A.items[k] = await img(`art/items/${k}.png`); } catch (e) { A.items[k] = null; } }
   await Promise.all(PARTY.map(async id => {      // 五個人同時載（逐張排隊在網路上會很慢）
     const d = DEFS[id], f = {}; await Promise.all(['ready', 'wind', 'act', 'win'].map(async k => { f[k] = await loadTex(`art/chars/${id}_${k}.png`); }));
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)));
-    f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.real = ult.every(Boolean) && !/[?&]oldswing/.test(location.search); { const SM = (location.search.match(/[?&]smear=([ab])/) || [])[1]; if (SM && f.ult.real) { const s = await tryTex(`art/chars/anim/${id}_5_smear${SM.toUpperCase()}.png`); if (s) f.ult[4] = s; } }      // 11/23 軌跡格試做：?smear=a 程式刀光、?smear=b GPT 重畫（只換第 5 格，只在動作中閃一下）      // 11/23：原本四人也標成真的 8 格，出招節奏（units.js ease8）才會套到；?oldswing 維持以前的樣子
+    f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.real = ult.every(Boolean) && !/[?&]oldswing/.test(location.search); await smearIn(id, f);      // 11/23：原本四人也標成真的 8 格，出招節奏（units.js ease8）才會套到；?oldswing 維持以前的樣子
     for (const k of ['hurt', 'guard', 'cheer']) { if ((k === 'cheer') !== (id === 'vivi') && k !== 'guard') continue; const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }      // 試玩版用：受擊、防禦（Vivi 是應援、防禦）
     if (id === 'kui' && new URLSearchParams(location.search).get('h3') === '1') { const h3 = await Promise.all(Array.from({ length: 24 }, (_, i) => tryTex(`art/chars/h3/kui_${String(i + 1).padStart(2, '0')}.png`))); if (h3.every(Boolean)) f.h3 = h3; }      // 試驗：影片抽格的 24 格揮劍（試玩版的普攻與直球吐槽用）
     if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
@@ -81,7 +85,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
     return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes, atk: atk.slice(0, 8), sup: atk.slice(8) }; }));
   for (const { id, f, hurt, guard, ko, bust, eyes, atk, sup } of extra) { const d = DEFS[id];
     if (!f.ready || !f.wind || !f.act || !f.win || (!bust && !opts.lazy)) { d.missing = true; continue; }
-    f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean); if (sup.every(Boolean)) { f.sup = sup; f.sup.k = 1; }      // 輔助招式的 4 格（聊天、跳舞、喝咖啡…，tools/atk.py --sup 切的）；沒有就用出招的動作      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
+    f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean); await smearIn(id, f); if (sup.every(Boolean)) { f.sup = sup; f.sup.k = 1; }      // 輔助招式的 4 格（聊天、跳舞、喝咖啡…，tools/atk.py --sup 切的）；沒有就用出招的動作      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
     if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (ko.every(Boolean)) f.ko = ko;
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
     A.bust[id] = bust; A.eyes[id] = eyes;
@@ -116,7 +120,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   await loadFx(FXIDS);
   const FXL = makeFxLayer(g), SFX = makeScreenFx();
   // 在某個單位（或 [x,z]）的位置放特效。o：{ dx, y, dz, scale, palette, flip, dur, glow, seed }
-  const fx = (id, t, at, o = {}) => { const [x, z] = Array.isArray(at) ? at : (units[at].posAt(t)); return FXL.add({ id, t, x: x + (o.dx || 0), y: o.y || 0, z: z + (o.dz ?? .1), scale: o.scale, palette: o.palette, flip: o.flip, dur: o.dur, glow: o.glow, seed: o.seed }); };
+  const fx = (id, t, at, o = {}) => { const [x, z] = Array.isArray(at) ? at : (units[at].posAt(t)); return FXL.add({ id, t, x: x + (o.dx || 0), y: o.y || 0, z: z + (o.dz ?? .1), scale: o.scale, palette: o.palette, flip: o.flip, dur: o.dur, glow: o.glow, seed: o.seed, arc: o.arc }); };
   arena.fires.forEach((f, i) => { const k = f.s * .6; f.fx = FXL.add({ id: 'fire/brazier', t: -5, dur: 9999, x: f.x, y: f.top - .1 - .8 * k, z: f.z - .12, scale: k, seed: 3 + i }); });      // 特效自己也畫了火盆，把它藏在我們的火盆後面，只露出碗口上面的火
 
   // ---------- 狀態軌道 ----------

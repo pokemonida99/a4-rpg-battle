@@ -4,7 +4,7 @@ import { THREE, PPU, sat, lerp, ease, easeOut, rnd, sprite, blob, rimLit } from 
 // 夥伴出招 8 格的節奏（使用者 11/23，でんちゃん A2：頭尾密集、中間快）。各招原本手寫的時間表照這個規則重排：第 6 格（打中）的時間不變，
 // 第 1 格（重畫的站姿）跳過，2、3 格慢慢起手，第 4 格（蓄力最深）停最久，第 5 格揮出只閃 50ms，7、8 格照原本。網址加 ?oldswing 是改之前的節奏。
 const EASE8 = !(typeof location !== 'undefined' && /[?&]oldswing/.test(location.search));
-export const ease8 = a => { const h = a[5]; return [0, 0, h * .12, h * .3, Math.max(h * .3, h - .05), h, a[6], a[7]]; };
+export const ease8 = a => { const h = a[5]; return [0, 0, h * .12, h * .3, Math.max(h * .3, h - .065), h, a[6], a[7]]; };
 // 取軌道在時間 t 的值：keys＝[{t, v}]，回傳最後一個 t<=現在的 key
 export const stepAt = (keys, t, def) => { let v = def; for (const k of keys) { if (k.t > t) break; v = k.v; } return v; };
 // 一段時間內的進度 0→1（外面是 -1）

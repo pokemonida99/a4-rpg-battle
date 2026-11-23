@@ -20,7 +20,7 @@ export function makeFxLayer(parent) {
     return { cv, ctx: cv.getContext('2d'), img: new ImageData(w, h), frame: createFrame(w, h), tex, m };
   }
   return {
-    // o：{ id:'arcane/magic-circle-cast', t 開始時間, x, y（腳底高度，預設 0）, z, palette（PAL 的名字或色階陣列）, seed, scale, flip, dur（循環特效播多久）, glow（亮度倍率）}
+    // o：{ id:'arcane/magic-circle-cast', t 開始時間, x, y（腳底高度，預設 0）, z, palette（PAL 的名字或色階陣列）, seed, scale, flip, dur（循環特效播多久）, glow（亮度倍率）, arc（交給特效本身的參數，例如刀光的 a0／a1／cy）}
     add(o) {
       const mod = mods[o.id]; if (!mod) throw new Error('特效還沒載入：' + o.id);
       const [w, h] = mod.meta.size, [ox, oy] = mod.meta.origin, s = o.scale ?? 1;
@@ -41,7 +41,7 @@ export function makeFxLayer(parent) {
         if (!on) { c.inst = null; continue; }
         const want = Math.floor(el * 60);
         if (!c.inst || c.n > want) {
-          const opt = { x: c.ox, y: c.oy, seed: c.o.seed ?? 1 }; const pal = c.o.palette; if (pal) opt.palette = typeof pal === 'string' ? PAL[pal] : pal; if (c.mod.meta.actor) opt.actor = blankActor(c.mod.meta.actor === 2 ? 2 : 1);
+          const opt = { x: c.ox, y: c.oy, seed: c.o.seed ?? 1 }; const pal = c.o.palette; if (pal) opt.palette = typeof pal === 'string' ? PAL[pal] : pal; if (c.o.arc) Object.assign(opt, c.o.arc); if (c.mod.meta.actor) opt.actor = blankActor(c.mod.meta.actor === 2 ? 2 : 1);
           c.inst = createFx(c.mod, opt); c.n = 0; c.stopN = c.mod.meta.loop ? Math.floor((c.end - .3) * 60) : -1;
         }
         while (c.n < want) { c.inst.update(1 / 60); c.n++; if (c.n === c.stopN) c.inst.stop(); }
