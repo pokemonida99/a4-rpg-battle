@@ -538,6 +538,22 @@ Object.assign(EVENTS, {
     { label: '整理附件，領補給券', icon: 'up_drinks', kind: 'item', lines: ['全員 SP －20%', '奶茶 ＋1', '咖啡 ＋1'], go: run => { spAll(run, -0.2); run.items.tea += 1; run.items.coffee += 1; return '整理附件，領補給券：全員 SP －20%、奶茶 ＋1、咖啡 ＋1'; } },
     { label: '喝咖啡，一次清空待辦', icon: 'up_weakpoint', kind: 'buff', lines: ['咖啡 －1', '下戰敵人HP －15%'], ok: run => run.items.coffee >= 1, go: run => { run.items.coffee -= 1; nextUp(run, { foeHp: 0.85 }); return '喝咖啡，一次清空待辦：咖啡 －1、下戰敵人HP －15%'; } }] },
 });
+// 11/24 系統改版的事件：跟新道具、核心強化、報帳額度扣在一起（文字是草稿，等使用者看口吻）
+const giveItem = (run, k, n = 1) => { run.items[k] = (run.items[k] || 0) + n; return ITEMS[k].name; };
+Object.assign(EVENTS, {
+  rv_stockroom: { name: '總務倉庫清點', text: '總務說今天一定要把倉庫清完，誰幫忙搬，搬到的東西就送誰。架上的紙箱都沒寫內容。', opts: [
+    { label: '整排搬下來', icon: 'it_bag', kind: 'item', lines: ['全員 HP －12%', '隨機兩件戰術道具'], go: run => { hpAll(run, -0.12); const a = giveItem(run, pickN(run, ITEM_COMMON, 1)[0]), b = giveItem(run, pickN(run, ITEM_COMMON, 1)[0]); return `腰有點痠，拿到${a}和${b}`; } },
+    { label: '只拿最上面那箱', icon: 'it_poncho', kind: 'item', lines: ['報帳額度 －20', '隨機一件稀有道具'], ok: run => run.coin >= 20, go: run => { run.coin -= 20; return `被要求填領用單、付了處理費，拿到${giveItem(run, pickN(run, ITEM_RARE, 1)[0])}`; } }] },
+  rv_expense: { name: '報帳被退件', text: '會計把你的報帳單退回來，便利貼上寫著：「發票抬頭不對，請重開。」', opts: [
+    { label: '一張一張補單據', icon: 'up_coin', kind: 'buff', lines: ['全員 SP －25%', '報帳額度 ＋50'], go: run => { spAll(run, -0.25); run.coin += 50; return '補到半夜，錢終於下來了'; } },
+    { label: '算了，不報了', icon: 'rest', kind: 'heal', lines: ['全員 HP ＋30%', '全員 SP ＋30%'], go: run => { hpAll(run, 0.3); spAll(run, 0.3); return '少一件事煩心，整個人輕鬆多了'; } }] },
+  rv_seminar: { name: '外部講座', text: '人資幫大家報名了一場「高效職場心法」講座，講師已經在台上講了四十分鐘自己的創業故事。', opts: [
+    { label: '坐第一排認真抄筆記', icon: 'up_notes', kind: 'buff', lines: ['全員 HP －20%', '隨機一個核心強化'], ok: run => Object.keys(UPGRADES).some(k => upOk(run, k) && UPGRADES[k].tier === 3), go: run => { hpAll(run, -0.2); const k = upPick(run, 3); if (!k) return '筆記抄滿了，但沒什麼收穫'; applyUpgrade(run, k); return `從一大堆廢話裡抓到一句真的有用的：「${UPGRADES[k].name}」`; } },
+    { label: '坐後排補眠', icon: 'up_nap', kind: 'heal', lines: ['全員 HP ＋40%', '全員 SP 補滿'], go: run => { hpAll(run, 0.4); spAll(run, 1); return '睡得很好，掌聲把你叫醒的時候剛好結束'; } }] },
+  rv_printer: { name: '影印機卡紙', text: '影印機又卡紙了，面板閃著紅燈。排在你後面的同事已經嘆了三次氣。', opts: [
+    { label: '自己拆開來修', icon: 'it_toner', kind: 'item', lines: ['全員 HP －10%', '碳粉匣 ＋1'], go: run => { hpAll(run, -0.1); return `手黑了一片，順便拆出一個還能用的${giveItem(run, 'toner')}`; } },
+    { label: '打電話叫廠商', icon: 'it_tape', kind: 'item', lines: ['報帳額度 －15', '泡棉膠帶 ＋1、訂書機 ＋1'], ok: run => run.coin >= 15, go: run => { run.coin -= 15; giveItem(run, 'tape'); giveItem(run, 'stapler'); return '廠商修好了，還留下一卷泡棉膠帶和一台備用訂書機'; } }] },
+});
 export const eventOk = (run, key, i) => { const o = EVENTS[key] && EVENTS[key].opts[i]; return !!o && (!o.ok || o.ok(run)); };
 export function applyEvent(run, key, i) { return eventOk(run, key, i) ? EVENTS[key].opts[i].go(run) : null; }
 export function redo(s, e) { if (!Array.isArray(e)) return null; const [k, id, a, b] = e; if (!HEROES.includes(id) || !alive(s, id)) return null; const foe = t => typeof t === 'string' && SLOTS_ALL().includes(t) && alive(s, t);
