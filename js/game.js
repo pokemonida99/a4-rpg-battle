@@ -1382,6 +1382,7 @@ function drawPick() {
     else if (it.img) { const s = 168, w2 = s * it.img.width / it.img.height; pix(it.img, ax + aw / 2 - w2 / 2, ay + AH / 2 - s / 2, w2, s); }
     else if (it.icon) { const s = 168; if (A.icons[it.icon]) pix(A.icons[it.icon], ax + aw / 2 - s / 2, ay + AH / 2 - s / 2, s, s); else text(it.label[0], ax + aw / 2, ay + AH / 2 + 34, { px: 96, w: 900, fam: SERIF, align: 'center', col: CREAM }); }
     c.strokeStyle = BRASS; c.lineWidth = 3; c.strokeRect(ax + 2.5, ay + 2.5, aw - 5, AH - 5);
+    if (it.tier === 3 && !off) { const g = .5 + .5 * Math.sin(now * 3.2); c.strokeStyle = `rgba(232,186,72,${.55 + .45 * g})`; c.lineWidth = 5; c.strokeRect(x + 4, y + 4, CWd - 8, CH - 8); for (let q = 0; q < 4; q++) { const a = now * 1.1 + q * Math.PI / 2, sx = x + CWd / 2 + Math.cos(a) * (CWd / 2 - 10), sy = y + AH / 2 + 22 + Math.sin(a) * (AH / 2); c.fillStyle = `rgba(255,236,170,${.5 + .5 * Math.sin(now * 6 + q)})`; c.fillRect(Math.round(sx) - 3, Math.round(sy) - 3, 6, 6); } }      // 核心卡：金框慢慢亮暗，四顆金點繞著圖轉
     if (it.tier >= 2) { const t = R.TIER_NAME_UP[it.tier]; c.fillStyle = TIER_COL[it.tier]; c.fillRect(ax + 8, ay + 10, 96, 40); c.strokeStyle = 'rgba(255,240,200,.7)'; c.lineWidth = 2; c.strokeRect(ax + 9, ay + 11, 94, 38); text(t, ax + 56, ay + 40, { px: 24, w: 900, fam: SERIF, align: 'center', col: '#fff4d8', ls: 4 }); }
     if (on) { c.strokeStyle = TEAL; c.lineWidth = 6; c.strokeRect(x + 8, y + 8, CWd - 16, CH - 16); } if (dn) { c.fillStyle = `rgba(255,246,216,${.8 - .5 * Math.min(1, pe)})`; c.fillRect(x, y, CWd, CH); }
     // 字
