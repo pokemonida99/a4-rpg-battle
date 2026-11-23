@@ -10,7 +10,7 @@ s = mk('toxic'); s.plan.ma = 'kui'; r = R.enemyTurn(s, 'ma'); ok(s.hpoison.kui &
 s = mk('crunch'); ok(R.rage(s) === 1, '連夜趕件：前兩回合正常'); s.round = 3; ok(R.rage(s) === 1.25, '第三回合 ×1.25');
 s = mk(null); s.round = 12; ok(R.rage(s) === 1, '第 12 回合還沒懲罰'); s.round = 15; ok(Math.abs(R.rage(s) - 1.3) < 1e-9, '第 15 回合 ×1.3');
 // 獎勵
-s = mk('late'); s.hp.boss = 0; s.over = 'win'; { const n0 = s.run.picks.length; R.endStage(s, s.run); ok(s.run.picks.length === n0 + 1 && /小物/.test(s.run.lastReward), `打贏：${s.run.lastReward}`); }
+s = mk('late'); s.hp.boss = 0; s.over = 'win'; { const n0 = s.run.picks.length; R.endStage(s, s.run); ok(s.run.picks.length === n0 + 1 && /強化/.test(s.run.lastReward), `打贏：${s.run.lastReward}`); }
 s = mk('armor'); s.over = 'win'; R.endStage(s, s.run); ok(s.run.plus.length === 1 && /升級成＋/.test(s.run.lastReward), s.run.lastReward);
 // 防禦加速
 s = mk(null); R.doDefend(s, 'kevin'); ok(s.quick.kevin, '防禦後記下來'); R.startRound(s); { const iK = s.queue.indexOf('kevin'); ok(iK >= 0 && !s.quick.kevin, `下回合 Kevin 排第 ${iK + 1}（速度 142×1.2＝170，還是比 180 的小兵慢）`); }
