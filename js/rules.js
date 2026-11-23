@@ -594,6 +594,9 @@ const jobHeal = s => s.run.job === 'duty' ? .8 : 1, jobWard = s => s.run.job ===
 // 報帳處（要走到那一站）：普通道具半價、三款稀有道具（偶爾有特級）、進階強化 90、核心強化 150、特訓 45、素質 ＋1、內部調派、換一格強化。
 export const PRICE = { up2: 90, up3: 150, train: 45, reroll: 20, draw: 120, sign: 25 }, STORE_MAX = 2;
 // 戰前加簽（11/24 GPT 第三輪）：報帳處每次來能買一張，只限下一場、不能累積，開場自動生效
+// 現場加辦（11/24 GPT 第三輪）：一般戰三成機會多一個可選目標，做到了戰後多拿一件普通戰術道具；沒做到沒有懲罰
+export const TASKS = ['help', 'tools', 'spare'], TASK = { help: ['跨科支援', '兩位不同的同事各用一次道具'], tools: ['工具實測', '用兩種不同的道具'], spare: ['留有餘裕', '打贏時沒有人倒下，氣勢至少 40'] };
+export const taskDone = s => !!s.task && (s.task === 'help' ? new Set(s.itemBy).size >= 2 : s.task === 'tools' ? new Set(s.itemKinds).size >= 2 : FRONT.every(h => alive(s, h)) && s.mo >= 40);
 export const SIGNS = { ward: ['安全加簽', '下一場開場，前排全員護盾 900', { ward: 900 }], mo: ['提案加簽', '下一場開場，氣勢 ＋20', { mo: 20 }], down: ['稽核加簽', '下一場開場，敵方全體攻擊力 －20%（兩次行動）', { down: .2 }] };
 export const STORE = { tea: 25, coffee: 30, bento: 60, draw: 120 }, BOOST = { atk: ['攻擊', '全隊攻擊力 ＋5%'], def: ['防禦', '全隊受到的傷害 －4%'], hp: ['體力', '全隊 HP 上限 ＋6%'], spd: ['速度', '全隊速度 ＋5%'], mo: ['氣勢', '每場開場氣勢 ＋6'] }, BOOST_MAX = 5;
 // 體力、速度是直接改 STAT（跟「特休」一樣），所以讀檔時要照買過的次數重算（loadRun）
@@ -702,6 +705,7 @@ export function endStage(s, run) { for (const id of crew(run)) if (!HEROES.inclu
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
   run.lastCoin = coinFor(run.node); run.coin = (run.coin || 0) + run.lastCoin;
   run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
+  if (s.task && s.over === 'win' && taskDone(s)) { const k = pickN(run, ITEM_COMMON, 1)[0]; run.items[k] = (run.items[k] || 0) + 1; run.lastReward = (run.lastReward ? run.lastReward + '。' : '') + `加辦「${TASK[s.task][0]}」完成：${ITEMS[k].name} ＋1`; }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
 // 行程表上用道具（11/21 使用者：大地圖也要能回血）：珍珠奶茶補 HP、黑咖啡補 SP；雞排便當要有人倒下，行程表上沒有人是倒著的，所以用不到
@@ -845,6 +849,7 @@ export function newState(run = newRun()) {
   s.wkBy = {}; s.lastSk = {}; s.lunch = {}; s.expressed = false; s.fireUsed = false; s.hostUlt = false; s.sealed = 0; s.freeTurn = null;
   if (run.picks.includes('coffee')) for (const id of FRONT) s.sp[id] = Math.min(STAT[id].sp, s.sp[id] + 40);      // 新咖啡機
   s.itemUses = 0; s.stunned1 = false; if (nx.ward > 0) for (const h of FRONT) s.ward[h] = Math.round(nx.ward * jobWard(s)); s.nx = nx;
+  s.itemBy = []; s.itemKinds = []; s.task = !st.boss && run.node && run.node.tag !== '菁英' && run.node.type === 'battle' && rand() < .3 ? TASKS[Math.floor(rand() * TASKS.length)] : null;      // 現場加辦（GPT 第三輪）
   if (nx.mo) s.mo = Math.min(MO.max, s.mo + nx.mo); if (nx.down) for (const f of [...(st.boss ? ['boss'] : []), ...MINIONS]) weaken(s, f, 2, nx.down); /* 戰前加簽 */ if (run.ot >= 2) for (const m of MINIONS) s.fward[m] = Math.round(600 * hk);
   s.hp.boss = st.boss ? STAT.boss.hp : 0; for (const m of SLOTS) s.hp[m] = MINIONS.includes(m) ? STAT[m].hp : 0;
   return s;
@@ -1070,7 +1075,7 @@ export function itemTargets(s, key, user) { const it = ITEMS[key]; if (!it || it
 export const ITEM_COST = { highlighter: 45, toner: 45, poncho: 45, earplug: 30, notice: 40, stamp: 35, tonic: 35, usb: 75, bento: 30 };      // 報帳處的價格（普通道具＝福利社半價）
 export const itemCost = (run, k, where) => { const it = ITEMS[k], base = where === 'store' ? it.price : ITEM_COST[k] ?? Math.ceil(it.price / 2); return base == null ? null : Math.ceil(base * (run.job === 'buyer' ? .75 : 1)); };
 export function doItem(s, id, key, target) { s.cmdLog.push(['i', id, key, target]);
-  const it = ITEMS[key]; s.items[key]--; s.itemUses++; s.smoke[id] = null; newCmd(s); const r = { kind: 'item', id, key, target, hits: [] };
+  const it = ITEMS[key]; s.items[key]--; s.itemUses++; s.smoke[id] = null; newCmd(s); const r = { kind: 'item', id, key, target, hits: [] }; s.itemBy.push(id); s.itemKinds.push(key);
   if (it.aim === 'ally') {
     if (it.cleanse && cleanse(s, target)) addFx(r, FX.tag(target, '解除異常'));
     if (it.hp) { r.heal = Math.min(Math.round(it.hp * jobHeal(s)), STAT[target].hp - s.hp[target]); s.hp[target] += r.heal; if (r.heal > 0) welfareWard(s, [target], r); }
