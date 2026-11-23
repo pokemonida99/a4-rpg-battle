@@ -48,6 +48,8 @@ const BAG = { tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 200
 // 喊招台詞與錄音長度（秒）
 export const LINES = { kui: ['吐槽一閃！', 1.61], jie: ['深淵……死線！', 2.45], kevin: ['這個，用 AI 擋就好了！', 2.88], mi: ['聖光專線，很高興為您服務！', 2.84], vivi: ['全員準時下班！', 2.47],
   boss_intro: ['我要找你們主管！', 1.66], boss_attack: ['再改一版！', 1.05], boss_down: ['我……要客訴……', 3.06] };
+// ?anim8 試驗（11/24）：出招 8 格「一張圖一次重畫」的版本（art/chars/anim8/，第 5 格本身就是殘影），有畫好的人才換
+export const ANIM8 = ['kui', 'kevin', 'qiang', 'heilun'], A8OK = id => ANIM8.includes(id) && typeof location !== 'undefined' && /[?&]anim8/.test(location.search);
 export const SMEAR = ['kui', 'kevin', 'qiang', 'heilun', 'senpai', 'wu', 'you', 'zhe', 'an'];      // 有軌跡格 art/chars/anim/<代號>_5_smear.png 的人（11/24）
 export const SUPER_ART = ['qiang', 'kui', 'jie', 'you', 'senpai', 'an', 'zhe'];      // 超級版的圖畫好了的人（art/chars/s_<代號>_*.png、art/cutin/bust_s_<代號>.png）；沒畫好的變身時先用金色調頂著
 const SFACE = { kui: [.42, .12], jie: [.47, .14], qiang: [.5, .1], you: [.47, .1], senpai: [.48, .12], zhe: [.5, .1], an: [.4, .1] };      // 超級版頭像從半身像切：臉的中心在寬度的幾成、從高度的幾成開始切
@@ -70,7 +72,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   for (const k of ['tea', 'coffee']) { try { A.items[k] = await img(`art/items/${k}.png`); } catch (e) { A.items[k] = null; } }
   await Promise.all(PARTY.map(async id => {      // 五個人同時載（逐張排隊在網路上會很慢）
     const d = DEFS[id], f = {}; await Promise.all(['ready', 'wind', 'act', 'win'].map(async k => { f[k] = await loadTex(`art/chars/${id}_${k}.png`); }));
-    const A8 = id === 'kui' && /[?&]kui8/.test(location.search);      // 11/24 試驗：小葵 8 格「一張圖一次生」的版本（art/chars/anim8/，第 5 格本身就是殘影）
+    const A8 = A8OK(id) || (id === 'kui' && /[?&]kui8/.test(location.search));      // 11/24 試驗：小葵 8 格「一張圖一次生」的版本（art/chars/anim8/，第 5 格本身就是殘影）
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/${A8 ? 'anim8' : 'anim'}/${id}_${i}.png`)));
     f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.real = ult.every(Boolean) && !/[?&]oldswing/.test(location.search); if (!A8) await smearIn(id, f);      // 11/23：原本四人也標成真的 8 格，出招節奏（units.js ease8）才會套到；?oldswing 維持以前的樣子
     for (const k of ['hurt', 'guard', 'cheer']) { if ((k === 'cheer') !== (id === 'vivi') && k !== 'guard') continue; const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }      // 試玩版用：受擊、防禦（Vivi 是應援、防禦）
@@ -83,11 +85,11 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   // 新夥伴：所有人、所有圖同時載，載完再照順序放進場景
   const extra = await Promise.all(EXTRA.map(async id => { const opt = p => p.catch(() => null);
   const SUPPORT = ['cha', 'wu', 'you', 'fairy', 'zong', 'xu'];      // 有輔助招式 4 格動作的人（art/chars/anim/<代號>_s1~4.png）
-    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opts.lazy ? null : opt(img(`art/cutin/bust_${id}.png`)), opts.lazy ? null : opt(img(`art/cutin/eyes_${id}.jpg`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)), ...['s1', 's2', 's3', 's4'].map(i => SUPPORT.includes(id) ? tryTex(`art/chars/anim/${id}_${i}.png`) : null)]);
+    const [ready, wind, act, win, hurt, guard, ko1, ko2, bust, eyes, ...atk] = await Promise.all([...['ready', 'wind', 'act', 'win'].map(k => tryTex(`art/chars/${id}_${k}.png`)), ...['hurt', 'guard'].map(k => tryTex(`art/chars/pose/${id}_${k}.png`)), ...[1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`)), opts.lazy ? null : opt(img(`art/cutin/bust_${id}.png`)), opts.lazy ? null : opt(img(`art/cutin/eyes_${id}.jpg`)), ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/${A8OK(id) ? 'anim8' : 'anim'}/${id}_${i}.png`)), ...['s1', 's2', 's3', 's4'].map(i => SUPPORT.includes(id) ? tryTex(`art/chars/anim/${id}_${i}.png`) : null)]);
     return { id, f: { ready, wind, act, win }, hurt, guard, ko: [ko1, ko2], bust, eyes, atk: atk.slice(0, 8), sup: atk.slice(8) }; }));
   for (const { id, f, hurt, guard, ko, bust, eyes, atk, sup } of extra) { const d = DEFS[id];
     if (!f.ready || !f.wind || !f.act || !f.win || (!bust && !opts.lazy)) { d.missing = true; continue; }
-    f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean); await smearIn(id, f); if (sup.every(Boolean)) { f.sup = sup; f.sup.k = 1; }      // 輔助招式的 4 格（聊天、跳舞、喝咖啡…，tools/atk.py --sup 切的）；沒有就用出招的動作      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
+    f.ult = atk.every(Boolean) ? atk : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.k = 1; f.ult.real = atk.every(Boolean); if (!A8OK(id)) await smearIn(id, f); if (sup.every(Boolean)) { f.sup = sup; f.sup.k = 1; }      // 輔助招式的 4 格（聊天、跳舞、喝咖啡…，tools/atk.py --sup 切的）；沒有就用出招的動作      // 出招 8 格（art/chars/anim，tools/atk.py 切的）；沒有就用三張姿勢頂著
     if (hurt) f.hurt = hurt; if (guard) f.guard = guard; if (ko.every(Boolean)) f.ko = ko;
     units[id] = new Unit(g, f, { x: d.pos[0], z: d.pos[1], scale: d.hgt * PPU / f.ready.image.height, tint: 0xf2ecff, phase: EXTRA.indexOf(id) * .31 + .15 }); units[id].show(-1e9, false);
     A.bust[id] = bust; A.eyes[id] = eyes;
