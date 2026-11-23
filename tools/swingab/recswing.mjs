@@ -1,4 +1,4 @@
-// 錄出招節奏對照：node recswing.mjs <hero> <old|new> <outdir> [map] [stage]
+// 錄出招節奏對照：node recswing.mjs <hero> <old|new> <outdir> <atk|招式名> [map] [stage]　（環境變數 EXTRA 可以多加網址參數，例如 EXTRA='&smear=a'）
 // 遊戲用 ?fast=0.1 放慢 10 倍，一直截圖並記下遊戲時間 now，之後再照遊戲時間排成 60fps 影片。
 import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
 const require = createRequire('/Users/hermes/Public/0720/office-idle-reel/'), puppeteer = require('puppeteer-core');
@@ -7,7 +7,7 @@ fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive:
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] }); const errors = [];
 const page = await browser.newPage(); await page.setViewport({ width: 870, height: 402, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); page.on('pageerror', e => errors.push(e.message));
 const team = [hero, ...['jie', 'kevin', 'mi', 'kui'].filter(h => h !== hero)].slice(0, 3).join();
-await page.goto(`http://localhost:4630/game.html?mute&seed=3&map=${map}&team=${team}${hero !== 'kui' && !['jie'].includes(hero) ? '&back=kui' : ''}${stage ? '&stage=' + stage : '&floor=2'}${mode === 'old' ? '&oldswing' : ''}&fresh=${Date.now()}`);
+await page.goto(`http://localhost:4630/game.html?mute&seed=3&map=${map}&team=${team}${hero !== 'kui' && !['jie'].includes(hero) ? '&back=kui' : ''}${stage ? '&stage=' + stage : '&floor=2'}${mode === 'old' ? '&oldswing' : ''}${process.env.EXTRA || ''}&fresh=${Date.now()}`);
 await page.waitForFunction('window.__game && window.__game.phase === "title"', { timeout: 90000 }); await wait(9000); await page.evaluate(() => __game.start()); await page.waitForFunction('__game.phase === "pick" && __game.menu'); await page.evaluate(() => __game.press(0)); await wait(700); await page.evaluate(() => __game.press(0)); await page.waitForFunction('__game.phase === "hub" && __game.menu'); await wait(900);
 await page.evaluate(() => { const g = __game; g.go(g.menu.items.filter(x => x.node != null).length - 1); }); await wait(400); await page.evaluate(() => { const g = __game; if (g.phase === 'hub' && g.menu) g.go(g.menu.items.filter(x => x.node != null).length - 1); });
 // 輪到 hero 之前，別人都按防禦

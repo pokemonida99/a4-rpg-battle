@@ -66,7 +66,7 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   await Promise.all(PARTY.map(async id => {      // 五個人同時載（逐張排隊在網路上會很慢）
     const d = DEFS[id], f = {}; await Promise.all(['ready', 'wind', 'act', 'win'].map(async k => { f[k] = await loadTex(`art/chars/${id}_${k}.png`); }));
     const ult = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8].map(i => tryTex(`art/chars/anim/${id}_${i}.png`)));
-    f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready];
+    f.ult = ult.every(Boolean) ? ult : [f.ready, f.wind, f.wind, f.act, f.act, f.act, f.act, f.ready]; f.ult.real = ult.every(Boolean) && !/[?&]oldswing/.test(location.search); { const SM = (location.search.match(/[?&]smear=([ab])/) || [])[1]; if (SM && f.ult.real) { const s = await tryTex(`art/chars/anim/${id}_5_smear${SM.toUpperCase()}.png`); if (s) f.ult[4] = s; } }      // 11/23 軌跡格試做：?smear=a 程式刀光、?smear=b GPT 重畫（只換第 5 格，只在動作中閃一下）      // 11/23：原本四人也標成真的 8 格，出招節奏（units.js ease8）才會套到；?oldswing 維持以前的樣子
     for (const k of ['hurt', 'guard', 'cheer']) { if ((k === 'cheer') !== (id === 'vivi') && k !== 'guard') continue; const tx = await tryTex(`art/chars/pose/${id}_${k}.png`); if (tx) f[k] = tx; }      // 試玩版用：受擊、防禦（Vivi 是應援、防禦）
     if (id === 'kui' && new URLSearchParams(location.search).get('h3') === '1') { const h3 = await Promise.all(Array.from({ length: 24 }, (_, i) => tryTex(`art/chars/h3/kui_${String(i + 1).padStart(2, '0')}.png`))); if (h3.every(Boolean)) f.h3 = h3; }      // 試驗：影片抽格的 24 格揮劍（試玩版的普攻與直球吐槽用）
     if (id !== 'vivi') { const ko = await Promise.all([1, 2].map(i => tryTex(`art/chars/ko/${id}_${i}.png`))); if (ko.every(Boolean)) f.ko = ko; }      // 倒地：跪倒 → 趴在地上（試玩版用，沒有圖就不放）
