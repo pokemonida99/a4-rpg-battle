@@ -329,7 +329,7 @@ export const MAPS = { office: [
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'night', pool: ['night', 'night_a', 'night_s'], tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'recruit', name: '人力銀行', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'chief', pool: ['chief', 'parrot', 'monkey'], tag: '頭目', icon: 'chief' }],
-  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
+  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '道具半價、稀有道具、強化、特訓' }],
   [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'battle', stage: 'holiday', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'audit', pool: ['audit', 'pig'], tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'boss', tag: '魔王', icon: 'boss' }],
@@ -341,7 +341,7 @@ export const MAPS = { office: [
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm3', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'event', name: '走廊轉角', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'recruit', name: '人力銀行', tag: '招募', icon: 'recruit', sub: '三位同事選一位同行' }],
   [{ type: 'battle', stage: 'm_kevin', tag: '頭目', icon: 'chief' }],
-  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '用報帳額度買小物、補給、特訓' }],
+  [{ type: 'gift', name: '福委會', tag: '福利', icon: 'gift', sub: '直接三選一強化' }, { type: 'recruit', name: '獵頭公司', tag: '招募', icon: 'hunt', sub: '三位同事選一位同行' }, { type: 'shop', name: '報帳處', tag: '採買', icon: 'shop', sub: '道具半價、稀有道具、強化、特訓' }],
   [{ type: 'event', name: '樓梯間', tag: '事件', icon: 'event', sub: '不知道會遇到什麼' }, { type: 'battle', stage: 'm4', tag: '救援', icon: 'rescue', rescue: true, sub: '打贏救出一位夥伴' }],
   [{ type: 'rest', name: '茶水間', tag: '休息', icon: 'rest', sub: 'HP 回復一半　SP 補滿' }, { type: 'battle', stage: 'm_fairy', tag: '菁英', icon: 'elite', bonus: { tea: 1, coffee: 1, bento: 1 }, sub: '打贏多拿奶茶、咖啡、便當各一' }],
   [{ type: 'battle', stage: 'm_vivi', tag: '魔王', icon: 'boss' }],
@@ -349,7 +349,7 @@ export const MAPS = { office: [
 // 台灣篇：十二站、三條支線（上、中、下）。to＝從這一站可以走到下一層的哪幾站（沒寫就是都可以）；相鄰的路才換得過去
 const LANE = [[0, 1], [0, 1, 2], [1, 2]], B = (stage, tag = '戰鬥', icon = 'battle', more = {}) => ({ type: 'battle', stage, tag, icon, ...more }), RESCUE = { rescue: true, sub: '打贏救出一位夥伴' };
 const N = (type, name, tag, icon, sub) => ({ type, name, tag, icon, sub }), REST = name => N('rest', name, '休息', 'rest', 'HP 回復一半　SP 補滿'), GIFT = name => N('gift', name, '福利', 'gift', '直接三選一強化'), EVT = name => N('event', name, '事件', 'event', '不知道會遇到什麼'), REC = (name, icon = 'recruit') => N('recruit', name, '招募', icon, '三位同事選一位同行');
-const lanes = fl => fl.map((nd, i) => ({ ...nd, to: LANE[i] })), SHOPN = name => N('shop', name, '採買', 'shop', '用報帳額度買小物、補給、特訓');
+const lanes = fl => fl.map((nd, i) => ({ ...nd, to: LANE[i] })), SHOPN = name => N('shop', name, '採買', 'shop', '道具半價、稀有道具、強化、特訓');
 MAPS.taiwan = [
   [B('tw_intro')],
   lanes([REC('里民活動中心'), B('tw_rescue1', '救援', 'rescue', RESCUE), REC('巷口早餐店', 'hunt')]),
@@ -509,7 +509,7 @@ Object.assign(EVENTS, {
     { label: '親自示範移車技術', icon: 'up_learn', kind: 'buff', lines: ['主角 HP －20%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { { const id = run.starter || run.roster[0]; run.hp[id] = Math.max(1, run.hp[id] - Math.round(STAT[id].hp * 0.2)); } randomTrain(run); return '親自示範移車技術：主角 HP －20%、隨機一招升級 ＋'; } },
     { label: '停遠一點，走路開會', icon: 'up_morale', kind: 'buff', lines: ['全員 HP －8%', '開場氣勢 ＋8'], go: run => { hpAll(run, -0.08); run.moStart += 8; return '停遠一點，走路開會：全員 HP －8%、開場氣勢 ＋8'; } }] },
   hell_asset_inventory: { name: '離職用品清點', map: 'hell', text: '資產管理員堅持，員工離職後連精神損耗也要辦繳回。你可以交出一件用品，換取一張補給核准單。', opts: [
-    { label: '交用品，換補給', icon: 'up_leave', kind: 'heal', lines: ['失去隨機小物1個', '全員 HP ＋60%', '全員 SP ＋60%'], ok: run => run.picks.some(k => LOSABLE.includes(k)), go: run => { loseRelic(run); hpAll(run, 0.6); spAll(run, 0.6); return '交用品，換補給：失去隨機小物1個、全員 HP ＋60%、全員 SP ＋60%'; } },
+    { label: '交用品，換補給', icon: 'up_leave', kind: 'heal', lines: ['失去一個隨機強化', '全員 HP ＋60%', '全員 SP ＋60%'], ok: run => run.picks.some(k => LOSABLE.includes(k)), go: run => { loseRelic(run); hpAll(run, 0.6); spAll(run, 0.6); return '交用品，換補給：失去一個隨機強化、全員 HP ＋60%、全員 SP ＋60%'; } },
     { label: '逐項申覆，保住資產', icon: 'up_partition', kind: 'buff', lines: ['全員 SP －25%', '下戰全員護盾350'], go: run => { spAll(run, -0.25); nextUp(run, { ward: 350 }); return '逐項申覆，保住資產：全員 SP －25%、下戰全員護盾350'; } }] },
   hell_furnace_training: { name: '爐邊在職訓練', map: 'hell', text: '培訓教室設在鍋爐旁，講師說這叫沉浸式壓力管理。結訓證書上只印著「尚可繼續工作」。', opts: [
     { label: '坐第一排實作', icon: 'up_learn', kind: 'buff', lines: ['全員 HP －18%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { hpAll(run, -0.18); randomTrain(run); return '坐第一排實作：全員 HP －18%、隨機一招升級 ＋'; } },
@@ -524,7 +524,7 @@ Object.assign(EVENTS, {
     { label: '逐一協調，空出休息', icon: 'up_leave', kind: 'heal', lines: ['全員 SP －15%', '全員 HP ＋30%'], go: run => { spAll(run, -0.15); hpAll(run, 0.3); return '逐一協調出休息時間：全員 SP －15%、全員 HP ＋30%'; } },
     { label: '邊啃便當邊清急件', icon: 'up_weakpoint', kind: 'buff', lines: ['便當 －1', '下戰敵人HP －18%'], ok: run => run.items.bento >= 1, go: run => { run.items.bento -= 1; nextUp(run, { foeHp: 0.82 }); return '邊啃便當邊清急件：便當 －1、下戰敵人HP －18%'; } }] },
   general_storage_cleanup: { name: '倉庫神祕紙箱', text: '紙箱上寫著「有用，勿丟」，日期卻比你的年資還長。總務答應，願意整理的人可以挑一件帶走。', opts: [
-    { label: '搬開整排紙箱', icon: 'gift', kind: 'buff', lines: ['全員 HP －18%', '隨機小物 ＋1'], go: run => { hpAll(run, -0.18); randomRelic(run); return '搬開整排紙箱：全員 HP －18%、隨機小物 ＋1'; } },
+    { label: '搬開整排紙箱', icon: 'gift', kind: 'buff', lines: ['全員 HP －18%', '隨機強化 ＋1'], go: run => { hpAll(run, -0.18); randomRelic(run); return '搬開整排紙箱：全員 HP －18%、隨機強化 ＋1'; } },
     { label: '先做分類清冊', icon: 'up_coffee', kind: 'item', lines: ['全員 SP －15%', '咖啡 ＋1'], go: run => { spAll(run, -0.15); run.items.coffee += 1; return '先做分類清冊：全員 SP －15%、咖啡 ＋1'; } }] },
   general_version_conflict: { name: '最終版的最終版', text: '共用資料夾出現七份最終版，每一份的修改時間都在未來。你得決定要研究差異，還是把所有人找來當面確認。', opts: [
     { label: '逐行比對修改內容', icon: 'up_learn', kind: 'buff', lines: ['全員 SP －25%', '隨機一招升級 ＋'], ok: run => offerTrain(run).length > 0, go: run => { spAll(run, -0.25); randomTrain(run); return '逐行比對修改內容：全員 SP －25%、隨機一招升級 ＋'; } },
@@ -638,7 +638,7 @@ export function buy(run, what, arg) { if (!shopOk(run, what, arg)) return false;
   else if (what === 'sign') nextUp(run, { ...SIGNS[arg][2], sign: arg });
   run.coin -= p; if (what !== 'reroll') st.sold.push(what); return res; }
 // 菁英詞綴：每一場菁英戰抽一條（記在 run.affix[樓層]，行程表上先看得到）：[名字, 規則, 打贏多拿什麼]
-export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機小物'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '被小兵打中會中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機小物'] };
+export const AFFIX = { late: ['加班中', '敵人攻擊力 ＋20%', '多拿一個隨機強化'], armor: ['公文護體', '每個敵人開場有 600 護盾', '隨機一個招式升級成＋'], rush: ['急件插隊', '第一回合最快的敵人最先動', '黑咖啡 ＋1'], toxic: ['帶毒附件', '被小兵打中會中毒', '雞排便當 ＋1'], crunch: ['連夜趕件', '第三回合起敵人攻擊力 ＋25%', '多拿一個隨機強化'] };
 export const affixOf = (run, floor = run.floor, nd = run.node) => nd && nd.tag === '菁英' ? (run.affix || {})[floor] || null : null;
 // 加班等級（通關後解鎖的難度，0～5，往上累加）：每一級多一條對我方不利的規則
 export const OVERTIME = [['用品要登記', '每場戰鬥最多用兩次道具'], ['先過行政關', '一般敵人開場各有 600 護盾'], ['急件插隊', '每場戰鬥第一回合，最快的小兵最先動'], ['特休打對折', '休息站只回復兩成五 HP'], ['主管已讀不理', '頭目只有第一次理虧會取消行動']];
@@ -704,7 +704,7 @@ export function endStage(s, run) { for (const id of crew(run)) if (!HEROES.inclu
   run.lastLearn = null; if (run.starter && LEARN_AT.includes(run.tally.fights)) { const u = unlearned(run); if (u.length) { run.skills[run.starter].push(u[0]); run.lastLearn = u[0]; } }      // 主角邊打邊學：打贏第二、第四場各學會一招（不用等抽到「在職進修」）
   run.items = { ...s.items }; for (const k in run.node.bonus || {}) run.items[k] += run.node.bonus[k]; run.rounds += s.round; run.summons += s.summons;
   run.lastCoin = coinFor(run.node); run.coin = (run.coin || 0) + run.lastCoin;
-  run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：小物「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
+  run.lastReward = null; { const af = s.affix; if (af === 'late' || af === 'crunch') { const k = randomRelic(run); if (k) run.lastReward = `詞綴獎勵：強化「${UPGRADES[k].name}」`; } else if (af === 'armor') { const t = randomTrain(run); if (t) run.lastReward = `詞綴獎勵：${NAME[t[0]]}的「${SKILLS[t[0]].find(k => k.key === t[1]).name}」升級成＋`; } else if (af === 'rush') { run.items.coffee++; run.lastReward = '詞綴獎勵：黑咖啡 ＋1'; } else if (af === 'toxic') { run.items.bento++; run.lastReward = '詞綴獎勵：雞排便當 ＋1'; } }
   if (s.task && s.over === 'win' && taskDone(s)) { const k = pickN(run, ITEM_COMMON, 1)[0]; run.items[k] = (run.items[k] || 0) + 1; run.lastReward = (run.lastReward ? run.lastReward + '。' : '') + `加辦「${TASK[s.task][0]}」完成：${ITEMS[k].name} ＋1`; }
   const who = run.node.rescue && (run.offers[run.floor] || {})[run.path[run.floor]]; return who && join(run, who[0]) ? who[0] : null; }
 // 茶水間：HP 回復一半、SP 補滿（名冊全員，候補也算）。回傳總共補了多少血
