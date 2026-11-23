@@ -39,22 +39,22 @@ export let BOSS_ULT = {};      // 頭目大招對每個人的傷害（進場時�
 export const ITEMS = {
   tea: { name: '珍珠奶茶', n: 3, note: 'HP 回復 2000', hp: 2000, cat: '恢復', rare: 1, price: 25, aim: 'ally' },
   coffee: { name: '黑咖啡', n: 2, note: 'SP 回復 150', sp: 150, cat: '恢復', rare: 1, price: 30, aim: 'ally' },
-  bento: { name: '雞排便當', n: 1, note: '倒下的同伴復活', revive: .5, cat: '恢復', rare: 2, price: 60, aim: 'ally' },
+  bento: { name: '雞排便當', n: 1, note: '讓倒下的同伴復活', revive: .5, cat: '恢復', rare: 2, price: 60, aim: 'ally' },
   stapler: { name: '訂書機', note: '單體 1800 打屬性傷害', dmg: 1800, type: 'blunt', cat: '攻擊', rare: 1, price: 30, aim: 'foe' },
   knife: { name: '美工刀', note: '單體 1800 斬屬性傷害', dmg: 1800, type: 'slash', cat: '攻擊', rare: 1, price: 30, aim: 'foe' },
-  warmer: { name: '暖暖包', note: '單體 1200 火屬性　灼燒兩回合', dmg: 1200, type: 'fire', burn: 2, cat: '攻擊', rare: 1, price: 35, aim: 'foe' },
-  coolpatch: { name: '退熱貼', note: '單體 1500 冰屬性　攻擊力 ↓', dmg: 1500, type: 'ice', down: [.15, 2], cat: '攻擊', rare: 1, price: 35, aim: 'foe' },
-  highlighter: { name: '螢光筆', note: '全體 1100 光屬性　標記兩回合', dmg: 1100, type: 'holy', mark: 2, cat: '攻擊', rare: 2, price: null, aim: 'foes' },
-  toner: { name: '碳粉匣', note: '全體 1100 暗屬性　中毒三回合', dmg: 1100, type: 'dark', poison: [350, 3], cat: '攻擊', rare: 2, price: null, aim: 'foes' },
-  tape: { name: '泡棉膠帶', note: '一人護盾 1500', ward: 1500, cat: '防禦', rare: 1, price: 30, aim: 'ally' },
-  poncho: { name: '輕便雨衣', note: '前排全員護盾 900', ward: 900, cat: '防禦', rare: 2, price: null, aim: 'party' },
+  warmer: { name: '暖暖包', note: '單體 1200 火屬性傷害，灼燒兩回合', dmg: 1200, type: 'fire', burn: 2, cat: '攻擊', rare: 1, price: 35, aim: 'foe' },
+  coolpatch: { name: '退熱貼', note: '單體 1500 冰屬性傷害，降低攻擊力', dmg: 1500, type: 'ice', down: [.15, 2], cat: '攻擊', rare: 1, price: 35, aim: 'foe' },
+  highlighter: { name: '螢光筆', note: '全體 1100 光屬性傷害，標記兩回合', dmg: 1100, type: 'holy', mark: 2, cat: '攻擊', rare: 2, price: null, aim: 'foes' },
+  toner: { name: '碳粉匣', note: '全體 1100 暗屬性傷害，中毒三回合', dmg: 1100, type: 'dark', poison: [350, 3], cat: '攻擊', rare: 2, price: null, aim: 'foes' },
+  tape: { name: '泡棉膠帶', note: '一人獲得 1500 護盾', ward: 1500, cat: '防禦', rare: 1, price: 30, aim: 'ally' },
+  poncho: { name: '輕便雨衣', note: '前排全員獲得 900 護盾', ward: 900, cat: '防禦', rare: 2, price: null, aim: 'party' },
   earplug: { name: '降噪耳塞', note: '一人閃過下一次攻擊（到他下次行動為止）', evade: true, cat: '防禦', rare: 2, price: null, aim: 'ally' },
-  bandage: { name: 'OK 繃', note: '解除異常　HP 回復 600', cleanse: true, hp: 600, cat: '輔助', rare: 1, price: 25, aim: 'ally' },
-  balm: { name: '薄荷膏', note: '再生：每回合回 800，三回合', regen: [800, 3], cat: '輔助', rare: 1, price: 30, aim: 'ally' },
-  notice: { name: '散會通知', note: '小兵暈眩　頭目底氣 -2', stun: true, stunSh: 2, cat: '干擾', rare: 2, price: null, aim: 'foe' },
-  stamp: { name: '主管紅章', note: '標記三回合　底氣 -1', mark: 3, sh: 1, cat: '干擾', rare: 2, price: null, aim: 'foe' },
+  bandage: { name: 'OK 繃', note: '解除異常，HP 回復 600', cleanse: true, hp: 600, cat: '輔助', rare: 1, price: 25, aim: 'ally' },
+  balm: { name: '薄荷膏', note: '再生：每回合回復 800，持續三回合', regen: [800, 3], cat: '輔助', rare: 1, price: 30, aim: 'ally' },
+  notice: { name: '散會通知', note: '小兵暈眩，頭目底氣 -2', stun: true, stunSh: 2, cat: '干擾', rare: 2, price: null, aim: 'foe' },
+  stamp: { name: '主管紅章', note: '標記三回合，底氣 -1', mark: 3, sh: 1, cat: '干擾', rare: 2, price: null, aim: 'foe' },
   tonic: { name: '提神飲料', note: '氣勢 +25', mo: 25, cat: '特殊', rare: 2, price: null, aim: 'team' },
-  usb: { name: '救援隨身碟', note: '前排全員 SP +80　氣勢 +20', sp: 80, mo: 20, cat: '特殊', rare: 3, price: null, aim: 'party' } };
+  usb: { name: '救援隨身碟', note: '前排全員 SP +80，氣勢 +20', sp: 80, mo: 20, cat: '特殊', rare: 3, price: null, aim: 'party' } };
 export const ITEM_COMMON = Object.keys(ITEMS).filter(k => ITEMS[k].rare === 1 && !['tea', 'coffee'].includes(k)), ITEM_RARE = Object.keys(ITEMS).filter(k => ITEMS[k].rare === 2 && k !== 'bento');
 export const itemIcon = k => ['tea', 'coffee'].includes(k) ? null : k === 'bento' ? 'up_bento' : 'it_' + k;      // 奶茶、咖啡用 art/items/ 的圖；其他用 art/map/icons/it_<代號>.png
 // 招式：只花 SP。target：foe 選一個敵人、all 敵方全體、ally 選一個同伴、party 我方全體、self 自己
@@ -401,26 +401,26 @@ export const UPGRADES = {
   crunch: { name: '責任制', desc: '每場戰鬥開始就有 2 層加班', need: ['hui'], once: true },
   tempo: { name: '準時開會', desc: '每回合開始時氣勢 ＋8', once: true },
   weakpoint: { name: '抓語病', desc: '頭目理虧時受到的傷害，從 1.5 倍變成 2 倍', once: true },
-  firstaid: { name: '急救箱', desc: '每場戰鬥第一次有人要倒下時，改成留下三成 HP', once: true },
+  firstaid: { name: '急救箱', desc: '每場戰鬥第一次有人要倒下時，改成保留三成 HP', once: true },
   // 辦公小物（v0.17）：每個只能拿一次；有些是雙面的，有好處也有代價。圖示 art/map/icons/up_<代號>.png
-  redpen: { name: '主管紅筆', desc: '招式和合體技的傷害 ＋20%，但 SP 消耗 ＋20%', once: true }, cutter: { name: '裁紙刀', desc: '普通攻擊的傷害 ＋25%', once: true }, thermos: { name: '保溫怒氣瓶', desc: '奧義的傷害 ＋25%', once: true },
-  partition: { name: '桌上隔板', desc: '每回合開始，前排全員得到 150 護盾', once: true }, blanket: { name: '午睡重力毯', desc: '全員 HP 上限 ＋20% 並補滿，但速度 －10%', once: true }, cheatsheet: { name: '急救小抄', desc: '防禦時順便回復 8% HP', once: true },
+  redpen: { name: '主管紅筆', desc: '招式和合體技傷害 ＋20%，但 SP 消耗 ＋20%', once: true }, cutter: { name: '裁紙刀', desc: '普通攻擊傷害 ＋25%', once: true }, thermos: { name: '保溫怒氣瓶', desc: '奧義的傷害 ＋25%', once: true },
+  partition: { name: '桌上隔板', desc: '每回合開始，前排全員獲得 150 護盾', once: true }, blanket: { name: '午睡重力毯', desc: '全員 HP 上限 ＋20% 並補滿，但速度 －10%', once: true }, cheatsheet: { name: '急救小抄', desc: '防禦時順便回復 8% HP', once: true },
   mug: { name: '超大馬克杯', desc: '普通攻擊回的 SP 加倍，但黑咖啡 －1', once: true }, snackdrawer: { name: '抽屜零食庫', desc: '每場戰鬥開始，全員回復 10% HP', once: true }, fridge: { name: '公用冰箱', desc: '奶茶、咖啡、便當各 ＋1，但受到的傷害 ＋5%', once: true },
-  applause: { name: '掌聲按鈕', desc: '打中弱點加的氣勢從 6 變成 10', once: true }, countdown: { name: '倒數桌曆', desc: '頭目一蓄力，氣勢 ＋15', once: true }, bell: { name: '散會鈴', desc: '放奧義只要 35 氣勢', once: true },
-  tabs: { name: '六色索引貼', desc: '打中弱點的傷害從 1.3 倍變成 1.5 倍', once: true }, carbon: { name: '三聯複寫紙', desc: '合體技的 SP 消耗 －30%', once: true }, notebook: { name: '會議紀錄本', desc: '每場戰鬥開始，頭目的底氣先少 2 點', once: true },
+  applause: { name: '掌聲按鈕', desc: '打中弱點增加的氣勢從 6 變成 10', once: true }, countdown: { name: '倒數桌曆', desc: '頭目一蓄力，氣勢 ＋15', once: true }, bell: { name: '散會鈴', desc: '放奧義只要 35 氣勢', once: true },
+  tabs: { name: '六色索引貼', desc: '打中弱點的傷害從 1.3 倍變成 1.5 倍', once: true }, carbon: { name: '三聯複寫紙', desc: '合體技的 SP 消耗 －30%', once: true }, notebook: { name: '會議紀錄本', desc: '每場戰鬥開始，頭目底氣先減 2 點', once: true },
 };
 // 11/24 系統改版（使用者：三選一太不誘人；跟 GPT 討論 design/revamp/）：稀有度 tier 1 普通、2 進階、3 核心（會改變打法的規則型）。
 // old＝不再出現在獎勵與商店（舊存檔拿過的照樣有效，程式不刪）。全部強化都只拿一次。
 Object.assign(UPGRADES, {
   cosign: { name: '交叉會簽', desc: '同一回合兩位同事都打中同一個敵人的弱點：多削 1 底氣，氣勢 ＋6（每回合一次）', core: true },
-  shift: { name: '輪班表', desc: '每回合第一次換人：換上來的人得到 600 護盾，SP ＋35', core: true, roster: 5 },
+  shift: { name: '輪班表', desc: '每回合第一次換人：換上來的人獲得 600 護盾，SP ＋35', core: true, roster: 5 },
   rota: { name: '公假輪休', desc: '每回合前兩次防禦：HP 比例最低的前排回復 6% HP，SP ＋12（同一人每回合一次）', core: true },
-  express: { name: '急件快遞', desc: '每場戰鬥第一件道具不用掉行動，用完還能再下指令', core: true },
-  recycle: { name: '回收分類', desc: '每回合第一件道具：給同伴用的（補血、SP、護盾、再生），目標再得到 400 護盾；攻擊道具打中的敵人標記兩回合', core: true },
+  express: { name: '急件快遞', desc: '每場戰鬥使用第一件道具不耗行動，用完還能再下指令', core: true },
+  recycle: { name: '回收分類', desc: '每回合使用第一件道具：給同伴補血、補 SP、加護盾或再生，目標再獲得 400 護盾；攻擊道具打中的敵人標記兩回合', core: true },
   relay: { name: '茶水間接力', desc: '每回合第一次普攻後，SP 比例最低的另一位前排 SP ＋18，氣勢 ＋3', core: true },
-  seal: { name: '議程封存', desc: '頭目理虧後，全隊接下來第一招傷害 ＋25%、SP 消耗減半（只有一招，留到下回合結束）', core: true },
-  notes: { name: '小組共筆', desc: '每回合第一次普攻把目標標記一回合；當回合第一招打中被標記的頭目，多削 1 底氣（跟交叉會簽合計每回合最多多削 1）', core: true },
-  nap: { name: '午休守門員', desc: '每回合第一個防禦的人：得到 500 護盾、吸引攻擊；他下一次普攻多打 900', core: true },
+  seal: { name: '議程封存', desc: '頭目理虧後，全隊接下來第一招傷害 ＋25%、SP 消耗減半（只限一招，可留到下回合結束）', core: true },
+  notes: { name: '小組共筆', desc: '每回合第一次普攻會標記目標一回合；當回合第一招打中被標記的頭目，多削 1 底氣（跟交叉會簽合計每回合最多多削 1）', core: true },
+  nap: { name: '午休守門員', desc: '每回合第一個防禦的人：獲得 500 護盾、吸引攻擊；他下一次普攻多打 900', core: true },
   drill: { name: '火災演習', desc: '每回合第一次讓敵人灼燒：所有灼燒中的敵人各受 800 火屬性傷害', core: true, burn: true } });
 { const T = { raise: 1, leave: 1, chair: 1, cutter: 1, partition: 1, cheatsheet: 1, coffee: 2, firstaid: 2, applause: 2, bell: 2, weakpoint: 2, tabs: 2, carbon: 2, notebook: 2, redpen: 2, ember: 2, bounty: 2, dossier: 2, crunch: 2 };
   for (const k in UPGRADES) { const U = UPGRADES[k]; U.tier = U.core ? 3 : T[k] || 0; if (!U.tier) U.old = true; else U.once = true; }
@@ -542,13 +542,13 @@ Object.assign(EVENTS, {
 // 11/24 系統改版的事件：跟新道具、核心強化、報帳額度扣在一起（文字是草稿，等使用者看口吻）
 const giveItem = (run, k, n = 1) => { run.items[k] = (run.items[k] || 0) + n; return ITEMS[k].name; };
 Object.assign(EVENTS, {
-  rv_stockroom: { name: '總務倉庫清點', text: '總務說今天一定要把倉庫清完，誰幫忙搬，搬到的東西就送誰。架上的紙箱都沒寫內容。', opts: [
+  rv_stockroom: { name: '總務倉庫清點', text: '總務說今天一定要清完倉庫，誰幫忙搬，搬到的東西就送誰。架上的紙箱都沒寫裡面裝什麼。', opts: [
     { label: '整排搬下來', icon: 'it_bag', kind: 'item', lines: ['全員 HP －12%', '隨機兩件戰術道具'], go: run => { hpAll(run, -0.12); const a = giveItem(run, pickN(run, ITEM_COMMON, 1)[0]), b = giveItem(run, pickN(run, ITEM_COMMON, 1)[0]); return `腰有點痠，拿到${a}和${b}`; } },
     { label: '只拿最上面那箱', icon: 'it_poncho', kind: 'item', lines: ['報帳額度 －20', '隨機一件稀有道具'], ok: run => run.coin >= 20, go: run => { run.coin -= 20; return `被要求填領用單、付了處理費，拿到${giveItem(run, pickN(run, ITEM_RARE, 1)[0])}`; } }] },
-  rv_expense: { name: '報帳被退件', text: '會計把你的報帳單退回來，便利貼上寫著：「發票抬頭不對，請重開。」', opts: [
+  rv_expense: { name: '報帳被退件', text: '會計退回你的報帳單，便利貼上寫著：「發票抬頭不對，請重開。」', opts: [
     { label: '一張一張補單據', icon: 'up_coin', kind: 'buff', lines: ['全員 SP －25%', '報帳額度 ＋50'], go: run => { spAll(run, -0.25); run.coin += 50; return '補到半夜，錢終於下來了'; } },
     { label: '算了，不報了', icon: 'rest', kind: 'heal', lines: ['全員 HP ＋30%', '全員 SP ＋30%'], go: run => { hpAll(run, 0.3); spAll(run, 0.3); return '少一件事煩心，整個人輕鬆多了'; } }] },
-  rv_seminar: { name: '外部講座', text: '人資幫大家報名了一場「高效職場心法」講座，講師已經在台上講了四十分鐘自己的創業故事。', opts: [
+  rv_seminar: { name: '外部講座', text: '人資幫大家報了「高效職場心法」講座。講師在台上講了四十分鐘，還在講自己的創業故事。', opts: [
     { label: '坐第一排認真抄筆記', icon: 'up_notes', kind: 'buff', lines: ['全員 HP －20%', '隨機一個核心強化'], ok: run => Object.keys(UPGRADES).some(k => upOk(run, k) && UPGRADES[k].tier === 3), go: run => { hpAll(run, -0.2); const k = upPick(run, 3); if (!k) return '筆記抄滿了，但沒什麼收穫'; applyUpgrade(run, k); return `從一大堆廢話裡抓到一句真的有用的：「${UPGRADES[k].name}」`; } },
     { label: '坐後排補眠', icon: 'up_nap', kind: 'heal', lines: ['全員 HP ＋40%', '全員 SP 補滿'], go: run => { hpAll(run, 0.4); spAll(run, 1); return '睡得很好，掌聲把你叫醒的時候剛好結束'; } }] },
   rv_printer: { name: '影印機卡紙', text: '影印機又卡紙了，面板閃著紅燈。排在你後面的同事已經嘆了三次氣。', opts: [
@@ -568,15 +568,15 @@ export const mulberry = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
 // 報帳處（採買站）：打贏戰鬥會拿到「報帳額度」（run.coin：一般 40、菁英 70、頭目 90），在採買站花掉。一站賣三樣：一個小物、一份補給包（奶茶、咖啡、便當各一）、一次特訓
 // 職位：開局選一個，整輪有效。[名字, 好處, 限制, 一句話]
 export const JOBS = {      // 11/24 改版（使用者：「每次看了都覺得那就都不要代理好了」）：好處要明顯、能帶出打法；限制改成改變操作，不單純扣數值
-  fire: ['救火組長', '每場戰鬥第一次用招式不花 SP，傷害 ＋40%；開局泡棉膠帶、散會通知各一', '第一回合不能防禦、換人', '先處理，檢討等一下。'],
-  welfare: ['福利委員', '每回合第一次補血，被補到的人再得到 400 護盾；開局多一杯奶茶', '奶茶、咖啡要給別人喝（前排只剩自己時例外）', '有吃有保庇。'],
-  risk: ['風控專員', '每回合第一個防禦的人多拿 400 護盾，氣勢 ＋8；開局輕便雨衣、降噪耳塞各一', '前排沒有人帶護盾時，奧義要多 10 氣勢', '這筆風險我先擋。'],
-  window: ['專案窗口', '打中弱點的傷害再高一些；每回合前三次打中弱點，出手的人 SP ＋8', '同一個人不能連續兩回合用同一招', '找對人，事情就快。'],
-  buyer: ['採購主任', '開局 50 點報帳額度、訂書機與螢光筆各一；道具打 75 折；報帳處的核心固定是道具類（急件快遞或回收分類）', '報帳處只能買道具類核心，不能買其他強化', '這個我有拿到價。'],
-  hr: ['人資專員', '開局從三位同事挑一位同行', '名冊最多 5 人', '人先補齊，事情再說。'],
-  host: ['會議主持', '每場開場氣勢 ＋20；每場第一次奧義後，前排 SP ＋20', '第一回合不能放奧義', '好，直接進重點。'],
-  edu: ['教育委員', '主角一開始就會全部招式，再升級一招；特訓站可以升兩招', '過關獎勵的道具包換成招式升級', '學起來就是你的。'],
-  staff: ['一般職員', '開局 30 點報帳額度，多一杯珍珠奶茶', '沒有限制', '照自己的步調。'],
+  fire: ['救火組長', '每場戰鬥第一次用招式不花 SP，傷害 ＋40%；開局有泡棉膠帶、散會通知各一', '第一回合不能防禦或換人', '先滅火，檢討等一下。'],
+  welfare: ['福利委員', '每回合第一次補血，被補到的人再獲得 400 護盾；開局多一杯奶茶', '奶茶、咖啡要給別人喝（前排只剩自己時例外）', '有吃有保庇。'],
+  risk: ['風控專員', '每回合第一個防禦的人多拿 400 護盾，氣勢 ＋8；開局有輕便雨衣、降噪耳塞各一', '前排沒人有護盾時，放奧義要多花 10 氣勢', '這筆風險我先擋。'],
+  window: ['專案窗口', '打中弱點的傷害再高一些；每回合前三次打中弱點，出手的人 SP ＋8', '同一個人不能連續兩回合用同一招', '找對窗口，少跑三樓。'],
+  buyer: ['採購主任', '開局有 50 點報帳額度、訂書機與螢光筆各一；道具打 75 折；報帳處的核心固定是道具類（急件快遞或回收分類）', '報帳處只能買道具類核心，不能買其他強化', '這個我有拿到價。'],
+  hr: ['人資專員', '開局從三位同事中挑一位同行', '名冊最多 5 人', '人先補齊，事情再說。'],
+  host: ['會議主持', '每場戰鬥開始時氣勢 ＋20；每場第一次放奧義後，前排全員 SP ＋20', '第一回合不能放奧義', '好，直接進重點。'],
+  edu: ['教育委員', '主角一開始就會全部招式，還能升級一招；特訓站可以升級兩招', '過關獎勵的道具包換成招式升級', '學起來就是你的。'],
+  staff: ['一般職員', '開局有 30 點報帳額度，多一杯珍珠奶茶', '沒有限制', '照自己的步調。'],
   duty: ['值班主任', '護盾量 ＋35%', '戰鬥中的回復量 －20%', '問題先擋著，明天再說。'] };
 export const JOB_OLD = ['duty'], JOB_PLAIN = 'staff', JOB_KIT = { fire: ['tape', 'notice'], risk: ['poncho', 'earplug'], buyer: ['stapler', 'highlighter'] };      // 職位交接包（11/24 GPT 第三輪）      // duty：舊存檔用，不再出現；staff：一般職員，固定放在第四張
 // 開局給三個職位挑（沒有採買站的地圖不出採購主任）
@@ -595,9 +595,9 @@ const jobHeal = s => s.run.job === 'duty' ? .8 : 1, jobWard = s => s.run.job ===
 export const PRICE = { up2: 90, up3: 150, train: 45, reroll: 20, draw: 120, sign: 25 }, STORE_MAX = 2;
 // 戰前加簽（11/24 GPT 第三輪）：報帳處每次來能買一張，只限下一場、不能累積，開場自動生效
 // 現場加辦（11/24 GPT 第三輪）：一般戰三成機會多一個可選目標，做到了戰後多拿一件普通戰術道具；沒做到沒有懲罰
-export const TASKS = ['help', 'tools', 'spare'], TASK = { help: ['跨科支援', '兩位不同的同事各用一次道具'], tools: ['工具實測', '用兩種不同的道具'], spare: ['留有餘裕', '打贏時沒有人倒下，氣勢至少 40'] };
+export const TASKS = ['help', 'tools', 'spare'], TASK = { help: ['跨科支援', '兩位不同的同事各用一次道具'], tools: ['工具實測', '用兩種不同的道具'], spare: ['留有餘裕', '打贏時沒人倒下，氣勢至少 40'] };
 export const taskDone = s => !!s.task && (s.task === 'help' ? new Set(s.itemBy).size >= 2 : s.task === 'tools' ? new Set(s.itemKinds).size >= 2 : FRONT.every(h => alive(s, h)) && s.mo >= 40);
-export const SIGNS = { ward: ['安全加簽', '下一場開場，前排全員護盾 900', { ward: 900 }], mo: ['提案加簽', '下一場開場，氣勢 ＋20', { mo: 20 }], down: ['稽核加簽', '下一場開場，敵方全體攻擊力 －20%（兩次行動）', { down: .2 }] };
+export const SIGNS = { ward: ['安全加簽', '下一場戰鬥開始，前排全員獲得 900 護盾', { ward: 900 }], mo: ['提案加簽', '下一場戰鬥開始，氣勢 ＋20', { mo: 20 }], down: ['稽核加簽', '下一場戰鬥開始，敵方全體攻擊力 －20%（兩次行動）', { down: .2 }] };
 export const STORE = { tea: 25, coffee: 30, bento: 60, draw: 120 }, BOOST = { atk: ['攻擊', '全隊攻擊力 ＋5%'], def: ['防禦', '全隊受到的傷害 －4%'], hp: ['體力', '全隊 HP 上限 ＋6%'], spd: ['速度', '全隊速度 ＋5%'], mo: ['氣勢', '每場開場氣勢 ＋6'] }, BOOST_MAX = 5;
 // 體力、速度是直接改 STAT（跟「特休」一樣），所以讀檔時要照買過的次數重算（loadRun）
 function boostStat(k) { for (const id of ALL) { if (id === 'vivi') continue; if (k === 'hp') STAT[id].hp = Math.round(STAT[id].hp * 1.06); else if (k === 'spd') STAT[id].spd = Math.round(STAT[id].spd * 1.05); } }
@@ -723,7 +723,7 @@ export const rewardKind = nd => !nd ? 'normal' : nd.type === 'gift' ? 'gift' : n
 const tierRoll = (run, k) => { const r = run.rand(); return k === 'boss' ? 3 : k === 'elite' ? (r < .2 ? 3 : 2) : k === 'gift' ? (r < .3 ? 3 : 2) : r < .2 ? 2 : 1; };
 const upOf = (run, tier, not = []) => upPick(run, tier, not) || upPick(run, tier === 1 ? 2 : tier - 1, not) || upPick(run, tier === 3 ? 2 : 1, not) || upPick(run, 3, not) || null;
 const growth = (run, not = []) => { const u = unlearned(run).filter(k => !not.some(o => o.t === 'learn' && o.key === k)); if (u.length && run.rand() < .4) return { t: 'learn', key: u[Math.floor(run.rand() * u.length)] }; const tr = offerTrain(run).filter(([h, k]) => !not.some(o => o.t === 'train' && o.id === h && o.key === k)); return tr.length ? { t: 'train', id: tr[0][0], key: tr[0][1] } : null; };
-export const PACKS = [{ name: '紅筆催件組', items: ['highlighter', 'stapler'], note: '先全體標記，再集中打一個' }, { name: '茶水間急救組', items: ['coffee', 'tape'], note: 'SP 不夠時先補、先頂住' }, { name: '消防演習組', items: ['warmer', 'poncho'], note: '燒對手，也擋得住大招' }];
+export const PACKS = [{ name: '紅筆催件組', items: ['highlighter', 'stapler'], note: '先全體標記，再集中打一個' }, { name: '茶水間急救組', items: ['coffee', 'tape'], note: 'SP 不夠就先補，先頂住' }, { name: '消防演習組', items: ['warmer', 'poncho'], note: '燒對手，也擋得住大招' }];
 const packOf = (run, k) => { const it = {}, add = x => { it[x] = (it[x] || 0) + 1; }; let coin = 0;
   if (k === 'boss') { const r = pickN(run, ITEM_RARE, 2); if (run.rand() < .2) r[1] = 'usb'; r.forEach(add); coin = 30; }
   else if (run.rand() < .5) { const P = PACKS[Math.floor(run.rand() * PACKS.length)]; P.items.forEach(add); return { t: 'items', items: it, coin: k === 'elite' ? 15 : 10, name: P.name, note: P.note }; }      // 11/24 GPT 第三輪：一半機會是有名字的組合包，拿到就知道怎麼打
