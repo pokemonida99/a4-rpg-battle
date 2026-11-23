@@ -65,7 +65,8 @@ export async function setupStage(E, opts = {}) {      // opts.lazy（試玩版�
   const tryTex = async url => { try { return await loadTex(url); } catch (e) { return null; } };
   // 軌跡格（11/24 使用者選 GPT 重畫的方案 B）：出招第 5 格換成武器畫成殘影的那張 <id>_5_smear.png，只在動作中閃一下，不拿來當停格或縮圖。
   // ?smear=0 關掉；?smear=a 換成程式刀光（tools/smear.py，只有小葵有）對照
-  const HOLD7 = /[?&]hold7/.test(location.search), SMQ = (location.search.match(/[?&]smear=([0a])/) || [])[1], smearIn = async (id, f) => { if (f.ult.real && HOLD7) f.ult[6] = f.ult[5];      // ?hold7 試驗（11/24 像素第四步）：第 7 格「停住」直接沿用第 6 格，不換成重畫過的圖，停住時才不會整片閃
+  const HOLD7 = !/[?&](hold7=0|oldswing)/.test(location.search),      // 11/24 使用者同意設成預設：第 7 格（停住）沿用第 6 格，停住時不閃；?hold7=0 看以前的樣子
+    SMQ = (location.search.match(/[?&]smear=([0a])/) || [])[1], smearIn = async (id, f) => { if (f.ult.real && HOLD7) f.ult[6] = f.ult[5];
     if (!f.ult.real || SMQ === '0' || !SMEAR.includes(id)) return; const t = await tryTex(`art/chars/anim/${id}_5_smear${SMQ === 'a' ? 'A' : ''}.png`); if (t) f.ult[4] = t; };
   const img = url => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('載不到 ' + url)); im.src = url; });
   const units = {}, A = { face: {}, bust: {}, eyes: {}, items: {} };
