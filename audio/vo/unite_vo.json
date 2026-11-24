@@ -1,0 +1,527 @@
+{
+ "_說明": "合體技兩人台詞配音（2026-11-22）。ElevenLabs 文字轉語音 Eleven v4（穩定度 35%、相似度 75%），全部用聲音庫現成音色、跟遊戲裡同一角色同一個聲音，沒有複製或建立聲音。台詞沒改字，只在前面加英文語氣標記。每句生成一次、兩版都留（a＝網站第 1 版、b＝第 2 版）。後製：頭尾靜音裁掉、結尾 30 ms 淡出、響度約 -14 LUFS、峰值 -1 dBFS 限幅、單聲道 44.1 kHz 192k mp3。whisper medium 一次一檔辨識。點數 3,037 → 2,297（740 點：22 句 619 點＋業務買單重生 75 點＋全部重建重生 45 點）。我聽不到聲音，建議版本是依辨識、長度、音高挑的，語氣請用耳朵確認。",
+ "points_used": 740,
+ "moves": {
+  "u_final": [
+   {
+    "line": 1,
+    "char": "kui",
+    "name": "小葵",
+    "text": "學長，這版真的定了！",
+    "voice": "Stacy - Young, Sweet and Cute",
+    "sent": "[excited, shouting] 學長，這版真的定了！",
+    "files": {
+     "a": {
+      "file": "unite_u_final_1a.mp3",
+      "len": 2.18,
+      "whisper": "學長這版真的定了"
+     },
+     "b": {
+      "file": "unite_u_final_1b.mp3",
+      "len": 2.46,
+      "whisper": "學長這版真的定了"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版字都對；a 比較短（2.18 秒對 2.46 秒），比較乾脆"
+   },
+   {
+    "line": 2,
+    "char": "jie",
+    "name": "阿傑",
+    "text": "那就燒了。",
+    "voice": "Neil Chuang - Deep, Trustworthy and Rich",
+    "sent": "[low, cold, menacing] 那就燒了。",
+    "files": {
+     "a": {
+      "file": "unite_u_final_2a.mp3",
+      "len": 1.24,
+      "whisper": "那就燒了"
+     },
+     "b": {
+      "file": "unite_u_final_2b.mp3",
+      "len": 1.43,
+      "whisper": "那就燒了 那就燒了（剪前）→ 剪後：那就燒了"
+     }
+    },
+    "recommend": "a",
+    "note": "b 原本把「那就燒了」唸了兩次，已剪成只留第一次；a 本來就只唸一次"
+   }
+  ],
+  "u_sign": [
+   {
+    "line": 1,
+    "char": "kui",
+    "name": "小葵",
+    "text": "請先簽名！",
+    "voice": "Stacy - Young, Sweet and Cute",
+    "sent": "[urgent, shouting] 請先簽名！",
+    "files": {
+     "a": {
+      "file": "unite_u_sign_1a.mp3",
+      "len": 0.94,
+      "whisper": "請先簽名"
+     },
+     "b": {
+      "file": "unite_u_sign_1b.mp3",
+      "len": 1.02,
+      "whisper": "請先簽名"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版字都對、長度接近；a 稍短"
+   },
+   {
+    "line": 2,
+    "char": "senpai",
+    "name": "學姊",
+    "text": "再改。",
+    "voice": "Tiffy - Taiwanese Bilingual Narrator",
+    "sent": "[calm, curt] 再改。",
+    "files": {
+     "a": {
+      "file": "unite_u_sign_2a.mp3",
+      "len": 0.63,
+      "whisper": "再開"
+     },
+     "b": {
+      "file": "unite_u_sign_2b.mp3",
+      "len": 0.71,
+      "whisper": "再改"
+     }
+    },
+    "recommend": "b",
+    "note": "a 被聽成「再開」，b 是「再改」"
+   }
+  ],
+  "u_shift": [
+   {
+    "line": 1,
+    "char": "kevin",
+    "name": "Kevin",
+    "text": "AI 先擋！",
+    "voice": "Roy - Taiwanese Youth",
+    "sent": "[confident, shouting] AI 先擋！",
+    "files": {
+     "a": {
+      "file": "unite_u_shift_1a.mp3",
+      "len": 1.17,
+      "whisper": "AI先檔"
+     },
+     "b": {
+      "file": "unite_u_shift_1b.mp3",
+      "len": 1.23,
+      "whisper": "AI先檔"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版接近；a 稍短。「擋」聽成同音的「檔」不算錯"
+   },
+   {
+    "line": 2,
+    "char": "mi",
+    "name": "小米",
+    "text": "真人後補。",
+    "voice": "Jessica - Calm & Friendly",
+    "sent": "[polite, energetic] 真人後補。",
+    "files": {
+     "a": {
+      "file": "unite_u_shift_2a.mp3",
+      "len": 1.02,
+      "whisper": "真人候補"
+     },
+     "b": {
+      "file": "unite_u_shift_2b.mp3",
+      "len": 1.07,
+      "whisper": "真人候補"
+     }
+    },
+    "recommend": "b",
+    "note": "兩版字都對；b 音高稍高、比較有精神"
+   }
+  ],
+  "u_delay": [
+   {
+    "line": 1,
+    "char": "kevin",
+    "name": "Kevin",
+    "text": "系統判定——",
+    "voice": "Roy - Taiwanese Youth",
+    "sent": "[confident, announcing] 系統判定——",
+    "files": {
+     "a": {
+      "file": "unite_u_delay_1a.mp3",
+      "len": 1.0,
+      "whisper": "系統判定"
+     },
+     "b": {
+      "file": "unite_u_delay_1b.mp3",
+      "len": 1.01,
+      "whisper": "系統判定"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版幾乎一樣，選 a"
+   },
+   {
+    "line": 2,
+    "char": "yan",
+    "name": "小燕",
+    "text": "要延期！",
+    "voice": "Kate - Clear & Warm Taiwan Mandarin",
+    "sent": "[tired but determined, shouting] 要延期！",
+    "files": {
+     "a": {
+      "file": "unite_u_delay_2a.mp3",
+      "len": 1.13,
+      "whisper": "要延期"
+     },
+     "b": {
+      "file": "unite_u_delay_2b.mp3",
+      "len": 1.16,
+      "whisper": "要延期"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版字都對；a 音高稍高、比較有力"
+   }
+  ],
+  "u_ticket": [
+   {
+    "line": 1,
+    "char": "mi",
+    "name": "小米",
+    "text": "您的問題……",
+    "voice": "Jessica - Calm & Friendly",
+    "sent": "[polite customer service, energetic] 您的問題……",
+    "files": {
+     "a": {
+      "file": "unite_u_ticket_1a.mp3",
+      "len": 1.03,
+      "whisper": "您的問題"
+     },
+     "b": {
+      "file": "unite_u_ticket_1b.mp3",
+      "len": 1.01,
+      "whisper": "您的問題"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版接近，選 a"
+   },
+   {
+    "line": 2,
+    "char": "xu",
+    "name": "許許",
+    "text": "已轉專人！",
+    "voice": "Lee Ting Ting - Young, Gentle and Sweet",
+    "sent": "[polite, bright, shouting] 已轉專人！",
+    "files": {
+     "a": {
+      "file": "unite_u_ticket_2a.mp3",
+      "len": 1.0,
+      "whisper": "移轉專人"
+     },
+     "b": {
+      "file": "unite_u_ticket_2b.mp3",
+      "len": 1.1,
+      "whisper": "移轉專人"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版都聽成「移轉專人」（已 yǐ／移 yí 聲調差），a 比較短"
+   }
+  ],
+  "u_carry": [
+   {
+    "line": 1,
+    "char": "cha",
+    "name": "茶茶",
+    "text": "來，我們聊聊～",
+    "voice": "Lulu - Cute Little Witch",
+    "sent": "[sweet, coaxing] 來，我們聊聊～",
+    "files": {
+     "a": {
+      "file": "unite_u_carry_1a.mp3",
+      "len": 1.56,
+      "whisper": "來,我們聊聊"
+     },
+     "b": {
+      "file": "unite_u_carry_1b.mp3",
+      "len": 1.72,
+      "whisper": "來,我們聊聊"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版字都對；b 在「來，」後面停了 0.34 秒，a 比較緊湊"
+   },
+   {
+    "line": 2,
+    "char": "qiang",
+    "name": "阿強",
+    "text": "我來扛！",
+    "voice": "YCHuang - Warm & Storytelling",
+    "sent": "[fired up, shouting loudly] 我來扛！",
+    "files": {
+     "a": {
+      "file": "unite_u_carry_2a.mp3",
+      "len": 0.94,
+      "whisper": "我來扛"
+     },
+     "b": {
+      "file": "unite_u_carry_2b.mp3",
+      "len": 0.93,
+      "whisper": "我來扛"
+     }
+    },
+    "recommend": "b",
+    "note": "兩版字都對；b 音高稍高、聲音比較飽"
+   }
+  ],
+  "u_stamp": [
+   {
+    "line": 1,
+    "char": "you",
+    "name": "老油條",
+    "text": "摸個魚而已。",
+    "voice": "Joe Chen - Chill",
+    "sent": "[lazy, drawling] 摸個魚而已。",
+    "files": {
+     "a": {
+      "file": "unite_u_stamp_1a.mp3",
+      "len": 1.82,
+      "whisper": "摸个鱼而已"
+     },
+     "b": {
+      "file": "unite_u_stamp_1b.mp3",
+      "len": 1.92,
+      "whisper": "摸个鱼而已"
+     }
+    },
+    "recommend": "b",
+    "note": "兩版字都對；b 稍慢，比較懶洋洋"
+   },
+   {
+    "line": 2,
+    "char": "senpai",
+    "name": "學姊",
+    "text": "也有時間戳。",
+    "voice": "Tiffy - Taiwanese Bilingual Narrator",
+    "sent": "[calm, crisp] 也有時間戳。",
+    "files": {
+     "a": {
+      "file": "unite_u_stamp_2a.mp3",
+      "len": 1.23,
+      "whisper": "也有時間戳"
+     },
+     "b": {
+      "file": "unite_u_stamp_2b.mp3",
+      "len": 1.22,
+      "whisper": "也有时间戳"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版接近，選 a"
+   }
+  ],
+  "u_approve": [
+   {
+    "line": 1,
+    "char": "vivi",
+    "name": "Vivi",
+    "text": "本公主，核准。",
+    "voice": "Hsin-Yi - Chic and Confident",
+    "sent": "[regal, haughty, composed] 本公主，核准。",
+    "files": {
+     "a": {
+      "file": "unite_u_approve_1a.mp3",
+      "len": 1.67,
+      "whisper": "本公主何准?"
+     },
+     "b": {
+      "file": "unite_u_approve_1b.mp3",
+      "len": 1.66,
+      "whisper": "本公主何准"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版都聽成同音的「何准」（不算錯），長度一樣，選 a"
+   },
+   {
+    "line": 2,
+    "char": "heilun",
+    "name": "黑輪",
+    "text": "業務買單！",
+    "voice": "Bose - Taiwanese Accent",
+    "sent": "[slick, smooth-talking, shouting] 業務買單！",
+    "files": {
+     "a": {
+      "file": "unite_u_approve_2a.mp3",
+      "len": 1.45,
+      "whisper": "業務擺單"
+     },
+     "b": {
+      "file": "unite_u_approve_2b.mp3",
+      "len": 1.28,
+      "whisper": "业务百单"
+     }
+    },
+    "recommend": "a",
+    "note": "有疑慮：兩版都被聽成「擺單／百單」，「買」可能唸得像「擺」。照指示重生一次（加 clear articulation, slightly slower），結果變成 2.9 秒、唸兩次、還是聽成「百擔」，比原本差，所以不採用，保留原本兩版；a 被聽成「擺單」最接近，請用耳朵確認",
+    "retake": {
+     "sent": "[slick, smooth-talking, shouting, clear articulation, slightly slower] 業務買單！",
+     "result": "兩版 2.9 秒、都聽成「业务百担」唸兩次，沒採用"
+    }
+   }
+  ],
+  "u_mc": [
+   {
+    "line": 1,
+    "char": "wu",
+    "name": "小蝶",
+    "text": "再加碼一輪！",
+    "voice": "Vivian - Taiwanese Social Media",
+    "sent": "[hyped, shouting] 再加碼一輪！",
+    "files": {
+     "a": {
+      "file": "unite_u_mc_1a.mp3",
+      "len": 1.26,
+      "whisper": "再加碼一輪"
+     },
+     "b": {
+      "file": "unite_u_mc_1b.mp3",
+      "len": 1.49,
+      "whisper": "再加碼一輪"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版字都對；a 比較短、乾脆"
+   },
+   {
+    "line": 2,
+    "char": "cha",
+    "name": "茶茶",
+    "text": "主持人不要再加碼～",
+    "voice": "Lulu - Cute Little Witch",
+    "sent": "[sweet, whiny] 主持人不要再加碼～",
+    "files": {
+     "a": {
+      "file": "unite_u_mc_2a.mp3",
+      "len": 2.31,
+      "whisper": "主持人不要在家嘛"
+     },
+     "b": {
+      "file": "unite_u_mc_2b.mp3",
+      "len": 2.36,
+      "whisper": "主持人不要在家嘛"
+     }
+    },
+    "recommend": "b",
+    "note": "兩版都聽成「主持人不要在家嘛」（再加碼→在家嘛，可能尾字唸得輕），b 音高稍高、比較甜，請用耳朵確認「加碼」"
+   }
+  ],
+  "u_extinguish": [
+   {
+    "line": 1,
+    "char": "zhe",
+    "name": "阿哲",
+    "text": "滅火器借我一下！",
+    "voice": "Chen - 23 years old Male",
+    "sent": "[fired up, shouting loudly] 滅火器借我一下！",
+    "files": {
+     "a": {
+      "file": "unite_u_extinguish_1a.mp3",
+      "len": 1.52,
+      "whisper": "滅火器借我一下"
+     },
+     "b": {
+      "file": "unite_u_extinguish_1b.mp3",
+      "len": 1.4,
+      "whisper": "滅火器借我一下"
+     }
+    },
+    "recommend": "b",
+    "note": "兩版字都對；b 比較短"
+   },
+   {
+    "line": 2,
+    "char": "an",
+    "name": "小安",
+    "text": "用完歸位。",
+    "voice": "Jadestone - Podcast & Storytelling",
+    "sent": "[calm, crisp] 用完歸位。",
+    "files": {
+     "a": {
+      "file": "unite_u_extinguish_2a.mp3",
+      "len": 1.0,
+      "whisper": "用完歸位"
+     },
+     "b": {
+      "file": "unite_u_extinguish_2b.mp3",
+      "len": 1.0,
+      "whisper": "用完歸位"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版接近，選 a"
+   }
+  ],
+  "u_rebuild": [
+   {
+    "line": 1,
+    "char": "jie",
+    "name": "阿傑",
+    "text": "午夜前——",
+    "voice": "Neil Chuang - Deep, Trustworthy and Rich",
+    "sent": "[low, cold, menacing] 午夜前——",
+    "files": {
+     "a": {
+      "file": "unite_u_rebuild_1a.mp3",
+      "len": 1.36,
+      "whisper": "午夜前 午夜前（剪前）→ 剪後：午夜前"
+     },
+     "b": {
+      "file": "unite_u_rebuild_1b.mp3",
+      "len": 1.2,
+      "whisper": "午夜前 午夜前（剪前）→ 剪後：午夜前"
+     }
+    },
+    "recommend": "a",
+    "note": "兩版原本都把「午夜前——」唸了兩次，已剪成只留第一次；a 長一點，比較有拖長的殺氣"
+   },
+   {
+    "line": 2,
+    "char": "fairy",
+    "name": "鼠仙女",
+    "text": "全部重建～",
+    "voice": "Kurumin - Cute Japanese Anime",
+    "sent": "[sweet magic spell] 全部重建～",
+    "files": {
+     "a": {
+      "file": "unite_u_rebuild_2a.mp3",
+      "len": 1.4,
+      "whisper": "全部統計"
+     },
+     "b": {
+      "file": "unite_u_rebuild_2b.mp3",
+      "len": 1.35,
+      "whisper": "全部造形"
+     }
+    },
+    "recommend": "a",
+    "note": "有問題：「重建」兩版被聽成「統計」「造形」，日本口音音色唸不準。加 clear articulation 重生一次，兩版還是聽成「造形」，照規則不再重試、沒採用重生版，保留原本兩版；a 音高較高（約 400 Hz）。建議用耳朵聽，不行的話考慮改字或換音色",
+    "retake": {
+     "sent": "[sweet magic spell, clear articulation] 全部重建～",
+     "result": "兩版都聽成「全部造形」，沒採用"
+    }
+   }
+  ]
+ },
+ "concerns": [
+  "u_rebuild_2（鼠仙女「全部重建～」）：重建唸不準，重生一次也一樣，已跳過",
+  "u_approve_2（黑輪「業務買單！」）：買聽成擺，重生一次更差，保留原版",
+  "u_mc_2（茶茶「主持人不要再加碼～」）：「加碼」被聽成「家嘛」",
+  "u_final_2b、u_rebuild_1a/1b：原本唸兩次，已剪掉重複",
+  "u_sign_2a：聽成「再開」，建議用 b"
+ ]
+}
